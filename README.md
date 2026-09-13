@@ -30,7 +30,7 @@
 ## 📲 Come Installarla
 
 ### 1. Download App Android (APK)
-Puoi scaricare l'applicazione nativa Android (`StudyPlanner_1_2.apk`)[span_0](start_span)[span_0](end_span) direttamente dal repository:
+Puoi scaricare l'applicazione nativa Android (`StudyPlanner.apk`) direttamente dal repository:
 1. Visita la pagina delle **[Releases](https://github.com/tommasomurador-png/StudyPlanner/releases/latest)**.
 2. Scarica l'ultima versione del file `.apk` disponibile.
 3. Aprilo sul tuo smartphone Android per procedere con l'installazione (abilitando, se richiesto, l'installazione da origini sconosciute).
