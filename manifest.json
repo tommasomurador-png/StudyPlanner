@@ -11,6 +11,12 @@
       "sizes": "512x512",
       "type": "image/jpeg",
       "purpose": "any maskable"
+    },
+    {
+      "src": "1790418729575_cutout.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
