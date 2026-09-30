@@ -606,6 +606,25 @@
         }
         .input-row { display: flex; gap: 10px; }
 
+        .task-subject-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(128, 128, 128, 0.12);
+            border: 1px solid var(--border-color);
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--theme-strong);
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .task-subject-tag i {
+            font-size: 0.72rem;
+            opacity: 0.85;
+        }
+
         .theme-transition-overlay {
             position: fixed;
             top: 0;

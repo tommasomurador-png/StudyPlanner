@@ -1,4 +1,4 @@
-﻿    function generateId() { return Math.random().toString(36).substr(2, 9); }
+    function generateId() { return Math.random().toString(36).substr(2, 9); }
     function formatDateStr(dateObj) { return `${dateObj.getFullYear()}-${(dateObj.getMonth()+1).toString().padStart(2, '0')}-${dateObj.getDate().toString().padStart(2, '0')}`; }
 
     let globalNow = new Date();
@@ -251,6 +251,65 @@
         return pickerObj;
     }
 
+    const subjectIconMap = {
+        'matematica': 'fa-solid fa-calculator',
+        'fisica': 'fa-solid fa-atom',
+        'scienze motorie': 'fa-solid fa-person-running',
+        'ed. fisica': 'fa-solid fa-person-running',
+        'educazione fisica': 'fa-solid fa-person-running',
+        'ginnastica': 'fa-solid fa-person-running',
+        'arte': 'fa-solid fa-palette',
+        'storia dell\'arte': 'fa-solid fa-palette',
+        'latino': 'fa-solid fa-landmark',
+        'greco': 'fa-solid fa-scroll',
+        'italiano': 'fa-solid fa-book-open',
+        'storia': 'fa-solid fa-hourglass-half',
+        'scienze': 'fa-solid fa-flask',
+        'biologia': 'fa-solid fa-dna',
+        'chimica': 'fa-solid fa-flask-vial',
+        'ed. civica': 'fa-solid fa-scale-balanced',
+        'educazione civica': 'fa-solid fa-scale-balanced',
+        'civica': 'fa-solid fa-scale-balanced',
+        'diritto': 'fa-solid fa-gavel',
+        'economia': 'fa-solid fa-chart-line',
+        'inglese': 'fa-solid fa-earth-americas',
+        'francese': 'fa-solid fa-earth-europe',
+        'spagnolo': 'fa-solid fa-earth-americas',
+        'tedesco': 'fa-solid fa-earth-europe',
+        'lingue': 'fa-solid fa-language',
+        'igcse': 'fa-solid fa-graduation-cap',
+        'cdm': 'fa-solid fa-shapes',
+        'filosofia': 'fa-solid fa-brain',
+        'geografia': 'fa-solid fa-globe',
+        'informatica': 'fa-solid fa-laptop-code',
+        'musica': 'fa-solid fa-music',
+        'religione': 'fa-solid fa-hands-praying',
+        'disegno': 'fa-solid fa-compass-drafting',
+        'tecnologia': 'fa-solid fa-microchip',
+        'verifica': 'fa-solid fa-pen-to-square',
+        'interrogazione': 'fa-solid fa-comments',
+        'presentazione': 'fa-solid fa-person-chalkboard',
+        'versione': 'fa-solid fa-pen-fancy'
+    };
+
+    function cleanSubjectName(name) {
+        if (!name) return '';
+        return name
+            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2300}-\u{23FF}\u{2B50}\u{200D}\u{FE0F}]/gu, '')
+            .trim();
+    }
+
+    function getSubjectIcon(subjectName) {
+        if (!subjectName) return 'fa-solid fa-book';
+        const clean = cleanSubjectName(subjectName).toLowerCase();
+        for (const [key, icon] of Object.entries(subjectIconMap)) {
+            if (clean === key || clean.includes(key)) {
+                return icon;
+            }
+        }
+        return 'fa-solid fa-book';
+    }
+
     function initOptionPopover(containerId, options = {}) {
         const container = document.getElementById(containerId);
         if (!container) return null;
@@ -259,6 +318,7 @@
         let currentItem = options.defaultItem || (items[0] || "");
         let onChange = options.onChange || function(){};
         let iconClass = options.icon || "fa-solid fa-list";
+        let isSubject = options.isSubject || false;
 
         container.innerHTML = `
             <div class="popover-container" id="pop_opt_wrap_${containerId}">
@@ -276,16 +336,36 @@
         const contentDiv = document.getElementById(`pop_opt_content_${containerId}`);
         const gridDiv = document.getElementById(`pop_opt_grid_${containerId}`);
 
+        function updateTriggerDisplay() {
+            const txt = document.getElementById(`pop_opt_text_${containerId}`);
+            if (txt) {
+                const itemIcon = isSubject ? getSubjectIcon(currentItem) : (subjectIconMap[currentItem.toLowerCase()] || null);
+                const iconHtml = itemIcon ? `<i class="${itemIcon}" style="margin-right: 8px; opacity: 0.85;"></i>` : '';
+                txt.innerHTML = `${iconHtml}${currentItem}`;
+            }
+        }
+
         function renderOptions() {
             gridDiv.innerHTML = '';
             items.forEach(it => {
                 const isSelected = it === currentItem;
-                gridDiv.innerHTML += `
-                    <div class="option-selector-btn ${isSelected ? 'selected' : ''}" onclick="window.optionPickers['${containerId}'].selectOption('${it}')">
+                const btn = document.createElement('div');
+                btn.className = `option-selector-btn ${isSelected ? 'selected' : ''}`;
+                const itemIcon = isSubject ? getSubjectIcon(it) : (subjectIconMap[it.toLowerCase()] || null);
+                const iconHtml = itemIcon ? `<i class="${itemIcon}" style="margin-right: 8px; width: 16px; text-align: center; opacity: 0.85;"></i>` : '';
+                
+                btn.innerHTML = `
+                    <div style="display: flex; align-items: center;">
+                        ${iconHtml}
                         <span>${it}</span>
-                        ${isSelected ? '<i class="fa-solid fa-check"></i>' : ''}
                     </div>
+                    ${isSelected ? '<i class="fa-solid fa-check"></i>' : ''}
                 `;
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    pickerObj.selectOption(it);
+                });
+                gridDiv.appendChild(btn);
             });
         }
 
@@ -295,16 +375,14 @@
             getValue: () => currentItem,
             setValue: (val) => {
                 currentItem = val;
-                const txt = document.getElementById(`pop_opt_text_${containerId}`);
-                if (txt) txt.innerText = currentItem;
+                updateTriggerDisplay();
                 renderOptions();
                 onChange(currentItem);
             },
             setItems: (newItems) => {
                 items = newItems;
                 if (!items.includes(currentItem)) currentItem = items[0] || '';
-                const txt = document.getElementById(`pop_opt_text_${containerId}`);
-                if (txt) txt.innerText = currentItem;
+                updateTriggerDisplay();
                 renderOptions();
             }
         };
@@ -313,7 +391,7 @@
 
         pickerObj.selectOption = function(val) {
             currentItem = val;
-            document.getElementById(`pop_opt_text_${containerId}`).innerText = currentItem;
+            updateTriggerDisplay();
             contentDiv.classList.remove('active');
             renderOptions();
             onChange(currentItem);
@@ -335,6 +413,7 @@
             }
         });
 
+        updateTriggerDisplay();
         renderOptions();
         return pickerObj;
     }
@@ -364,7 +443,10 @@
     let manageInterrogazioneDates = [];
 
     const defaultSubjects = ["Matematica", "Fisica", "Scienze motorie", "Arte", "Latino", "Italiano", "Storia", "Scienze", "Ed. Civica", "Inglese", "IGCSE", "CDM"];
-    let userSubjects = JSON.parse(localStorage.getItem('studylog_subjects') || JSON.stringify(defaultSubjects));
+    let rawLoadedSubjects = JSON.parse(localStorage.getItem('studylog_subjects') || JSON.stringify(defaultSubjects));
+    let userSubjects = rawLoadedSubjects.map(s => cleanSubjectName(s)).filter(s => s && s.length > 0);
+    if (userSubjects.length === 0) userSubjects = [...defaultSubjects];
+    localStorage.setItem('studylog_subjects', JSON.stringify(userSubjects));
 
     function initAllDatePickers() {
         todoDatePicker = initPopoverDatePicker('todo-date-popover-container', {
@@ -424,19 +506,22 @@
         todoSubjectPicker = initOptionPopover('todo-subject-popover-container', {
             items: userSubjects,
             defaultItem: userSubjects[0] || 'Matematica',
-            icon: 'fa-solid fa-book-bookmark'
+            icon: 'fa-solid fa-book-bookmark',
+            isSubject: true
         });
 
         editTodoSubjectPicker = initOptionPopover('edit-todo-subject-popover-container', {
             items: userSubjects,
             defaultItem: userSubjects[0] || 'Matematica',
-            icon: 'fa-solid fa-book-bookmark'
+            icon: 'fa-solid fa-book-bookmark',
+            isSubject: true
         });
 
         examSubjectPicker = initOptionPopover('exam-subject-popover-container', {
             items: userSubjects,
             defaultItem: userSubjects[0] || 'Matematica',
             icon: 'fa-solid fa-book-bookmark',
+            isSubject: true,
             onChange: (sub) => {
                 updateExamTypesForSubject(sub);
                 updateExamInputLabel();
@@ -591,8 +676,10 @@
         if (!container) return;
         container.innerHTML = '';
         userSubjects.forEach((sub, index) => {
+            const icon = getSubjectIcon(sub);
             container.innerHTML += `
                 <div class="subject-tag-chip">
+                    <i class="${icon}" style="font-size: 0.85rem; opacity: 0.85;"></i>
                     <span>${sub}</span>
                     <button type="button" class="remove-tag" onclick="removeSubjectTag(${index})"><i class="fa-solid fa-xmark"></i></button>
                 </div>
@@ -602,7 +689,8 @@
 
     window.addSubjectFromSettings = function() {
         const input = document.getElementById('settings-subject-input');
-        const val = input.value.trim();
+        const rawVal = input.value.trim();
+        const val = cleanSubjectName(rawVal);
         if (val) {
             if (!userSubjects.map(s => s.toLowerCase()).includes(val.toLowerCase())) {
                 userSubjects.push(val);
@@ -614,7 +702,7 @@
                 if (examSubjectPicker) examSubjectPicker.setItems(userSubjects);
                 showToast("Materia aggiunta!");
             } else {
-                customAlert("Questa materia Ã¨ giÃ  presente nella lista!", "Materia esistente");
+                customAlert("Questa materia è già presente nella lista!", "Materia esistente");
             }
         }
     }
@@ -668,13 +756,15 @@
         if (iconEl && textEl) {
             if (savedTheme === 'dark') {
                 iconEl.className = "fa-solid fa-moon";
-                textEl.innerText = "ModalitÃ  Scura";
+                textEl.innerText = "Modalità Scura";
             } else {
                 iconEl.className = "fa-solid fa-sun";
-                textEl.innerText = "ModalitÃ  Chiara";
+                textEl.innerText = "Modalità Chiara";
             }
         }
         updateNotificationBellUI();
+        renderSettingsSubjectTags();
+        if (typeof updateWidgetSettingsUI === 'function') updateWidgetSettingsUI();
     }
 
     window.toggleAppTheme = function(event) {
@@ -752,7 +842,7 @@
                 window.AndroidNative.requestNotificationPermission();
             }
             showToast("Notifiche Android collegate!");
-            sendLocalNotification("Study Planner ðŸ“š", "Le notifiche sono configurate e operative correttamente!");
+            sendLocalNotification("Study Planner", "Le notifiche sono configurate e operative correttamente!");
             updateNotificationBellUI();
             return;
         }
@@ -764,7 +854,7 @@
 
         if (Notification.permission === "granted") {
             showToast("Le notifiche sono giÃ  attive!");
-            sendLocalNotification("Study Planner ðŸ“š", "Le notifiche sono configurate e operative correttamente!");
+            sendLocalNotification("Study Planner", "Le notifiche sono configurate e operative correttamente!");
         } else if (Notification.permission === "denied") {
             customAlert("Hai bloccato le notifiche in precedenza. Sblocca i permessi dalle impostazioni del browser.", "Permessi negati", true);
         } else {
@@ -772,7 +862,7 @@
                 updateNotificationBellUI();
                 if (permission === "granted") {
                     showToast("Notifiche attivate con successo!");
-                    sendLocalNotification("Study Planner ðŸŽ‰", "Grazie per aver attivato le notifiche! Ti ricorderemo di studiare.");
+                    sendLocalNotification("Study Planner", "Grazie per aver attivato le notifiche! Ti ricorderemo di studiare.");
                     checkAndSendSmartNotification();
                 } else {
                     showToast("Permesso negato.", true);
@@ -832,7 +922,7 @@
         if (completedCount === actionableTasks.length) {
             if (!todayHistory.completedSent) {
                 let randomPraise = getRandomItem(completedPhrases);
-                sendLocalNotification("Study Planner ðŸŽ‰", randomPraise);
+                sendLocalNotification("Study Planner", randomPraise);
                 todayHistory.completedSent = true;
                 notifHistory[todayDateStr] = todayHistory;
                 localStorage.setItem('studylog_notif_history', JSON.stringify(notifHistory));
@@ -840,7 +930,7 @@
         } else {
             if (nowTime - (todayHistory.lastMsgTime || 0) >= threeHoursMs) {
                 let randomMotivation = getRandomItem(motivationalPhrases);
-                sendLocalNotification("Study Planner ðŸ“š", randomMotivation);
+                sendLocalNotification("Study Planner", randomMotivation);
                 todayHistory.lastMsgTime = nowTime;
                 notifHistory[todayDateStr] = todayHistory;
                 localStorage.setItem('studylog_notif_history', JSON.stringify(notifHistory));
@@ -1373,7 +1463,7 @@
 
         if (exam.type === 'Versione') {
             if (tDate.getTime() === eDate.getTime()) {
-                return { type: 'EXAM', title: `âš  PROVA: Versione di ${exam.subject}` };
+                return { type: 'EXAM', title: `PROVA: Versione` };
             }
             let validDates = [];
             let curr = new Date(sDate);
@@ -1401,7 +1491,7 @@
             }
 
             if (assignedVersionDays.includes(targetDateStr)) {
-                return { type: 'VERSION', title: `âœ Versione di Prova: ${exam.subject}`, amount: 1 };
+                return { type: 'VERSION', title: `Versione di Prova`, amount: 1 };
             }
             return null;
         }
@@ -1410,7 +1500,7 @@
             let intDates = [...exam.specificInterrogazioneDates].sort();
 
             if (intDates.includes(targetDateStr)) {
-                return { type: 'EXAM', title: `âš  POSSIBILE INTERROGAZIONE: ${exam.subject}` };
+                return { type: 'EXAM', title: `POSSIBILE INTERROGAZIONE` };
             }
 
             let firstDateStr = intDates[0];
@@ -1437,7 +1527,7 @@
                 if (targetIdx === -1) return null;
 
                 if (targetIdx >= studyDaysCount) {
-                    return { type: 'FINAL_REVIEW', title: `ðŸ“š RIPASSO FINALE: ${exam.subject}`, desc: `Ripassa tutto il programma in vista dell'interrogazione del ${formatDateShort(firstDateStr)}` };
+                    return { type: 'FINAL_REVIEW', title: `RIPASSO FINALE`, desc: `Ripassa tutto il programma in vista dell'interrogazione del ${formatDateShort(firstDateStr)}` };
                 }
 
                 let basePagesPerDay = Math.floor(totalPages / studyDaysCount);
@@ -1445,7 +1535,7 @@
                 let daily = basePagesPerDay + (targetIdx < remainder ? 1 : 0);
                 if (daily < 1) daily = 1;
 
-                return { type: 'STUDY', title: `ðŸ“– Studio (in vista di ${formatDateShort(firstDateStr)}): ${exam.subject}`, pages: daily };
+                return { type: 'STUDY', title: `Studio (in vista di ${formatDateShort(firstDateStr)})`, pages: daily };
             } 
             else {
                 let nextExamDateStr = intDates.find(d => new Date(d).getTime() > tDate.getTime());
@@ -1462,7 +1552,7 @@
                     let pagesPart = Math.ceil(exam.pages / reviewDaysNeeded);
                     return { 
                         type: 'INTER_REVIEW', 
-                        title: `ðŸ”„ Ripasso Interrogazione: ${exam.subject}`, 
+                        title: `Ripasso Interrogazione`, 
                         desc: `Sessione ${reviewDaysNeeded - diffDays + 1} di ${reviewDaysNeeded} (~${pagesPart} pag.) in vista del ${formatDateShort(nextExamDateStr)}` 
                     };
                 }
@@ -1472,11 +1562,11 @@
 
         const isPractice = (lowerSub.includes('matematica') || lowerSub.includes('fisica'));
         if (isPractice) {
-            if (tDate.getTime() === eDate.getTime()) return { type: 'EXAM', title: `âš  PROVA: ${exam.subject}` };
-            return { type: 'PRACTICE', title: `ðŸ“ Esercizi: ${exam.subject}`, amount: exam.pages };
+            if (tDate.getTime() === eDate.getTime()) return { type: 'EXAM', title: `PROVA: ${exam.type || 'Scritta'}` };
+            return { type: 'PRACTICE', title: `Esercizi`, amount: exam.pages };
         }
 
-        if (tDate.getTime() === eDate.getTime()) return { type: 'EXAM', title: `âš  PROVA: ${exam.subject}` };
+        if (tDate.getTime() === eDate.getTime()) return { type: 'EXAM', title: `PROVA: ${exam.type || 'Scritta'}` };
 
         let validDates = [];
         let curr = new Date(sDate);
@@ -1494,7 +1584,7 @@
         let phase1Count = Math.max(1, N - finalReviewCount);
 
         if (targetIndex >= phase1Count) { 
-            return { type: 'FINAL_REVIEW', title: `ðŸ“š RIPASSO FINALE: ${exam.subject}`, desc: `Ripassa tutto il programma in vista della prova` }; 
+            return { type: 'FINAL_REVIEW', title: `RIPASSO FINALE`, desc: `Ripassa tutto il programma in vista della prova` }; 
         }
 
         let totalPages = exam.pages || 1;
@@ -1503,7 +1593,7 @@
         let dailyPace = basePerDay + (targetIndex < rem ? 1 : 0);
         if (dailyPace < 1) dailyPace = 1;
 
-        return { type: 'STUDY', title: `ðŸ“– STUDIO: ${exam.subject}`, pages: dailyPace };
+        return { type: 'STUDY', title: `STUDIO`, pages: dailyPace };
     }
 
     function formatDateShort(dStr) {
@@ -1545,19 +1635,19 @@
             let loggedToday = exam.progress[dateStr] || 0;
 
             if (info.type === 'EXAM') { 
-                dailyTasks.push({ _id: exam.id, isExamDay: true, title: info.title, priority: 3, isExamRelated: true }); 
+                dailyTasks.push({ _id: exam.id, isExamDay: true, title: info.title, subject: exam.subject, priority: 3, isExamRelated: true }); 
             } 
             else if (info.type === 'FINAL_REVIEW' || info.type === 'INTER_REVIEW') { 
-                dailyTasks.push({ _id: exam.id, isExamReview: true, title: info.title, desc: info.desc || '', priority: 3, isExamRelated: true, isExamStudyObj: true }); 
+                dailyTasks.push({ _id: exam.id, isExamReview: true, title: info.title, subject: exam.subject, desc: info.desc || '', priority: 3, isExamRelated: true, isExamStudyObj: true }); 
             } 
             else if (info.type === 'STUDY') { 
-                dailyTasks.push({ _id: exam.id, isExamStudy: true, title: info.title, priority: 3, desc: isDoneToday ? `Fatto: ${loggedToday} pag.` : `Obiettivo di oggi: ${info.pages} pag.`, pagesSuggested: info.pages, isDone: isDoneToday, loggedPages: loggedToday, isExamRelated: true, isExamStudyObj: true }); 
+                dailyTasks.push({ _id: exam.id, isExamStudy: true, title: info.title, subject: exam.subject, priority: 3, desc: isDoneToday ? `Fatto: ${loggedToday} pag.` : `Obiettivo di oggi: ${info.pages} pag.`, pagesSuggested: info.pages, isDone: isDoneToday, loggedPages: loggedToday, isExamRelated: true, isExamStudyObj: true }); 
             }
             else if (info.type === 'PRACTICE') { 
-                dailyTasks.push({ _id: exam.id, isExamStudy: true, title: info.title, priority: 3, desc: isDoneToday ? `Fatto: ${loggedToday} es.` : `Obiettivo fisso: ${info.amount} es.`, pagesSuggested: info.amount, isDone: isDoneToday, loggedPages: loggedToday, isPractice: true, isExamRelated: true, isExamStudyObj: true }); 
+                dailyTasks.push({ _id: exam.id, isExamStudy: true, title: info.title, subject: exam.subject, priority: 3, desc: isDoneToday ? `Fatto: ${loggedToday} es.` : `Obiettivo fisso: ${info.amount} es.`, pagesSuggested: info.amount, isDone: isDoneToday, loggedPages: loggedToday, isPractice: true, isExamRelated: true, isExamStudyObj: true }); 
             }
             else if (info.type === 'VERSION') {
-                dailyTasks.push({ _id: exam.id, isExamStudy: true, isVersion: true, title: info.title, priority: 3, desc: isDoneToday ? `Completata: ${loggedToday} versione` : `Oggi: svolgi 1 versione di prova`, pagesSuggested: 1, isDone: isDoneToday, loggedPages: loggedToday, isExamRelated: true, isExamStudyObj: true });
+                dailyTasks.push({ _id: exam.id, isExamStudy: true, isVersion: true, title: info.title, subject: exam.subject, priority: 3, desc: isDoneToday ? `Completata: ${loggedToday} versione` : `Oggi: svolgi 1 versione di prova`, pagesSuggested: 1, isDone: isDoneToday, loggedPages: loggedToday, isExamRelated: true, isExamStudyObj: true });
             }
         });
         
@@ -1569,6 +1659,9 @@
         document.getElementById('today-title').innerHTML = (dateStr === todayDateStr) ? "Oggi: Da fare" : "Piano Studio";
         container.innerHTML = '';
         const dailyTasks = getTasksForDate(dateStr);
+        if (dateStr === todayDateStr) {
+            syncAndroidWidget();
+        }
         if (dailyTasks.length === 0) { 
             container.innerHTML = `<div style="text-align:center; padding: 40px 0;"><h3 style="color:var(--text-muted); font-weight:500;">Nessun task in programma</h3></div>`; 
             return; 
@@ -1581,8 +1674,9 @@
             let isTextCrossed = isDoneClass || (task.isExamStudy && task.isDone);
             
             let displayTitle = task.title;
-            if (task.isNormalTodo && task.subject) {
-                displayTitle = `<span style="text-decoration: underline; font-weight: 600; color: var(--theme-strong);">${task.subject}</span> :: ${task.title}`;
+            if (task.subject) {
+                const subIcon = getSubjectIcon(task.subject);
+                displayTitle = `<span class="task-subject-tag"><i class="${subIcon}"></i> ${task.subject}</span> ${task.title}`;
             }
 
             let diffHtml = '';
@@ -1723,29 +1817,123 @@
             delete completedTasks[setKey]; el.classList.remove('done'); localStorage.setItem('studylog_completed', JSON.stringify(completedTasks)); 
             addXP(-15); calculateStreak(); updateDashboard(); updateAllDots(); updateWeekSliderVisuals(selectedDateStr); generateTasksForDate(selectedDateStr); renderStreakCalendar(); renderMonthCalendar(); 
             checkAndSendSmartNotification();
+            syncAndroidWidget();
             return; 
         }
         
         completedTasks[setKey] = true; el.classList.add('done'); localStorage.setItem('studylog_completed', JSON.stringify(completedTasks)); 
         playTone(); addXP(15); calculateStreak(); updateDashboard(); updateAllDots(); updateWeekSliderVisuals(selectedDateStr); generateTasksForDate(selectedDateStr); renderStreakCalendar(); renderMonthCalendar();
         checkAndSendSmartNotification();
+        syncAndroidWidget();
     }
+
+    let currentWidgetTheme = localStorage.getItem('studylog_widget_theme') || 'dark';
+    let currentWidgetTransparency = parseInt(localStorage.getItem('studylog_widget_transparency') || '0');
+
+    window.setWidgetTheme = function(theme) {
+        currentWidgetTheme = theme;
+        localStorage.setItem('studylog_widget_theme', theme);
+        updateWidgetSettingsUI();
+        if (window.AndroidNative && typeof window.AndroidNative.setWidgetSettings === 'function') {
+            window.AndroidNative.setWidgetSettings(currentWidgetTheme, currentWidgetTransparency);
+        }
+        syncAndroidWidget();
+        showToast(`Widget impostato su: ${theme === 'dark' ? 'Scuro' : 'Chiaro'}`);
+    };
+
+    window.setWidgetTransparency = function(pct) {
+        currentWidgetTransparency = pct;
+        localStorage.setItem('studylog_widget_transparency', pct.toString());
+        updateWidgetSettingsUI();
+        if (window.AndroidNative && typeof window.AndroidNative.setWidgetSettings === 'function') {
+            window.AndroidNative.setWidgetSettings(currentWidgetTheme, currentWidgetTransparency);
+        }
+        syncAndroidWidget();
+        showToast(`Trasparenza widget: ${pct}%`);
+    };
+
+    function updateWidgetSettingsUI() {
+        const btnDark = document.getElementById('btn-widget-theme-dark');
+        const btnLight = document.getElementById('btn-widget-theme-light');
+        if (btnDark && btnLight) {
+            btnDark.classList.toggle('selected', currentWidgetTheme === 'dark');
+            btnLight.classList.toggle('selected', currentWidgetTheme === 'light');
+        }
+        [0, 30, 60, 100].forEach(p => {
+            const btn = document.getElementById(`btn-widget-trans-${p}`);
+            if (btn) {
+                btn.classList.toggle('selected', currentWidgetTransparency === p);
+            }
+        });
+    }
+
+    window.syncFromNativeWidget = function(completedJsonStr) {
+        if (!completedJsonStr) return;
+        try {
+            const nativeCompleted = typeof completedJsonStr === 'string' ? JSON.parse(completedJsonStr) : completedJsonStr;
+            let changed = false;
+            for (const [key, val] of Object.entries(nativeCompleted)) {
+                if (completedTasks[key] !== val) {
+                    if (val) {
+                        completedTasks[key] = true;
+                    } else {
+                        delete completedTasks[key];
+                    }
+                    changed = true;
+                }
+            }
+            if (changed) {
+                localStorage.setItem('studylog_completed', JSON.stringify(completedTasks));
+                calculateStreak();
+                updateDashboard();
+                updateAllDots();
+                updateWeekSliderVisuals(selectedDateStr);
+                generateTasksForDate(selectedDateStr);
+                renderStreakCalendar();
+                renderMonthCalendar();
+            }
+        } catch(e) {
+            console.warn('syncFromNativeWidget error:', e);
+        }
+    };
 
     function syncAndroidWidget() {
         try {
-            if (window.AndroidNative && typeof window.AndroidNative.updateWidgetData === 'function') {
+            if (window.AndroidNative) {
                 const todayTasks = getTasksForDate(todayDateStr).filter(t => !t.isExamDay);
-                const pendingTasks = todayTasks.filter(t => !t.isDone && !completedTasks[`${todayDateStr}_${t._id}`]);
-                let summaryText = "";
-                if (todayTasks.length === 0) {
-                    summaryText = "Nessuna task per oggi! ðŸŽ‰";
-                } else if (pendingTasks.length === 0) {
-                    summaryText = "Tutte le task completate! ðŸ†";
-                } else {
-                    const firstSub = pendingTasks[0].subject || "Studio";
-                    summaryText = `${pendingTasks.length} task da completare (${firstSub})`;
+                const widgetTasks = todayTasks.map(t => {
+                    const setKey = `${todayDateStr}_${t._id}`;
+                    const cleanSub = t.subject ? cleanSubjectName(t.subject) : '';
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = t.title || '';
+                    const cleanTitle = tempDiv.textContent || tempDiv.innerText || t.title;
+
+                    return {
+                        id: t._id,
+                        setKey: setKey,
+                        title: cleanTitle,
+                        subject: cleanSub,
+                        isDone: !!(completedTasks[setKey] || t.isDone)
+                    };
+                });
+
+                if (typeof window.AndroidNative.updateWidgetTasks === 'function') {
+                    window.AndroidNative.updateWidgetTasks(JSON.stringify(widgetTasks), JSON.stringify(completedTasks));
                 }
-                window.AndroidNative.updateWidgetData(currentStreak || 0, summaryText);
+
+                if (typeof window.AndroidNative.updateWidgetData === 'function') {
+                    const pendingTasks = todayTasks.filter(t => !t.isDone && !completedTasks[`${todayDateStr}_${t._id}`]);
+                    let summaryText = "";
+                    if (todayTasks.length === 0) {
+                        summaryText = "Nessuna task per oggi!";
+                    } else if (pendingTasks.length === 0) {
+                        summaryText = "Tutte le task completate!";
+                    } else {
+                        const firstSub = pendingTasks[0].subject || "Studio";
+                        summaryText = `${pendingTasks.length} task da completare (${firstSub})`;
+                    }
+                    window.AndroidNative.updateWidgetData(currentStreak || 0, summaryText);
+                }
             }
         } catch(err) {
             console.warn('Android widget sync error:', err);
@@ -1766,6 +1954,7 @@
         renderStreakCalendar(); 
         renderMonthCalendar();
         renderSubjectDonutChart();
+        syncAndroidWidget();
         
         setInterval(() => {
             checkAndSendSmartNotification();
@@ -2069,16 +2258,20 @@
         let html = '';
 
         if (exactExams.length > 0) {
-            html += `<h4 style="color: var(--danger-color); margin-bottom: 12px; text-transform: uppercase; font-size: 0.85rem;">âš  Da ricordare:</h4>`;
-            exactExams.forEach(ex => { html += `<div style="padding: 12px; border-radius: 12px; background: rgba(217, 83, 79, 0.05); border-left: 4px solid var(--danger-color); margin-bottom: 15px;"><div style="font-weight: 700; color: var(--text-main);">${ex.type}: ${ex.subject}</div><div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Pagine/Esercizi/Versioni tot: ${ex.pages}</div></div>`; });
+            html += `<h4 style="color: var(--danger-color); margin-bottom: 12px; text-transform: uppercase; font-size: 0.85rem;"><i class="fa-solid fa-triangle-exclamation"></i> Da ricordare:</h4>`;
+            exactExams.forEach(ex => { 
+                const subIcon = getSubjectIcon(ex.subject);
+                html += `<div style="padding: 12px; border-radius: 12px; background: rgba(217, 83, 79, 0.05); border-left: 4px solid var(--danger-color); margin-bottom: 15px;"><div style="font-weight: 700; color: var(--text-main);"><span class="task-subject-tag"><i class="${subIcon}"></i> ${ex.subject}</span> ${ex.type}</div><div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Pagine/Esercizi/Versioni tot: ${ex.pages}</div></div>`; 
+            });
         }
         if (tasks.length > 0) {
             html += `<h4 style="color: var(--theme-strong); margin-bottom: 12px; text-transform: uppercase; font-size: 0.85rem;">Data da fare:</h4>`;
             tasks.forEach(t => {
                 if(t.isExamDay) return; const isDone = t.isDone || completedTasks[`${dateStr}_${t._id}`];
                 let displayTitle = t.title;
-                if (t.isNormalTodo && t.subject) {
-                    displayTitle = `<span style="text-decoration: underline; font-weight: 600;">${t.subject}</span> :: ${t.title}`;
+                if (t.subject) {
+                    const subIcon = getSubjectIcon(t.subject);
+                    displayTitle = `<span class="task-subject-tag"><i class="${subIcon}"></i> ${t.subject}</span> ${t.title}`;
                 }
                 html += `<div style="padding: 12px 0; border-bottom: 1px dashed var(--border-color); border-top: 1px solid transparent; display: flex; align-items: center; gap: 12px; opacity: ${isDone ? '0.5' : '1'};"><div style="width: 20px; height: 20px; border: 2px solid var(--theme-strong); border-radius: 6px; background: ${isDone ? 'var(--theme-strong)' : 'transparent'}; display:flex; align-items:center; justify-content:center;">${isDone ? '<i class="fa-solid fa-check" style="color:var(--surface-color); font-size:0.7rem;"></i>' : ''}</div><div><div style="font-weight: 600; color: var(--text-main); text-decoration: ${isDone ? 'line-through' : 'none'};">${displayTitle}</div></div></div>`;
             });

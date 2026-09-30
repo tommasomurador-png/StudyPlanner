@@ -38,11 +38,13 @@ class MainActivity : AppCompatActivity() {
     companion object {
         const val CHANNEL_ID = "studyplanner_notifications"
         const val NOTIF_PERMISSION_CODE = 101
+        var activeInstance: MainActivity? = null
     }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        activeInstance = this
 
         // Setup Edge-to-Edge UI
         WindowCompat.setDecorFitsSystemWindows(window, true)
@@ -124,6 +126,7 @@ class MainActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 handleTargetView(intent)
+                syncWidgetCompletionToJs()
             }
         }
 
@@ -154,7 +157,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        activeInstance = this
         webView.onResume()
+        syncWidgetCompletionToJs()
     }
 
     override fun onPause() {
@@ -163,8 +168,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        if (activeInstance == this) activeInstance = null
         webView.destroy()
         super.onDestroy()
+    }
+
+    fun syncWidgetCompletionToJs() {
+        try {
+            val prefs = getSharedPreferences(StudyPlannerWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
+            val completedJson = prefs.getString(StudyPlannerWidgetProvider.KEY_COMPLETED_JSON, "{}") ?: "{}"
+            val escaped = completedJson.replace("\\", "\\\\").replace("'", "\\'")
+            webView.post {
+                webView.evaluateJavascript("window.syncFromNativeWidget ? window.syncFromNativeWidget('$escaped') : null", null)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     inner class WebAppInterface(private val context: Context) {
@@ -222,12 +241,40 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun updateWidgetTasks(tasksJson: String, completedJson: String) {
+            try {
+                val prefs = context.getSharedPreferences(StudyPlannerWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
+                prefs.edit()
+                    .putString(StudyPlannerWidgetProvider.KEY_TASKS_JSON, tasksJson)
+                    .putString(StudyPlannerWidgetProvider.KEY_COMPLETED_JSON, completedJson)
+                    .apply()
+                StudyPlannerWidgetProvider.updateAllWidgets(context)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        @JavascriptInterface
+        fun setWidgetSettings(theme: String, transparency: Int) {
+            try {
+                val prefs = context.getSharedPreferences(StudyPlannerWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
+                prefs.edit()
+                    .putString(StudyPlannerWidgetProvider.KEY_THEME, theme)
+                    .putInt(StudyPlannerWidgetProvider.KEY_TRANSPARENCY, transparency)
+                    .apply()
+                StudyPlannerWidgetProvider.updateAllWidgets(context)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        @JavascriptInterface
         fun updateWidgetData(streak: Int, tasksSummary: String) {
             try {
                 val prefs = context.getSharedPreferences(StudyPlannerWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
                 prefs.edit()
                     .putInt(StudyPlannerWidgetProvider.KEY_STREAK, streak)
-                    .putString(StudyPlannerWidgetProvider.KEY_TASKS_SUMMARY, tasksSummary)
+                    .putString("tasks_summary", tasksSummary)
                     .apply()
                 StudyPlannerWidgetProvider.updateAllWidgets(context)
             } catch (e: Exception) {
@@ -259,9 +306,18 @@ class MainActivity : AppCompatActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleTargetView(intent)
+        syncWidgetCompletionToJs()
     }
 
     private fun handleTargetView(intent: Intent?) {
+        val action = intent?.getStringExtra(StudyPlannerWidgetProvider.EXTRA_ACTION)
+        if (action == StudyPlannerWidgetProvider.ACTION_OPEN_ADD) {
+            webView.postDelayed({
+                webView.evaluateJavascript("window.openTodoModal ? window.openTodoModal() : null", null)
+            }, 300)
+            return
+        }
+
         val targetView = intent?.getStringExtra(StudyPlannerWidgetProvider.EXTRA_VIEW)
         if (!targetView.isNullOrEmpty()) {
             webView.post {

@@ -6,7 +6,10 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.net.Uri
 import android.widget.RemoteViews
+import org.json.JSONObject
 
 class StudyPlannerWidgetProvider : AppWidgetProvider() {
 
@@ -14,26 +17,99 @@ class StudyPlannerWidgetProvider : AppWidgetProvider() {
         for (appWidgetId in appWidgetIds) {
             updateAppWidget(context, appWidgetManager, appWidgetId)
         }
+        super.onUpdate(context, appWidgetManager, appWidgetIds)
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        when (intent.action) {
+            ACTION_TOGGLE_TASK -> {
+                val openApp = intent.getBooleanExtra(EXTRA_OPEN_APP, false)
+                if (openApp) {
+                    val mainIntent = Intent(context, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    }
+                    context.startActivity(mainIntent)
+                    return
+                }
+
+                val taskKey = intent.getStringExtra(EXTRA_TASK_KEY)
+                val isDone = intent.getBooleanExtra(EXTRA_IS_DONE, false)
+
+                if (!taskKey.isNullOrEmpty()) {
+                    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    val rawCompleted = prefs.getString(KEY_COMPLETED_JSON, "{}") ?: "{}"
+                    try {
+                        val completedObj = JSONObject(rawCompleted)
+                        if (isDone) {
+                            completedObj.put(taskKey, true)
+                        } else {
+                            completedObj.remove(taskKey)
+                        }
+                        prefs.edit().putString(KEY_COMPLETED_JSON, completedObj.toString()).apply()
+
+                        // Notify widget data changed
+                        val appWidgetManager = AppWidgetManager.getInstance(context)
+                        val thisWidget = ComponentName(context, StudyPlannerWidgetProvider::class.java)
+                        val allIds = appWidgetManager.getAppWidgetIds(thisWidget)
+                        appWidgetManager.notifyAppWidgetViewDataChanged(allIds, R.id.widget_list_view)
+                        for (id in allIds) {
+                            updateAppWidget(context, appWidgetManager, id)
+                        }
+
+                        // Also notify MainActivity if active
+                        MainActivity.activeInstance?.runOnUiThread {
+                            MainActivity.activeInstance?.syncWidgetCompletionToJs()
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
     }
 
     companion object {
         const val PREFS_NAME = "studylog_widget_prefs"
+        const val KEY_TASKS_JSON = "widget_tasks_json"
+        const val KEY_COMPLETED_JSON = "widget_completed_json"
+        const val KEY_THEME = "widget_theme"
+        const val KEY_TRANSPARENCY = "widget_transparency"
         const val KEY_STREAK = "streak_days"
-        const val KEY_TASKS_SUMMARY = "tasks_summary"
+
+        const val ACTION_TOGGLE_TASK = "com.tommasomurador.studyplanner.ACTION_TOGGLE_TASK"
+        const val ACTION_OPEN_ADD = "open_add_todo"
+        const val EXTRA_ACTION = "widget_action"
+        const val EXTRA_TASK_KEY = "task_key"
+        const val EXTRA_IS_DONE = "is_done"
+        const val EXTRA_OPEN_APP = "open_app"
         const val EXTRA_VIEW = "target_view"
 
         fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val streak = prefs.getInt(KEY_STREAK, 0)
-            val tasksSummary = prefs.getString(KEY_TASKS_SUMMARY, "Nessun compito per oggi") ?: "Nessun compito per oggi"
+            val theme = prefs.getString(KEY_THEME, "dark") ?: "dark"
+            val transparency = prefs.getInt(KEY_TRANSPARENCY, 0).coerceIn(0, 100)
 
             val views = RemoteViews(context.packageName, R.layout.widget_study_planner)
-            views.setTextViewText(R.id.widget_streak_text, "🔥 $streak gg")
-            views.setTextViewText(R.id.widget_tasks_count, tasksSummary)
 
-            // Intent to open Main App
+            // Setup Theme & Transparency
+            val isLight = theme == "light"
+            val alpha = (((100 - transparency) * 255) / 100).coerceIn(0, 255)
+            val baseColor = if (isLight) 0x00F5F5F7 else 0x00141416
+            val colorWithAlpha = (alpha shl 24) or (baseColor and 0x00FFFFFF)
+
+            views.setInt(R.id.widget_bg, "setColorFilter", colorWithAlpha)
+
+            val textColor = if (isLight) Color.parseColor("#111111") else Color.parseColor("#FFFFFF")
+            val emptyTextColor = if (isLight) Color.parseColor("#666666") else Color.parseColor("#999999")
+
+            views.setTextColor(R.id.widget_header_title, textColor)
+            views.setTextColor(R.id.widget_empty_text, emptyTextColor)
+            views.setInt(R.id.widget_btn_add, "setColorFilter", textColor)
+
+            // Intent to open Main App on header tap
             val mainIntent = Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             val mainPendingIntent = PendingIntent.getActivity(
                 context,
@@ -41,20 +117,41 @@ class StudyPlannerWidgetProvider : AppWidgetProvider() {
                 mainIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            views.setOnClickPendingIntent(R.id.widget_root, mainPendingIntent)
+            views.setOnClickPendingIntent(R.id.widget_header_title, mainPendingIntent)
 
-            // Intent to open Pomodoro directly
-            val pomoIntent = Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra(EXTRA_VIEW, "focus")
+            // Intent to open "Add Task" modal on "+" tap
+            val addIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(EXTRA_ACTION, ACTION_OPEN_ADD)
             }
-            val pomoPendingIntent = PendingIntent.getActivity(
+            val addPendingIntent = PendingIntent.getActivity(
                 context,
-                1,
-                pomoIntent,
+                2,
+                addIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            views.setOnClickPendingIntent(R.id.widget_btn_pomodoro, pomoPendingIntent)
+            views.setOnClickPendingIntent(R.id.widget_btn_add, addPendingIntent)
+
+            // Bind RemoteViewsService for ListView
+            val serviceIntent = Intent(context, StudyPlannerWidgetService::class.java).apply {
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
+            }
+            views.setRemoteAdapter(R.id.widget_list_view, serviceIntent)
+            views.setEmptyView(R.id.widget_list_view, R.id.widget_empty_text)
+
+            // Pending intent template for items in the list
+            val itemClickIntent = Intent(context, StudyPlannerWidgetProvider::class.java).apply {
+                action = ACTION_TOGGLE_TASK
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            }
+            val itemClickPendingIntent = PendingIntent.getBroadcast(
+                context,
+                10,
+                itemClickIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+            )
+            views.setPendingIntentTemplate(R.id.widget_list_view, itemClickPendingIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
@@ -63,6 +160,7 @@ class StudyPlannerWidgetProvider : AppWidgetProvider() {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val thisWidget = ComponentName(context, StudyPlannerWidgetProvider::class.java)
             val allWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
+            appWidgetManager.notifyAppWidgetViewDataChanged(allWidgetIds, R.id.widget_list_view)
             for (widgetId in allWidgetIds) {
                 updateAppWidget(context, appWidgetManager, widgetId)
             }

@@ -1,91 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/widget_background"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:layout_height="match_parent">
 
-    <!-- Header: App Title + Streak Badge -->
+    <!-- Dynamic Theme & Transparency Background -->
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_card_rounded_bg"
+        android:scaleType="fitXY"
+        android:contentDescription="Widget Background" />
+
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-
-        <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:src="@mipmap/ic_launcher"
-            android:contentDescription="Study Planner Icon" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:text="Study Planner"
-            android:textColor="#24382C"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/widget_streak_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🔥 0 gg"
-            android:textColor="#C85A17"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- Main Content: Today's Tasks -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="match_parent"
         android:orientation="vertical"
-        android:gravity="center_vertical"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp">
+        android:paddingStart="18dp"
+        android:paddingEnd="18dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="14dp">
 
-        <TextView
-            android:id="@+id/widget_tasks_label"
-            android:layout_width="wrap_content"
+        <!-- Header: Title on Left, Add (+) Button on Right -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="COMPITI DI OGGI"
-            android:textColor="#7A786E"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
+            <TextView
+                android:id="@+id/widget_header_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Da fare oggi"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/widget_btn_add"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:padding="6dp"
+                android:src="@drawable/ic_widget_add"
+                android:contentDescription="Aggiungi compito" />
+        </LinearLayout>
+
+        <!-- Empty view (when no tasks) -->
         <TextView
-            android:id="@+id/widget_tasks_count"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Nessun compito"
-            android:textColor="#1A2D24"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:id="@+id/widget_empty_text"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:paddingTop="10dp"
+            android:text="Nessun compito per oggi. Tocca + per aggiungerne uno."
+            android:textColor="#A0A0A0"
+            android:textSize="13sp"
+            android:textStyle="italic"
+            android:visibility="gone" />
+
+        <!-- Tasks ListView -->
+        <ListView
+            android:id="@+id/widget_list_view"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:divider="@null"
+            android:dividerHeight="6dp"
+            android:paddingTop="8dp" />
+
     </LinearLayout>
-
-    <!-- Quick Action: Launch Focus Pomodoro -->
-    <LinearLayout
-        android:id="@+id/widget_btn_pomodoro"
-        android:layout_width="match_parent"
-        android:layout_height="36dp"
-        android:background="@drawable/widget_button_bg"
-        android:gravity="center"
-        android:clickable="true"
-        android:focusable="true">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🍅 Avvia Pomodoro"
-            android:textColor="#FFFFFF"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-</LinearLayout>
+</FrameLayout>

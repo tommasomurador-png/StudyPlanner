@@ -7,4 +7,6 @@
     <color name="bg_dark">#161616</color>
     <color name="surface_dark">#202020</color>
     <color name="text_dark">#FDFBFC</color>
+
+    <color name="ic_launcher_background">#000000</color>
 </resources>

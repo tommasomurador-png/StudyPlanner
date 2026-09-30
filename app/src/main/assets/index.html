@@ -217,6 +217,24 @@
             
             <div class="form-group" style="margin-top:20px;"><label>Sfondo Taccuino</label><div class="settings-grid"><button class="choice-btn" id="btn-bg-dots" onclick="setAppBg('dots')">Pallini</button><button class="choice-btn" id="btn-bg-lines" onclick="setAppBg('lines')">Righe</button><button class="choice-btn" id="btn-bg-grid" onclick="setAppBg('grid')">Quadretti</button><button class="choice-btn" id="btn-bg-blank" onclick="setAppBg('blank')">Vuoto</button></div></div>
             
+            <!-- WIDGET ANDROID PERSONALIZZAZIONE -->
+            <div class="form-group" style="margin-top: 25px; border-top: 1px dashed var(--border-color); padding-top: 20px;">
+                <label><i class="fa-solid fa-shapes"></i> Widget Android (Schermata Home)</label>
+                <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">Tema Widget</div>
+                <div class="settings-grid">
+                    <button type="button" class="choice-btn" id="btn-widget-theme-dark" onclick="setWidgetTheme('dark')"><i class="fa-solid fa-moon"></i> Scuro</button>
+                    <button type="button" class="choice-btn" id="btn-widget-theme-light" onclick="setWidgetTheme('light')"><i class="fa-solid fa-sun"></i> Chiaro</button>
+                </div>
+
+                <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-top: 12px; margin-bottom: 8px;">Trasparenza Sfondo</div>
+                <div class="settings-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <button type="button" class="choice-btn" id="btn-widget-trans-0" onclick="setWidgetTransparency(0)">0%</button>
+                    <button type="button" class="choice-btn" id="btn-widget-trans-30" onclick="setWidgetTransparency(30)">30%</button>
+                    <button type="button" class="choice-btn" id="btn-widget-trans-60" onclick="setWidgetTransparency(60)">60%</button>
+                    <button type="button" class="choice-btn" id="btn-widget-trans-100" onclick="setWidgetTransparency(100)">100%</button>
+                </div>
+            </div>
+            
             <div class="form-group" style="margin-top: 25px; border-top: 1px dashed var(--border-color); padding-top: 20px;">
                 <label>Le tue Materie</label>
                 <div class="input-row">
