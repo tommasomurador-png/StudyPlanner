@@ -33,13 +33,12 @@ Fai clic su un'immagine per aprirla a piena risoluzione.
 
 ## Perche Study Planner fa la differenza
 
-A differenza delle tradizionali applicazioni per to-do list, Study Planner e' progettato appositamente per le reali necessita' di studenti e studentesse. Integra pianificazione automatica dei carichi, ripetizione spaziata e strumenti di concentrazione all'interno di un'unica interfaccia pulita, priva di pubblicita' e orientata alla massima privacy locale.
+A differenza delle tradizionali applicazioni per to-do list, Study Planner e' progettato appositamente per le reali necessita' di studenti e studentesse. Integra pianificazione automatica dei carichi, monitoraggio dell'impegno e statistiche avanzate all'interno di un'unica interfaccia pulita, priva di pubblicita' e orientata alla massima privacy locale.
 
 - **Privacy totale e funzionamento offline:** Tutti i dati, i voti, le verifiche e le note rimangono memorizzati unicamente sul dispositivo dell'utente. Non richiede registrazione di account, login remoti ne' tracciamento pubblicitario.
 - **Ripartizione dinamica del carico di lavoro:** Calcola il ritmo ottimale di pagine ed esercizi giorno per giorno fino alla data della prova. Se un giorno studi meno del previsto, l'algoritmo distribuisce automaticamente il carico residuo sulle giornate rimanenti.
-- **Focus Pomodoro essenziale:** Timer minimalista per studio profondo con modalita' Lavoro e Pausa affiancate, privo di notifiche invadenti e con tracciamento delle sessioni concluse.
-- **Flashcard con Ripetizione Spaziata:** Sistema basato sul metodo Leitner a tre livelli (1 giorno, 3 giorni, 7 giorni) con carta 3D interattiva per consolidare formule e definizioni nella memoria a lungo termine.
-- **Generatore di Quiz con AI e Tutor:** Incolla gli appunti o le sintesi di testo per ricavare 5 domande a risposta multipla con spiegazione immediata e salvataggio diretto degli errori nelle flashcard.
+- **Gamification e Gradi Accademici:** Punti Conoscenza (XP), Serie di Fuoco continuativa e avanzamento di livello da Matricola fino a Einstein per mantenere alta la motivazione giorno dopo giorno.
+- **Statistiche e Analisi Visiva:** Calendario planning con indicatori mensili, grafico a torta Donut con distribuzione per materia e mappa di impegno storico a 90 giorni.
 - **Widget nativo per Android:** Widget integrabile sulla schermata home dello smartphone per consultare lo stato della serie di giorni e le task odierne a colpo d'occhio.
 
 ### Piattaforme supportate
@@ -73,42 +72,25 @@ A differenza delle tradizionali applicazioni per to-do list, Study Planner e' pr
 - Riorganizzazione immediata del carico residuo in caso di compiti incompleti o imprevisti.
 - Esclusione mirata di date di pausa per festivi, vacanze o impegni personali compresi tra oggi e la scadenza.
 - Sistema Snooze con opzione di riprogrammazione manuale o automatica dei compiti.
+- Gestione flessibile di compiti To-Do con priorita a stelle e difficolta stimata.
 
-### 2. Pomodoro Focus Timer
-- Selettore combinato di modalita' Lavoro e Pausa con durate rapide preimpostate (15, 25, 45, 60 minuti).
-- Anello di avanzamento circolare ad alta visibilita' privo di testo o elementi di distrazione.
-- Conteggio cumulativo dei minuti a fuoco e delle sessioni portate a termine con successo.
-- Meccanismo di gamification basato su punti Conoscenza (XP), Serie di Fuoco e Gradi Accademici da Matricola fino a Einstein.
+### 2. Gamification e Gradi Accademici
+- Meccanismo motivazionale basato su punti Conoscenza (XP) maturati a ogni task completata.
+- Serie di Fuoco con tracciamento dei giorni consecutivi di studio sul piano.
+- Gradi accademici progressivi da Matricola fino a Einstein con indicatore di progresso live.
+- Notifiche locali motivazionali intelligenti per non perdere la serie di studio.
 
-### 3. Schemi, Riquadri e Flashcard con Ripetizione Spaziata (Metodo Leitner)
-- Griglia a riquadri organizzata per materia con card dedicate: Flashcard [Materia], Quiz [Materia] e Verifiche in programma.
-- Creazione rapida di Flashcard e Quiz direttamente dal menu Aggiungi (+) della barra principale.
-- Selettore a tendina compatto per filtrare i riquadri per singola materia o visualizzarli tutti.
-- Sessione di studio con carta tridimensionale con animazione fluida di rotazione per visualizzare domanda e risposta.
-- Classificazione della difficolta' con intervalli scientifici: Difficile (1 giorno), Buono (3 giorni), Facile (7 giorni).
-- Tasto di ritorno rapido agli Schemi con supporto al tasto Indietro hardware di Android.
-
-### 4. Generatore di Quiz e Flashcard con AI e Valutazione Intelligente
-- Scansione multimodale: scatta una foto direttamente con la fotocamera a pagine di quaderni, formulari o schemi di testo.
-- Integrazione con Google Gemini (Gemini 2.5 Flash): estrazione automatica e determinazione intelligente del numero ottimale di domande e schede in base alla ricchezza del materiale.
-- Tre tipologie avanzate di quesiti nei Quiz:
-  - Scelta singola: 4 opzioni con una risposta esatta e feedback immediato.
-  - Risposta multipla: 4 opzioni con caselle di spunta e una o piu' risposte corrette da confermare.
-  - Domanda scritta a risposta aperta: campo di testo libero valutato in tempo reale dall'IA con giudizio di correttezza e spiegazione dettagliata del docente.
-- Motore euristico locale funzionante al 100% offline in modalita' aereo o in assenza di rete.
-- Conversione automatica delle domande con risposta errata o incompleta in nuove flashcard del mazzo con un solo tocco.
-
-### 5. Statistiche, Calendario e Grafico per Materia
+### 3. Statistiche, Calendario e Grafico per Materia
 - Calendario mensile con indicatori distinti per verifiche in programma e compiti da completare.
 - Grafico Donut vettoriale per osservare la percentuale e il numero di task suddivisi per materia.
 - Mappa di impegno continuativo a 90 giorni ispirata ai contributi di GitHub.
 - Grafico a barre dell'andamento settimanale con conteggio complessivo degli XP maturati.
 
-### 6. Widget Nativo per Schermata Home Android
+### 4. Widget Nativo per Schermata Home Android
 - Componente AppWidget nativo sviluppato tramite AppWidgetProvider di Android.
 - Monitoraggio in tempo reale del numero di giorni consecutivi di studio (Serie di Fuoco).
 - Promemoria sintetico delle task ancora da svolgere nel corso della giornata.
-- Accesso immediato con pulsante dedicato per aprire direttamente il timer Pomodoro.
+- Accesso immediato con tocco per aprire direttamente la dashboard dell'applicazione.
 
 ---
 
@@ -133,7 +115,7 @@ StudyPlanner/
 |-- css/
 |   `-- style.css                   Stili modulari, temi Chiaro/Scuro e fogli grafici
 |-- js/
-|   `-- app.js                      Algoritmo di carico, Leitner, quiz AI, timer e storage
+|   `-- app.js                      Algoritmo di carico, pianificazione, gamification e storage
 |-- screenshots/
 |   |-- dashboard_view.png          Cattura della schermata dashboard
 |   |-- calendar_view.jpg           Cattura della schermata calendario e statistiche

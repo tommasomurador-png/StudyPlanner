@@ -1,4 +1,4 @@
-    function generateId() { return Math.random().toString(36).substr(2, 9); }
+﻿    function generateId() { return Math.random().toString(36).substr(2, 9); }
     function formatDateStr(dateObj) { return `${dateObj.getFullYear()}-${(dateObj.getMonth()+1).toString().padStart(2, '0')}-${dateObj.getDate().toString().padStart(2, '0')}`; }
 
     let globalNow = new Date();
@@ -10,15 +10,15 @@
 
     const motivationalPhrases = [
         "Inizia a studiare, dai che prima inizi prima finisci!",
-        "Il successo è la somma di piccoli sforzi ripetuti giorno dopo giorno.",
+        "Il successo Ã¨ la somma di piccoli sforzi ripetuti giorno dopo giorno.",
         "Non rimandare a domani quello che puoi studiare oggi!",
-        "Ogni pagina studiata è un passo in più verso i tuoi sogni.",
+        "Ogni pagina studiata Ã¨ un passo in piÃ¹ verso i tuoi sogni.",
         "Mettiti comodo, apri il libro e fai il vuoto intorno a te: tu vali!",
-        "La fatica di oggi è il successo di domani. Coraggio!",
+        "La fatica di oggi Ã¨ il successo di domani. Coraggio!",
         "Concentrazione al massimo: il tuo futuro ti sta aspettando.",
         "Anche un piccolo progresso quotidiano fa la differenza.",
         "Spegni le distrazioni e dai il massimo in questa sessione!",
-        "Sei più vicino al tuo traguardo rispetto a ieri. Continua così!"
+        "Sei piÃ¹ vicino al tuo traguardo rispetto a ieri. Continua cosÃ¬!"
     ];
 
     const completedPhrases = [
@@ -27,11 +27,11 @@
         "Missione compiuta! Goditi il tuo meritato riposo.",
         "Sei un mito! Hai completato tutto il programma di oggi.",
         "Giornata sbaragliata! Riposati, te lo sei proprio meritato.",
-        "Tutto fatto! La tua costanza ti porterà lontano.",
+        "Tutto fatto! La tua costanza ti porterÃ  lontano.",
         "Fantastico! Hai terminato ogni singola task odierna.",
         "Obiettivo raggiunto con successo! Rilassati e stacca la mente.",
         "Perfetto! Un'altra giornata di studio portata a termine alla grande.",
-        "Campione! Hai completato tutto ciò che c'era da fare oggi."
+        "Campione! Hai completato tutto ciÃ² che c'era da fare oggi."
     ];
 
     function customConfirm(options) {
@@ -483,7 +483,7 @@
             list.sort();
             renderInterrogazioneChips(scope);
         } else {
-            customAlert("Hai già aggiunto questa data per l'interrogazione!", "Data duplicata");
+            customAlert("Hai giÃ  aggiunto questa data per l'interrogazione!", "Data duplicata");
         }
     }
 
@@ -556,7 +556,7 @@
             list.sort();
             renderPauseChips(type);
         } else {
-            customAlert("Data già inserita nelle pause!", "Data duplicata");
+            customAlert("Data giÃ  inserita nelle pause!", "Data duplicata");
         }
     }
 
@@ -614,7 +614,7 @@
                 if (examSubjectPicker) examSubjectPicker.setItems(userSubjects);
                 showToast("Materia aggiunta!");
             } else {
-                customAlert("Questa materia è già presente nella lista!", "Materia esistente");
+                customAlert("Questa materia Ã¨ giÃ  presente nella lista!", "Materia esistente");
             }
         }
     }
@@ -668,10 +668,10 @@
         if (iconEl && textEl) {
             if (savedTheme === 'dark') {
                 iconEl.className = "fa-solid fa-moon";
-                textEl.innerText = "Modalità Scura";
+                textEl.innerText = "ModalitÃ  Scura";
             } else {
                 iconEl.className = "fa-solid fa-sun";
-                textEl.innerText = "Modalità Chiara";
+                textEl.innerText = "ModalitÃ  Chiara";
             }
         }
         updateNotificationBellUI();
@@ -752,7 +752,7 @@
                 window.AndroidNative.requestNotificationPermission();
             }
             showToast("Notifiche Android collegate!");
-            sendLocalNotification("Study Planner 📚", "Le notifiche sono configurate e operative correttamente!");
+            sendLocalNotification("Study Planner ðŸ“š", "Le notifiche sono configurate e operative correttamente!");
             updateNotificationBellUI();
             return;
         }
@@ -763,8 +763,8 @@
         }
 
         if (Notification.permission === "granted") {
-            showToast("Le notifiche sono già attive!");
-            sendLocalNotification("Study Planner 📚", "Le notifiche sono configurate e operative correttamente!");
+            showToast("Le notifiche sono giÃ  attive!");
+            sendLocalNotification("Study Planner ðŸ“š", "Le notifiche sono configurate e operative correttamente!");
         } else if (Notification.permission === "denied") {
             customAlert("Hai bloccato le notifiche in precedenza. Sblocca i permessi dalle impostazioni del browser.", "Permessi negati", true);
         } else {
@@ -772,7 +772,7 @@
                 updateNotificationBellUI();
                 if (permission === "granted") {
                     showToast("Notifiche attivate con successo!");
-                    sendLocalNotification("Study Planner 🎉", "Grazie per aver attivato le notifiche! Ti ricorderemo di studiare.");
+                    sendLocalNotification("Study Planner ðŸŽ‰", "Grazie per aver attivato le notifiche! Ti ricorderemo di studiare.");
                     checkAndSendSmartNotification();
                 } else {
                     showToast("Permesso negato.", true);
@@ -832,7 +832,7 @@
         if (completedCount === actionableTasks.length) {
             if (!todayHistory.completedSent) {
                 let randomPraise = getRandomItem(completedPhrases);
-                sendLocalNotification("Study Planner 🎉", randomPraise);
+                sendLocalNotification("Study Planner ðŸŽ‰", randomPraise);
                 todayHistory.completedSent = true;
                 notifHistory[todayDateStr] = todayHistory;
                 localStorage.setItem('studylog_notif_history', JSON.stringify(notifHistory));
@@ -840,7 +840,7 @@
         } else {
             if (nowTime - (todayHistory.lastMsgTime || 0) >= threeHoursMs) {
                 let randomMotivation = getRandomItem(motivationalPhrases);
-                sendLocalNotification("Study Planner 📚", randomMotivation);
+                sendLocalNotification("Study Planner ðŸ“š", randomMotivation);
                 todayHistory.lastMsgTime = nowTime;
                 notifHistory[todayDateStr] = todayHistory;
                 localStorage.setItem('studylog_notif_history', JSON.stringify(notifHistory));
@@ -904,16 +904,6 @@
         updatePauseBounds('exam');
         document.getElementById('add-exam-modal').classList.add('active'); 
     }
-
-    window.openFlashcardFromChoice = () => {
-        closeModal('choice-modal');
-        openNewCardModal();
-    };
-
-    window.openAiGenFromChoice = () => {
-        closeModal('choice-modal');
-        openAiGeneratorModal();
-    };
 
     window.openBottomSheet = (id) => {
         if (id === 'settings-sheet') {
@@ -1274,7 +1264,7 @@
         maxDate.setDate(maxDate.getDate() - 1); 
         
         if (minDate > maxDate) {
-            customAlert("Non c'è più tempo materiale! Questa prova/task scade domani o oggi, non puoi rimandarla ulteriormente.");
+            customAlert("Non c'Ã¨ piÃ¹ tempo materiale! Questa prova/task scade domani o oggi, non puoi rimandarla ulteriormente.");
             return;
         }
 
@@ -1383,7 +1373,7 @@
 
         if (exam.type === 'Versione') {
             if (tDate.getTime() === eDate.getTime()) {
-                return { type: 'EXAM', title: `⚠ PROVA: Versione di ${exam.subject}` };
+                return { type: 'EXAM', title: `âš  PROVA: Versione di ${exam.subject}` };
             }
             let validDates = [];
             let curr = new Date(sDate);
@@ -1411,7 +1401,7 @@
             }
 
             if (assignedVersionDays.includes(targetDateStr)) {
-                return { type: 'VERSION', title: `✍ Versione di Prova: ${exam.subject}`, amount: 1 };
+                return { type: 'VERSION', title: `âœ Versione di Prova: ${exam.subject}`, amount: 1 };
             }
             return null;
         }
@@ -1420,7 +1410,7 @@
             let intDates = [...exam.specificInterrogazioneDates].sort();
 
             if (intDates.includes(targetDateStr)) {
-                return { type: 'EXAM', title: `⚠ POSSIBILE INTERROGAZIONE: ${exam.subject}` };
+                return { type: 'EXAM', title: `âš  POSSIBILE INTERROGAZIONE: ${exam.subject}` };
             }
 
             let firstDateStr = intDates[0];
@@ -1447,7 +1437,7 @@
                 if (targetIdx === -1) return null;
 
                 if (targetIdx >= studyDaysCount) {
-                    return { type: 'FINAL_REVIEW', title: `📚 RIPASSO FINALE: ${exam.subject}`, desc: `Ripassa tutto il programma in vista dell'interrogazione del ${formatDateShort(firstDateStr)}` };
+                    return { type: 'FINAL_REVIEW', title: `ðŸ“š RIPASSO FINALE: ${exam.subject}`, desc: `Ripassa tutto il programma in vista dell'interrogazione del ${formatDateShort(firstDateStr)}` };
                 }
 
                 let basePagesPerDay = Math.floor(totalPages / studyDaysCount);
@@ -1455,7 +1445,7 @@
                 let daily = basePagesPerDay + (targetIdx < remainder ? 1 : 0);
                 if (daily < 1) daily = 1;
 
-                return { type: 'STUDY', title: `📖 Studio (in vista di ${formatDateShort(firstDateStr)}): ${exam.subject}`, pages: daily };
+                return { type: 'STUDY', title: `ðŸ“– Studio (in vista di ${formatDateShort(firstDateStr)}): ${exam.subject}`, pages: daily };
             } 
             else {
                 let nextExamDateStr = intDates.find(d => new Date(d).getTime() > tDate.getTime());
@@ -1472,7 +1462,7 @@
                     let pagesPart = Math.ceil(exam.pages / reviewDaysNeeded);
                     return { 
                         type: 'INTER_REVIEW', 
-                        title: `🔄 Ripasso Interrogazione: ${exam.subject}`, 
+                        title: `ðŸ”„ Ripasso Interrogazione: ${exam.subject}`, 
                         desc: `Sessione ${reviewDaysNeeded - diffDays + 1} di ${reviewDaysNeeded} (~${pagesPart} pag.) in vista del ${formatDateShort(nextExamDateStr)}` 
                     };
                 }
@@ -1482,11 +1472,11 @@
 
         const isPractice = (lowerSub.includes('matematica') || lowerSub.includes('fisica'));
         if (isPractice) {
-            if (tDate.getTime() === eDate.getTime()) return { type: 'EXAM', title: `⚠ PROVA: ${exam.subject}` };
-            return { type: 'PRACTICE', title: `📝 Esercizi: ${exam.subject}`, amount: exam.pages };
+            if (tDate.getTime() === eDate.getTime()) return { type: 'EXAM', title: `âš  PROVA: ${exam.subject}` };
+            return { type: 'PRACTICE', title: `ðŸ“ Esercizi: ${exam.subject}`, amount: exam.pages };
         }
 
-        if (tDate.getTime() === eDate.getTime()) return { type: 'EXAM', title: `⚠ PROVA: ${exam.subject}` };
+        if (tDate.getTime() === eDate.getTime()) return { type: 'EXAM', title: `âš  PROVA: ${exam.subject}` };
 
         let validDates = [];
         let curr = new Date(sDate);
@@ -1504,7 +1494,7 @@
         let phase1Count = Math.max(1, N - finalReviewCount);
 
         if (targetIndex >= phase1Count) { 
-            return { type: 'FINAL_REVIEW', title: `📚 RIPASSO FINALE: ${exam.subject}`, desc: `Ripassa tutto il programma in vista della prova` }; 
+            return { type: 'FINAL_REVIEW', title: `ðŸ“š RIPASSO FINALE: ${exam.subject}`, desc: `Ripassa tutto il programma in vista della prova` }; 
         }
 
         let totalPages = exam.pages || 1;
@@ -1513,7 +1503,7 @@
         let dailyPace = basePerDay + (targetIndex < rem ? 1 : 0);
         if (dailyPace < 1) dailyPace = 1;
 
-        return { type: 'STUDY', title: `📖 STUDIO: ${exam.subject}`, pages: dailyPace };
+        return { type: 'STUDY', title: `ðŸ“– STUDIO: ${exam.subject}`, pages: dailyPace };
     }
 
     function formatDateShort(dStr) {
@@ -1633,7 +1623,7 @@
             <div class="ex-footer">
                 <div class="ex-meta-row">
                     ${diffHtml ? `<div class="tag-pill" title="Carico">${diffHtml}</div>` : ''}
-                    ${!task.isExamDay && prioHtml ? `<div class="tag-pill" title="Priorità">${prioHtml}</div>` : ''}
+                    ${!task.isExamDay && prioHtml ? `<div class="tag-pill" title="PrioritÃ ">${prioHtml}</div>` : ''}
                 </div>`;
             
             if(task.isExamStudy) {
@@ -1748,9 +1738,9 @@
                 const pendingTasks = todayTasks.filter(t => !t.isDone && !completedTasks[`${todayDateStr}_${t._id}`]);
                 let summaryText = "";
                 if (todayTasks.length === 0) {
-                    summaryText = "Nessuna task per oggi! 🎉";
+                    summaryText = "Nessuna task per oggi! ðŸŽ‰";
                 } else if (pendingTasks.length === 0) {
-                    summaryText = "Tutte le task completate! 🏆";
+                    summaryText = "Tutte le task completate! ðŸ†";
                 } else {
                     const firstSub = pendingTasks[0].subject || "Studio";
                     summaryText = `${pendingTasks.length} task da completare (${firstSub})`;
@@ -1776,8 +1766,6 @@
         renderStreakCalendar(); 
         renderMonthCalendar();
         renderSubjectDonutChart();
-        loadFlashcards();
-        initGeminiKeyInput();
         
         setInterval(() => {
             checkAndSendSmartNotification();
@@ -1933,15 +1921,9 @@
     window.switchView = function(view, element) {
         document.querySelectorAll('.bottom-nav .nav-item').forEach(el => el.classList.remove('active')); if(element) element.classList.add('active');
         document.getElementById('study-view').style.display = view === 'study' ? 'block' : 'none';
-        const focusView = document.getElementById('focus-view');
-        if (focusView) focusView.style.display = view === 'focus' ? 'block' : 'none';
-        const flashcardsView = document.getElementById('flashcards-view');
-        if (flashcardsView) flashcardsView.style.display = view === 'flashcards' ? 'block' : 'none';
         document.getElementById('ranked-view').style.display = view === 'ranked' ? 'block' : 'none';
         document.getElementById('calendar-view').style.display = view === 'calendar' ? 'block' : 'none';
         if(view === 'calendar') { renderSheetData(); renderMonthCalendar(); renderSubjectDonutChart(); }
-        if(view === 'focus') { renderPomoPresets(); updateFocusStatsUI(); updateFocusTimerUI(); }
-        if(view === 'flashcards') { renderFlashcardsView(); }
     }
 
     function renderSheetData() {
@@ -2087,7 +2069,7 @@
         let html = '';
 
         if (exactExams.length > 0) {
-            html += `<h4 style="color: var(--danger-color); margin-bottom: 12px; text-transform: uppercase; font-size: 0.85rem;">⚠ Da ricordare:</h4>`;
+            html += `<h4 style="color: var(--danger-color); margin-bottom: 12px; text-transform: uppercase; font-size: 0.85rem;">âš  Da ricordare:</h4>`;
             exactExams.forEach(ex => { html += `<div style="padding: 12px; border-radius: 12px; background: rgba(217, 83, 79, 0.05); border-left: 4px solid var(--danger-color); margin-bottom: 15px;"><div style="font-weight: 700; color: var(--text-main);">${ex.type}: ${ex.subject}</div><div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Pagine/Esercizi/Versioni tot: ${ex.pages}</div></div>`; });
         }
         if (tasks.length > 0) {
@@ -2108,185 +2090,6 @@
     function renderHeatmap() {
         const grid = document.getElementById('heatmap-grid'); if(!grid) return; grid.innerHTML = '';
         for(let i=83; i>=0; i--) { let d = new Date(); d.setDate(d.getDate() - i); let dStr = formatDateStr(d); let activeClass = isDayStudied(dStr) ? 'lvl-3' : ''; grid.innerHTML += `<div class="heat-cell ${activeClass}"></div>`; }
-    }
-
-    // --- POMODORO TIMER MINIMALISTA ---
-    let currentPomoMode = 'work'; // 'work' | 'break'
-    let workMinutes = 25;
-    let breakMinutes = 5;
-    let focusMinutes = 25;
-    let focusInterval = null;
-    let focusSecondsLeft = 25 * 60;
-    let isFocusRunning = false;
-    let focusTotalSeconds = 25 * 60;
-
-    let focusStats = JSON.parse(localStorage.getItem('studylog_focus_stats') || '{"totalMinutes": 0, "sessions": 0}');
-
-    function updateFocusStatsUI() {
-        const totalMinEl = document.getElementById('focus-total-minutes');
-        const sessEl = document.getElementById('focus-completed-sessions');
-        if (totalMinEl) totalMinEl.innerHTML = `${focusStats.totalMinutes}<span>m</span>`;
-        if (sessEl) sessEl.innerText = focusStats.sessions;
-    }
-
-    window.switchPomodoroMode = function(mode) {
-        if (isFocusRunning) {
-            if (!confirm('Vuoi interrompere la sessione corrente per cambiare modalità?')) return;
-            clearInterval(focusInterval);
-            isFocusRunning = false;
-        }
-        currentPomoMode = mode;
-        const workBtn = document.getElementById('pomo-btn-work');
-        const breakBtn = document.getElementById('pomo-btn-break');
-        if (workBtn && breakBtn) {
-            if (mode === 'work') {
-                workBtn.classList.add('active');
-                breakBtn.classList.remove('active');
-            } else {
-                breakBtn.classList.add('active');
-                workBtn.classList.remove('active');
-            }
-        }
-        focusMinutes = (mode === 'work') ? workMinutes : breakMinutes;
-        focusTotalSeconds = focusMinutes * 60;
-        focusSecondsLeft = focusTotalSeconds;
-
-        renderPomoPresets();
-        updateFocusTimerUI();
-        updateFocusPlayBtnUI();
-    };
-
-    window.renderPomoPresets = function() {
-        const container = document.getElementById('pomo-presets-container');
-        if (!container) return;
-        const presets = (currentPomoMode === 'work') ? [15, 25, 45, 60] : [5, 10, 15, 20];
-        const activeVal = (currentPomoMode === 'work') ? workMinutes : breakMinutes;
-        container.innerHTML = presets.map(m => 
-            `<button type="button" class="focus-pill ${m === activeVal ? 'active' : ''}" onclick="setPomoDuration(${m}, this)">${m} min</button>`
-        ).join('');
-    };
-
-    window.setPomoDuration = function(minutes, btn) {
-        if (isFocusRunning) {
-            if (!confirm('Vuoi azzerare il timer e impostare la nuova durata?')) return;
-            clearInterval(focusInterval);
-            isFocusRunning = false;
-        }
-        if (currentPomoMode === 'work') {
-            workMinutes = minutes;
-        } else {
-            breakMinutes = minutes;
-        }
-        focusMinutes = minutes;
-        focusTotalSeconds = minutes * 60;
-        focusSecondsLeft = focusTotalSeconds;
-
-        document.querySelectorAll('.focus-pill').forEach(p => p.classList.remove('active'));
-        if (btn) btn.classList.add('active');
-
-        updateFocusTimerUI();
-        updateFocusPlayBtnUI();
-    };
-
-    function updateFocusTimerUI() {
-        const min = Math.floor(focusSecondsLeft / 60);
-        const sec = focusSecondsLeft % 60;
-        const timeStr = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-        const timeEl = document.getElementById('focus-time-text');
-        if (timeEl) timeEl.innerText = timeStr;
-
-        const progressEl = document.getElementById('focus-circle-progress');
-        if (progressEl) {
-            if (currentPomoMode === 'break') {
-                progressEl.classList.add('break-mode');
-            } else {
-                progressEl.classList.remove('break-mode');
-            }
-            const circumference = 2 * Math.PI * 82; // approx 515.22
-            const fraction = (focusTotalSeconds - focusSecondsLeft) / focusTotalSeconds;
-            const offset = circumference * (1 - fraction);
-            progressEl.style.strokeDasharray = `${circumference}`;
-            progressEl.style.strokeDashoffset = `${offset}`;
-        }
-    }
-
-    function updateFocusPlayBtnUI() {
-        const iconEl = document.getElementById('focus-icon-play');
-        const textEl = document.getElementById('focus-text-play');
-        if (!iconEl || !textEl) return;
-        if (isFocusRunning) {
-            iconEl.className = 'fa-solid fa-pause';
-            textEl.innerText = 'Pausa';
-        } else {
-            iconEl.className = 'fa-solid fa-play';
-            textEl.innerText = focusSecondsLeft < focusTotalSeconds ? 'Riprendi' : 'Inizia';
-        }
-    }
-
-    window.toggleFocusTimer = function() {
-        if (isFocusRunning) {
-            clearInterval(focusInterval);
-            isFocusRunning = false;
-            updateFocusPlayBtnUI();
-        } else {
-            isFocusRunning = true;
-            updateFocusPlayBtnUI();
-
-            focusInterval = setInterval(() => {
-                if (focusSecondsLeft > 0) {
-                    focusSecondsLeft--;
-                    updateFocusTimerUI();
-                } else {
-                    clearInterval(focusInterval);
-                    isFocusRunning = false;
-                    updateFocusPlayBtnUI();
-                    completeFocusSession();
-                }
-            }, 1000);
-        }
-    };
-
-    window.resetFocusTimer = function() {
-        clearInterval(focusInterval);
-        isFocusRunning = false;
-        focusSecondsLeft = focusTotalSeconds;
-        updateFocusTimerUI();
-        updateFocusPlayBtnUI();
-    };
-
-    function completeFocusSession() {
-        if (currentPomoMode === 'work') {
-            focusStats.totalMinutes += focusMinutes;
-            focusStats.sessions += 1;
-            localStorage.setItem('studylog_focus_stats', JSON.stringify(focusStats));
-            updateFocusStatsUI();
-
-            // Segna studio per la serie di fuoco
-            if (typeof studyDays !== 'undefined') {
-                studyDays[todayDateStr] = true;
-                localStorage.setItem('studylog_studydays', JSON.stringify(studyDays));
-                updateStreakDisplay();
-            }
-
-            // Confetti celebration
-            if (typeof confetti === 'function') {
-                confetti({ particleCount: 90, spread: 65, origin: { y: 0.6 } });
-            }
-
-            // Award XP
-            addXP(30);
-
-            sendLocalNotification('Pomodoro Completato! 🍅', `Grande sessione di ${focusMinutes} min completata (+30 XP). Ora fai una pausa di ${breakMinutes} min! ☕`);
-
-            // Passa automaticamente alla pausa
-            switchPomodoroMode('break');
-        } else {
-            // Pausa completata
-            sendLocalNotification('Pausa Terminata! ☕', 'Sei pronto per il prossimo Pomodoro di studio? 🍅');
-
-            // Torna automaticamente al lavoro
-            switchPomodoroMode('work');
-        }
     }
 
     // =========================================================================
@@ -2385,1297 +2188,6 @@
         });
     };
 
-    // =========================================================================
-    // FEATURE 2: FLASHCARD CON RIPETIZIONE SPAZIATA (LEITNER BOX)
-    // =========================================================================
-    let flashcards = [];
-    let currentCardIndex = 0;
-    let currentDueCards = [];
-    let selectedFlashcardSubject = 'ALL';
-
-    window.loadFlashcards = function() {
-        try {
-            const stored = localStorage.getItem('studylog_flashcards');
-            if (stored) {
-                flashcards = JSON.parse(stored);
-            }
-        } catch(e) {
-            flashcards = [];
-        }
-
-        if (!flashcards || flashcards.length === 0) {
-            const sub1 = (typeof userSubjects !== 'undefined' && userSubjects[0]) ? userSubjects[0] : 'Italiano';
-            const sub2 = (typeof userSubjects !== 'undefined' && userSubjects[1]) ? userSubjects[1] : 'Storia';
-            const sub3 = (typeof userSubjects !== 'undefined' && userSubjects[2]) ? userSubjects[2] : 'Filosofia';
-            flashcards = [
-                {
-                    id: generateId(),
-                    subject: sub1,
-                    front: "Chi è l'autore della 'Divina Commedia'?",
-                    back: "Dante Alighieri, capolavoro iniziato intorno al 1304 e suddiviso in Inferno, Purgatorio e Paradiso.",
-                    level: 1,
-                    nextReviewDate: todayDateStr,
-                    created: Date.now()
-                },
-                {
-                    id: generateId(),
-                    subject: sub2,
-                    front: "In quale anno scoppiò la Rivoluzione Francese?",
-                    back: "Nel 1789, con la fondamentale presa della Bastiglia il 14 luglio a Parigi.",
-                    level: 1,
-                    nextReviewDate: todayDateStr,
-                    created: Date.now()
-                },
-                {
-                    id: generateId(),
-                    subject: sub3,
-                    front: "Qual è il celebre motto attribuito a Socrate?",
-                    back: "'So di non sapere' (la consapevolezza dei propri limiti come base per la vera conoscenza).",
-                    level: 1,
-                    nextReviewDate: todayDateStr,
-                    created: Date.now()
-                }
-            ];
-            saveFlashcards();
-        }
-    };
-
-    function saveFlashcards() {
-        localStorage.setItem('studylog_flashcards', JSON.stringify(flashcards));
-    }
-
-    window.renderFlashcardsView = function() {
-        const cardSessionView = document.getElementById('ripasso-flashcard-session-view');
-        const quizSessionView = document.getElementById('ripasso-quiz-session-view');
-        if (cardSessionView && cardSessionView.style.display !== 'none') {
-            renderFlashcardsSession();
-        } else if (quizSessionView && quizSessionView.style.display !== 'none') {
-            // Stay in quiz session
-        } else {
-            renderRipassoHub();
-        }
-    };
-
-    window.renderRipassoHub = function() {
-        const hubView = document.getElementById('ripasso-hub-view');
-        const cardSessionView = document.getElementById('ripasso-flashcard-session-view');
-        const quizSessionView = document.getElementById('ripasso-quiz-session-view');
-        const grid = document.getElementById('ripasso-box-grid');
-        const popoverContainer = document.getElementById('flashcard-subject-popover-container');
-
-        if (!grid) return;
-
-        if (hubView) hubView.style.display = 'block';
-        if (cardSessionView) cardSessionView.style.display = 'none';
-        if (quizSessionView) quizSessionView.style.display = 'none';
-
-        const deckSubs = flashcards.map(c => c.subject || 'Generale');
-        const allSubs = Array.from(new Set([
-            ...(typeof userSubjects !== 'undefined' ? userSubjects : []),
-            ...deckSubs
-        ].filter(Boolean)));
-
-        const filterItems = ['Tutte', ...allSubs];
-        const currentFilter = (selectedFlashcardSubject === 'ALL' || !selectedFlashcardSubject) ? 'Tutte' : selectedFlashcardSubject;
-
-        if (popoverContainer) {
-            if (!window.flashcardSubjectPicker) {
-                window.flashcardSubjectPicker = initOptionPopover('flashcard-subject-popover-container', {
-                    items: filterItems,
-                    defaultItem: currentFilter,
-                    icon: 'fa-solid fa-chevron-down',
-                    onChange: (val) => {
-                        selectedFlashcardSubject = (val === 'Tutte' ? 'ALL' : val);
-                        renderRipassoHub();
-                    }
-                });
-            } else {
-                window.flashcardSubjectPicker.setItems(filterItems);
-                const txt = document.getElementById('pop_opt_text_flashcard-subject-popover-container');
-                if (txt) txt.innerText = currentFilter;
-            }
-        }
-
-        const subjectsToRender = (selectedFlashcardSubject && selectedFlashcardSubject !== 'ALL')
-            ? [selectedFlashcardSubject]
-            : (allSubs.length > 0 ? allSubs : ['Generale']);
-
-        grid.innerHTML = '';
-
-        const scheduledExams = [];
-        if (typeof studyTasks !== 'undefined') {
-            studyTasks.forEach(t => {
-                if (t.isExamDay && (!selectedFlashcardSubject || selectedFlashcardSubject === 'ALL' || t.subject === selectedFlashcardSubject)) {
-                    scheduledExams.push(t);
-                }
-            });
-        }
-
-        subjectsToRender.forEach(subj => {
-            const subjCards = flashcards.filter(c => c.subject === subj);
-            const dueToday = subjCards.filter(c => !c.nextReviewDate || c.nextReviewDate <= todayDateStr).length;
-
-            // 1. Riquadro Flashcard
-            const fcCard = document.createElement('div');
-            fcCard.className = 'ripasso-box-card flashcard-box';
-            fcCard.onclick = () => openSubjectFlashcards(subj);
-            fcCard.innerHTML = `
-                <div class="ripasso-box-card-top">
-                    <div class="ripasso-box-icon-title">
-                        <div class="ripasso-box-icon"><i class="fa-solid fa-layer-group"></i></div>
-                        <div>
-                            <h4 class="ripasso-box-title">Flashcard ${subj}</h4>
-                            <span style="font-size:0.75rem; color:var(--text-muted);">${subjCards.length} ${subjCards.length === 1 ? 'carta' : 'carte'} memorizzate</span>
-                        </div>
-                    </div>
-                    <span class="ripasso-box-badge">${dueToday > 0 ? dueToday + ' oggi' : 'Completate'}</span>
-                </div>
-                <p class="ripasso-box-desc">Ripasso scientifico con ripetizione spaziata e flip card 3D.</p>
-                <div class="ripasso-box-footer">
-                    <span>${dueToday > 0 ? '<i class="fa-solid fa-circle" style="color:var(--danger-color); font-size:0.5rem; vertical-align:middle;"></i> Sessione pronta' : '<i class="fa-solid fa-check"></i> In pari'}</span>
-                    <span>Apri Mazzo <i class="fa-solid fa-chevron-right"></i></span>
-                </div>
-            `;
-            grid.appendChild(fcCard);
-
-            // 2. Riquadro Quiz
-            const qzCard = document.createElement('div');
-            qzCard.className = 'ripasso-box-card quiz-box';
-            qzCard.onclick = () => openSubjectQuiz(subj);
-            qzCard.innerHTML = `
-                <div class="ripasso-box-card-top">
-                    <div class="ripasso-box-icon-title">
-                        <div class="ripasso-box-icon"><i class="fa-solid fa-bolt"></i></div>
-                        <div>
-                            <h4 class="ripasso-box-title">Quiz ${subj}</h4>
-                            <span style="font-size:0.75rem; color:var(--text-muted);">Simulazione e Test</span>
-                        </div>
-                    </div>
-                    <span class="ripasso-box-badge">Test IA</span>
-                </div>
-                <p class="ripasso-box-desc">Domande a scelta singola, risposta multipla e risposte scritte con valutazione IA.</p>
-                <div class="ripasso-box-footer">
-                    <span>Correzione automatica</span>
-                    <span>Inizia Quiz <i class="fa-solid fa-chevron-right"></i></span>
-                </div>
-            `;
-            grid.appendChild(qzCard);
-
-            // 3. Riquadro Verifica se programmata
-            const relatedExams = scheduledExams.filter(e => e.subject === subj);
-            relatedExams.forEach(ex => {
-                const exCard = document.createElement('div');
-                exCard.className = 'ripasso-box-card exam-box';
-                exCard.onclick = () => openSubjectQuiz(subj);
-                exCard.innerHTML = `
-                    <div class="ripasso-box-card-top">
-                        <div class="ripasso-box-icon-title">
-                            <div class="ripasso-box-icon"><i class="fa-solid fa-file-pen"></i></div>
-                            <div>
-                                <h4 class="ripasso-box-title">Verifica ${subj}</h4>
-                                <span style="font-size:0.75rem; color:#d97706; font-weight:600;">Data: ${formatDisplayDate(ex.date)}</span>
-                            </div>
-                        </div>
-                        <span class="ripasso-box-badge" style="color:#d97706; border-color:rgba(217,119,6,0.3);">Verifica</span>
-                    </div>
-                    <p class="ripasso-box-desc">${ex.examPages ? ex.examPages + ' pagine da studiare.' : 'Simulazione per prepararsi alla prova scritta o orale.'}</p>
-                    <div class="ripasso-box-footer" style="color:#d97706;">
-                        <span>Simula Prova</span>
-                        <span>Preparati <i class="fa-solid fa-chevron-right"></i></span>
-                    </div>
-                `;
-                grid.appendChild(exCard);
-            });
-        });
-
-        // 4. Riquadro Aggiungi con Foto o IA
-        const createCard = document.createElement('div');
-        createCard.className = 'ripasso-box-card create-box';
-        createCard.onclick = () => openAiGeneratorModal();
-        createCard.innerHTML = `
-            <div style="font-size: 1.5rem; color: var(--theme-strong); margin-bottom: 5px;">
-                <i class="fa-solid fa-camera"></i>
-            </div>
-            <div style="font-weight: 700; color: var(--text-main); font-size: 0.95rem; margin-bottom: 2px;">Crea Schemi con Foto o Appunti</div>
-            <div style="font-size: 0.78rem; color: var(--text-muted);">Scatta una foto ai tuoi appunti o quaderni per generare flashcard e quiz con l'IA</div>
-        `;
-        grid.appendChild(createCard);
-    };
-
-    window.openSubjectFlashcards = function(subj) {
-        selectedFlashcardSubject = subj;
-        currentCardIndex = 0;
-
-        const hubView = document.getElementById('ripasso-hub-view');
-        const cardSessionView = document.getElementById('ripasso-flashcard-session-view');
-        const quizSessionView = document.getElementById('ripasso-quiz-session-view');
-        const badge = document.getElementById('session-flashcard-subject-badge');
-
-        if (hubView) hubView.style.display = 'none';
-        if (quizSessionView) quizSessionView.style.display = 'none';
-        if (cardSessionView) cardSessionView.style.display = 'block';
-        if (badge) badge.innerText = subj;
-
-        renderFlashcardsSession();
-    };
-
-    window.closeRipassoSession = function() {
-        const hubView = document.getElementById('ripasso-hub-view');
-        const cardSessionView = document.getElementById('ripasso-flashcard-session-view');
-        const quizSessionView = document.getElementById('ripasso-quiz-session-view');
-        if (hubView) hubView.style.display = 'block';
-        if (cardSessionView) cardSessionView.style.display = 'none';
-        if (quizSessionView) quizSessionView.style.display = 'none';
-        renderRipassoHub();
-    };
-
-    function renderFlashcardsSession() {
-        const studyContainer = document.getElementById('flashcard-study-container');
-        const emptyState = document.getElementById('flashcard-empty-state');
-        const drawerContainer = document.getElementById('all-cards-list-container');
-        const totalCountEl = document.getElementById('total-cards-count');
-        const progressFill = document.getElementById('card-progress-fill');
-
-        const subjCards = flashcards.filter(c => {
-            if (!selectedFlashcardSubject || selectedFlashcardSubject === 'ALL') return true;
-            return c.subject === selectedFlashcardSubject;
-        });
-
-        if (totalCountEl) totalCountEl.innerText = subjCards.length.toString();
-
-        currentDueCards = subjCards.filter(c => {
-            return !c.nextReviewDate || c.nextReviewDate <= todayDateStr;
-        });
-
-        // Drawer
-        if (drawerContainer) {
-            drawerContainer.innerHTML = '';
-            if (subjCards.length === 0) {
-                drawerContainer.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; text-align:center; padding:15px;">Nessuna flashcard in questa materia. Creane una nuova!</div>';
-            } else {
-                subjCards.forEach(card => {
-                    const row = document.createElement('div');
-                    row.className = 'card-deck-row';
-                    const lvl = card.level || 1;
-                    row.innerHTML = `
-                        <div class="card-deck-main">
-                            <div class="card-deck-front">${card.front}</div>
-                            <div class="card-deck-sub">
-                                <span><i class="fa-solid fa-book-open"></i> ${card.subject}</span>
-                                <span class="card-lvl-pill lvl-${lvl}">Liv. ${lvl} (${lvl === 1 ? '1gg' : lvl === 2 ? '3gg' : '7gg'})</span>
-                            </div>
-                        </div>
-                        <button type="button" class="btn-card-delete" onclick="deleteFlashcard('${card.id}')" title="Elimina"><i class="fa-solid fa-trash-can"></i></button>
-                    `;
-                    drawerContainer.appendChild(row);
-                });
-            }
-        }
-
-        // Empty state
-        if (currentDueCards.length === 0 || currentCardIndex >= currentDueCards.length) {
-            if (studyContainer) studyContainer.style.display = 'none';
-            if (emptyState) emptyState.style.display = 'block';
-            if (progressFill) progressFill.style.width = '100%';
-            return;
-        }
-
-        if (studyContainer) studyContainer.style.display = 'block';
-        if (emptyState) emptyState.style.display = 'none';
-
-        const card = currentDueCards[currentCardIndex];
-        const flipCardEl = document.getElementById('current-flip-card');
-        if (flipCardEl) flipCardEl.classList.remove('flipped');
-
-        const frontSub = document.getElementById('card-front-subject');
-        const frontTxt = document.getElementById('card-front-text');
-        const backSub = document.getElementById('card-back-subject');
-        const backTxt = document.getElementById('card-back-text');
-
-        if (frontSub) frontSub.innerText = card.subject || 'Materia';
-        if (frontTxt) frontTxt.innerText = card.front || '';
-        if (backSub) backSub.innerText = card.subject || 'Risposta';
-        if (backTxt) backTxt.innerText = card.back || '';
-
-        if (progressFill) {
-            const pct = Math.round((currentCardIndex / currentDueCards.length) * 100);
-            progressFill.style.width = `${pct}%`;
-        }
-    }
-
-    window.flipCurrentCard = function() {
-        const flipCardEl = document.getElementById('current-flip-card');
-        if (flipCardEl) flipCardEl.classList.toggle('flipped');
-    };
-
-    window.rateCardRecall = function(rating) {
-        if (!currentDueCards || currentCardIndex >= currentDueCards.length) return;
-        const card = currentDueCards[currentCardIndex];
-        const today = new Date();
-
-        if (rating === 1) {
-            // Difficile: ripete domani (Livello 1)
-            card.level = 1;
-            const d = new Date(today);
-            d.setDate(d.getDate() + 1);
-            card.nextReviewDate = formatDateStr(d);
-        } else if (rating === 2) {
-            // Buono: ripete tra 3 giorni (Livello 2)
-            card.level = Math.min((card.level || 1) + 1, 3);
-            const d = new Date(today);
-            d.setDate(d.getDate() + (card.level === 2 ? 3 : 4));
-            card.nextReviewDate = formatDateStr(d);
-        } else if (rating === 3) {
-            // Facile: ripete tra 7 giorni (Livello 3)
-            card.level = 3;
-            const d = new Date(today);
-            d.setDate(d.getDate() + 7);
-            card.nextReviewDate = formatDateStr(d);
-        }
-
-        saveFlashcards();
-        addXP(10);
-
-        currentCardIndex++;
-        if (currentCardIndex >= currentDueCards.length) {
-            if (typeof confetti === 'function') {
-                confetti({ particleCount: 75, spread: 60, origin: { y: 0.65 } });
-            }
-        }
-        renderFlashcardsView();
-    };
-
-    window.openNewCardModal = function() {
-        const modal = document.getElementById('new-flashcard-modal');
-        const select = document.getElementById('new-card-subject');
-        const front = document.getElementById('new-card-front');
-        const back = document.getElementById('new-card-back');
-
-        if (select) {
-            select.innerHTML = '';
-            const subs = (typeof userSubjects !== 'undefined' && userSubjects.length > 0) ? userSubjects : ['Italiano', 'Storia', 'Matematica', 'Scienze'];
-            subs.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s;
-                opt.innerText = s;
-                select.appendChild(opt);
-            });
-        }
-        if (front) front.value = '';
-        if (back) back.value = '';
-        if (modal) modal.classList.add('active');
-    };
-
-    window.closeNewCardModal = function() {
-        const modal = document.getElementById('new-flashcard-modal');
-        if (modal) modal.classList.remove('active');
-    };
-
-    window.saveNewFlashcard = function() {
-        const select = document.getElementById('new-card-subject');
-        const front = document.getElementById('new-card-front');
-        const back = document.getElementById('new-card-back');
-
-        const frontVal = front ? front.value.trim() : '';
-        const backVal = back ? back.value.trim() : '';
-        const subVal = select ? select.value : 'Generale';
-
-        if (!frontVal || !backVal) {
-            customAlert("Inserisci sia il fronte (domanda/termine), sia il retro (risposta/definizione)!", "Campi incompleti");
-            return;
-        }
-
-        const newCard = {
-            id: generateId(),
-            subject: subVal,
-            front: frontVal,
-            back: backVal,
-            level: 1,
-            nextReviewDate: todayDateStr,
-            created: Date.now()
-        };
-
-        flashcards.unshift(newCard);
-        saveFlashcards();
-        closeNewCardModal();
-        showToast("Flashcard aggiunta con successo!");
-        currentCardIndex = 0;
-        renderFlashcardsView();
-    };
-
-    window.deleteFlashcard = function(id) {
-        customConfirm({
-            title: "Elimina Flashcard",
-            message: "Vuoi davvero rimuovere questa carta dal tuo mazzo?",
-            isDanger: true,
-            confirmText: "Elimina",
-            cancelText: "Annulla"
-        }).then(ok => {
-            if (ok) {
-                flashcards = flashcards.filter(c => c.id !== id);
-                saveFlashcards();
-                renderFlashcardsView();
-                showToast("Flashcard eliminata");
-            }
-        });
-    };
-
-    window.restartAllFlashcards = function() {
-        flashcards.forEach(c => {
-            c.nextReviewDate = todayDateStr;
-        });
-        saveFlashcards();
-        currentCardIndex = 0;
-        renderFlashcardsView();
-        showToast("Tutte le carte sono pronte per il ripasso!");
-    };
-
-    window.toggleCardsListDrawer = function() {
-        const content = document.getElementById('cards-list-drawer-content');
-        const chevron = document.getElementById('cards-drawer-chevron');
-        if (!content) return;
-        if (content.style.display === 'none' || !content.style.display) {
-            content.style.display = 'block';
-            if (chevron) chevron.style.transform = 'rotate(180deg)';
-        } else {
-            content.style.display = 'none';
-            if (chevron) chevron.style.transform = 'rotate(0deg)';
-        }
-    };
-
-    // =========================================================================
-    // FEATURE 6: GENERATORE AUTOMATICO DI QUIZ CON AI (GEMINI + OFFLINE SMART)
-    // =========================================================================
-    let currentQuizQuestions = [];
-    let currentQuizQuestionIndex = 0;
-    let currentQuizScore = 0;
-    let missedQuizQuestions = [];
-    let currentQuizSubject = "";
-
-    window.initGeminiKeyInput = function() {
-        const input = document.getElementById('settings-gemini-key');
-        if (input) {
-            const saved = localStorage.getItem('studylog_gemini_key') || '';
-            input.value = saved;
-        }
-    };
-
-    window.saveGeminiApiKey = function(val) {
-        localStorage.setItem('studylog_gemini_key', (val || '').trim());
-        showToast("Chiave Gemini AI salvata!");
-    };
-
-    let selectedAiPhotoBase64 = null;
-    let selectedAiPhotoMime = null;
-    let selectedMultiIndices = new Set();
-
-    window.openAiGeneratorModal = function() {
-        const modal = document.getElementById('ai-generator-modal');
-        const select = document.getElementById('ai-gen-subject-select');
-        if (select) {
-            select.innerHTML = '';
-            const subs = (typeof userSubjects !== 'undefined' && userSubjects.length > 0) ? userSubjects : ['Storia', 'Filosofia', 'Scienze', 'Italiano', 'Matematica', 'Fisica', 'Inglese'];
-            subs.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s;
-                opt.innerText = s;
-                select.appendChild(opt);
-            });
-            if (selectedFlashcardSubject && selectedFlashcardSubject !== 'ALL') {
-                select.value = selectedFlashcardSubject;
-            }
-        }
-
-        const notes = document.getElementById('ai-gen-notes-input');
-        if (notes) notes.value = '';
-        removeAiPhoto();
-
-        const formView = document.getElementById('ai-gen-form-view');
-        const loadingView = document.getElementById('ai-gen-loading-view');
-        if (formView) formView.style.display = 'block';
-        if (loadingView) loadingView.style.display = 'none';
-
-        if (modal) modal.classList.add('active');
-    };
-
-    window.closeAiGeneratorModal = function() {
-        const modal = document.getElementById('ai-generator-modal');
-        if (modal) modal.classList.remove('active');
-    };
-
-    window.openAiQuizModal = window.openAiGeneratorModal;
-    window.closeAiQuizModal = window.closeAiGeneratorModal;
-
-    window.handleAiPhotoSelected = function(e) {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-
-        if (file.size > 8 * 1024 * 1024) {
-            customAlert("La foto selezionata supera 8MB. Prova a scattarla a risoluzione standard o usa un file più leggero.", "Foto troppo grande");
-            return;
-        }
-
-        selectedAiPhotoMime = file.type || 'image/jpeg';
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-            const fullDataUrl = evt.target.result;
-            selectedAiPhotoBase64 = fullDataUrl.split(',')[1];
-
-            const previewWrap = document.getElementById('ai-photo-preview-wrap');
-            const previewImg = document.getElementById('ai-photo-preview-img');
-            const dropzone = document.getElementById('ai-photo-dropzone');
-
-            if (previewImg) previewImg.src = fullDataUrl;
-            if (previewWrap) previewWrap.style.display = 'flex';
-            if (dropzone) dropzone.style.display = 'none';
-        };
-        reader.readAsDataURL(file);
-    };
-
-    window.removeAiPhoto = function(e) {
-        if (e) e.stopPropagation();
-        selectedAiPhotoBase64 = null;
-        selectedAiPhotoMime = null;
-        const fileInput = document.getElementById('ai-photo-file-input');
-        if (fileInput) fileInput.value = '';
-
-        const previewWrap = document.getElementById('ai-photo-preview-wrap');
-        const dropzone = document.getElementById('ai-photo-dropzone');
-        if (previewWrap) previewWrap.style.display = 'none';
-        if (dropzone) dropzone.style.display = 'block';
-    };
-
-    window.openSubjectQuiz = function(subj) {
-        currentQuizSubject = subj;
-        const hubView = document.getElementById('ripasso-hub-view');
-        const cardSessionView = document.getElementById('ripasso-flashcard-session-view');
-        const quizSessionView = document.getElementById('ripasso-quiz-session-view');
-        const badge = document.getElementById('session-quiz-subject-badge');
-        const runner = document.getElementById('ripasso-quiz-runner');
-        const results = document.getElementById('ripasso-quiz-results');
-
-        if (hubView) hubView.style.display = 'none';
-        if (cardSessionView) cardSessionView.style.display = 'none';
-        if (quizSessionView) quizSessionView.style.display = 'block';
-        if (badge) badge.innerText = subj;
-        if (runner) runner.style.display = 'block';
-        if (results) results.style.display = 'none';
-
-        if (!currentQuizQuestions || currentQuizQuestions.length === 0 || currentQuizSubject !== subj) {
-            currentQuizQuestions = generateSmartSubjectQuiz(subj);
-        }
-        currentQuizQuestionIndex = 0;
-        currentQuizScore = 0;
-        missedQuizQuestions = [];
-        renderQuizQuestion();
-    };
-
-    function generateSmartSubjectQuiz(subj) {
-        const subjCards = flashcards.filter(c => c.subject === subj);
-        const questions = [];
-
-        // 1. Domanda a scelta singola
-        if (subjCards.length > 0) {
-            const c = subjCards[0];
-            const distractors = ["Concetto secondario non applicabile", "Tesi opposta a quella dell'autore", "Elemento non documentato"];
-            const opts = [c.back, ...distractors].sort(() => Math.random() - 0.5);
-            questions.push({
-                type: 'single',
-                question: `[${subj}] ${c.front}`,
-                options: opts,
-                correctIndex: opts.indexOf(c.back),
-                explanation: `Nel programma di ${subj} la risposta corretta è: ${c.back}`
-            });
-        } else {
-            questions.push({
-                type: 'single',
-                question: `In relazione a ${subj}, quale principio teorico è alla base della disciplina?`,
-                options: [
-                    `I metodi e concetti fondamentali del programma di studio`,
-                    `Un'ipotesi empirica priva di fondamento teorico`,
-                    `Una convenzione superata e contraddetta nei testi`,
-                    `Un'eccezione non verificata`
-                ],
-                correctIndex: 0,
-                explanation: `I fondamenti teorici di ${subj} costituiscono la base per affrontare verifiche ed esami.`
-            });
-        }
-
-        // 2. Domanda a risposta multipla (più opzioni corrette)
-        if (subjCards.length >= 2) {
-            const c1 = subjCards[1];
-            const c2 = subjCards[2] || { back: `Applicazione pratica dei concetti di ${subj}` };
-            const opts = [
-                c1.back,
-                c2.back,
-                `Un errore metodologico escluso in ${subj}`,
-                `Un'interpretazione contraddittoria del testo`
-            ];
-            questions.push({
-                type: 'multi',
-                question: `[${subj}] Quali tra le seguenti affermazioni corrispondono ai concetti studiati?`,
-                options: opts,
-                correctIndices: [0, 1],
-                explanation: `Entrambi gli elementi sintetizzano correttamente gli argomenti di ${subj}.`
-            });
-        } else {
-            questions.push({
-                type: 'multi',
-                question: `Quali tra i seguenti approcci sono raccomandati per lo studio approfondito di ${subj}?`,
-                options: [
-                    `Comprendere a fondo le definizioni e le relazioni logiche`,
-                    `Esercitarsi attivamente con test e ripetizione spaziata`,
-                    `Imparare a memoria senza comprendere il significato`,
-                    `Trattare solo i dettagli secondari trascurando i principi`
-                ],
-                correctIndices: [0, 1],
-                explanation: `La comprensione logica e la pratica attiva consentono una preparazione eccellente.`
-            });
-        }
-
-        // 3. Domanda a risposta scritta aperta
-        if (subjCards.length >= 3) {
-            const c = subjCards[subjCards.length - 1];
-            questions.push({
-                type: 'open',
-                question: `[${subj}] Spiega sinteticamente con parole tue: ${c.front}`,
-                expectedAnswer: c.back,
-                keyPoints: c.back.split(/\s+/).filter(w => w.length > 4),
-                explanation: `Concetto chiave: ${c.back}`
-            });
-        } else {
-            questions.push({
-                type: 'open',
-                question: `Spiega in due frasi i concetti principali dell'argomento di ${subj} che stai preparando.`,
-                expectedAnswer: `Spiegazione chiara delle definizioni, formule o eventi cardine trattati in ${subj}.`,
-                keyPoints: [subj, 'concetto', 'definizione'],
-                explanation: `Esprimere i concetti con parole proprie è la tecnica più efficace per verificare la padronanza della materia.`
-            });
-        }
-
-        return questions;
-    }
-
-    function generateOfflineQuizQuestions(text, subject) {
-        const sentences = text
-            .split(/[.\n;!?]+/)
-            .map(s => s.trim())
-            .filter(s => s.length > 20);
-
-        const questions = [];
-        
-        if (sentences.length >= 2) {
-            for (let i = 0; i < Math.min(sentences.length, 3); i++) {
-                const s = sentences[i];
-                const words = s.split(/\s+/).filter(w => w.length > 4);
-                const targetWord = words[Math.floor(words.length / 2)] || "il concetto cardine";
-                const maskedSentence = s.replace(new RegExp(targetWord, 'i'), '_______');
-
-                const distractors = ["l'ipotesi secondaria", "il fattore marginale", "l'effetto inverso"];
-                const options = [targetWord, ...distractors].sort(() => Math.random() - 0.5);
-
-                questions.push({
-                    type: 'single',
-                    question: `In base ai tuoi appunti di ${subject}: "${maskedSentence}". Quale elemento completa correttamente la frase?`,
-                    options: options,
-                    correctIndex: options.indexOf(targetWord),
-                    explanation: `Nel testo è spiegato che: "${s}".`
-                });
-            }
-
-            if (sentences.length >= 3) {
-                questions.push({
-                    type: 'multi',
-                    question: `In base al testo analizzato di ${subject}, quali tra queste affermazioni sono corrette?`,
-                    options: [
-                        sentences[0].substring(0, 70),
-                        sentences[1].substring(0, 70),
-                        "Un elemento escluso ed errato rispetto al testo",
-                        "Un'ipotesi smentita durante l'analisi"
-                    ],
-                    correctIndices: [0, 1],
-                    explanation: `Le prime due frasi rispecchiano fedelmente gli appunti analizzati.`
-                });
-            }
-
-            questions.push({
-                type: 'open',
-                question: `Sintetizza con parole tue il concetto chiave espresso in: "${sentences[0]}"`,
-                expectedAnswer: sentences[0],
-                keyPoints: sentences[0].split(/\s+/).filter(w => w.length > 4),
-                explanation: `Concetto espresso negli appunti: "${sentences[0]}".`
-            });
-        }
-
-        while (questions.length < 3) {
-            questions.push({
-                type: 'single',
-                question: `[${subject}] In base al capitolo analizzato, quale delle seguenti affermazioni è corretta?`,
-                options: [
-                    `Il concetto chiave identificato negli appunti di ${subject}`,
-                    `Una supposizione priva di fondamento teorico`,
-                    `Una conclusione opposta a quella esposta dall'autore`,
-                    `Un dettaglio marginale smentito nel testo`
-                ],
-                correctIndex: 0,
-                explanation: `I tuoi appunti approfondiscono i concetti fondamentali di ${subject}.`
-            });
-        }
-
-        return questions;
-    }
-
-    window.executeAiGeneration = async function() {
-        const subjectSelect = document.getElementById('ai-gen-subject-select');
-        const notesInput = document.getElementById('ai-gen-notes-input');
-
-        const currentSubject = subjectSelect ? subjectSelect.value : 'Studio';
-        const textNotes = notesInput ? notesInput.value.trim() : '';
-
-        if (!selectedAiPhotoBase64 && textNotes.length < 15) {
-            customAlert("Scatta una foto ai tuoi appunti o scrivi almeno una frase per generare il ripasso!", "Dati insufficienti");
-            return;
-        }
-
-        const formView = document.getElementById('ai-gen-form-view');
-        const loadingView = document.getElementById('ai-gen-loading-view');
-        const loadingTitle = document.getElementById('ai-gen-loading-title');
-        const loadingSub = document.getElementById('ai-gen-loading-sub');
-
-        if (formView) formView.style.display = 'none';
-        if (loadingView) loadingView.style.display = 'block';
-        if (loadingTitle) {
-            loadingTitle.innerText = selectedAiPhotoBase64 ? "Gemini sta leggendo la foto degli appunti..." : "Gemini sta analizzando i tuoi appunti...";
-        }
-        if (loadingSub) {
-            loadingSub.innerText = "Creazione automatica di flashcard e quiz (scelta singola, multipla e scritta).";
-        }
-
-        const apiKey = localStorage.getItem('studylog_gemini_key') || '';
-        let generatedData = null;
-
-        if (apiKey) {
-            try {
-                const parts = [];
-                if (selectedAiPhotoBase64) {
-                    parts.push({
-                        inline_data: {
-                            mime_type: selectedAiPhotoMime || 'image/jpeg',
-                            data: selectedAiPhotoBase64
-                        }
-                    });
-                }
-
-                const promptText = `Sei un tutor scolastico italiano esperto nella materia "${currentSubject}".
-Esamina con attenzione il materiale fornito (immagine degli appunti/libro e/o testo sottostante).
-${textNotes ? `Note aggiuntive dello studente:\n"${textNotes}"\n` : ''}
-
-Compito:
-1. Genera un numero ideale di flashcard per la memorizzazione a lungo termine in base alla ricchezza del materiale (in genere tra 3 e 8 carte). Ogni flashcard ha "front" (domanda sintetica, termine chiave o formula) e "back" (risposta o spiegazione chiara).
-2. Genera un set bilanciato di domande per il quiz (in genere tra 3 e 6 domande) variando tra queste tre tipologie:
-   a) "single": domanda a scelta singola con 4 opzioni ("options": array di 4 stringhe), "correctIndex" (indice numerico da 0 a 3 della sola risposta esatta) ed "explanation".
-   b) "multi": domanda a risposta multipla con 4 opzioni ("options": array di 4 stringhe), "correctIndices" (array contenente i 2 o 3 indici corretti, es. [0, 2]) ed "explanation".
-   c) "open": domanda a risposta aperta scritta dallo studente, con "expectedAnswer" (risposta ideale attesa dettagliata), "keyPoints" (array di parole chiave fondamentali richieste) ed "explanation".
-
-Rispondi RIGOROSAMENTE con una singola struttura JSON valida, senza blocchi markdown, senza commenti:
-{
-  "flashcards": [
-    { "front": "...", "back": "..." }
-  ],
-  "quiz": [
-    { "type": "single", "question": "...", "options": ["...", "...", "...", "..."], "correctIndex": 0, "explanation": "..." },
-    { "type": "multi", "question": "...", "options": ["...", "...", "...", "..."], "correctIndices": [0, 2], "explanation": "..." },
-    { "type": "open", "question": "...", "expectedAnswer": "...", "keyPoints": ["...", "..."], "explanation": "..." }
-  ]
-}`;
-                parts.push({ text: promptText });
-
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: parts }],
-                        generationConfig: {
-                            responseMimeType: "application/json"
-                        }
-                    })
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
-                    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (rawText) {
-                        const cleaned = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-                        generatedData = JSON.parse(cleaned);
-                    }
-                } else {
-                    console.warn('Gemini API call failed with status:', res.status);
-                }
-            } catch (err) {
-                console.warn('Gemini API fetch error:', err);
-            }
-        }
-
-        // Offline Fallback se non c'è chiave o errore API
-        if (!generatedData) {
-            const fallbackText = textNotes || (selectedAiPhotoBase64 ? `Studio di ${currentSubject} basato sull'immagine caricata` : 'Studio generale');
-            
-            const offlineQuiz = generateOfflineQuizQuestions(fallbackText, currentSubject);
-            const offlineCards = [];
-            const sentences = fallbackText.split(/[.\n;!?]+/).map(s => s.trim()).filter(s => s.length > 15);
-            for (let i = 0; i < Math.min(sentences.length, 5); i++) {
-                const s = sentences[i];
-                offlineCards.push({
-                    front: `Definisci il concetto chiave di ${currentSubject} (punto ${i + 1})`,
-                    back: s
-                });
-            }
-            while (offlineCards.length < 3) {
-                const idx = offlineCards.length + 1;
-                offlineCards.push({
-                    front: `Concetto fondamentale #${idx} - ${currentSubject}`,
-                    back: `Spiegazione ed elementi essenziali relativi a ${currentSubject} estratti dagli appunti.`
-                });
-            }
-
-            generatedData = {
-                flashcards: offlineCards,
-                quiz: offlineQuiz
-            };
-        }
-
-        // Aggiungi flashcards create
-        let addedCardsCount = 0;
-        if (Array.isArray(generatedData.flashcards) && generatedData.flashcards.length > 0) {
-            generatedData.flashcards.forEach(fc => {
-                if (fc.front && fc.back) {
-                    flashcards.unshift({
-                        id: generateId(),
-                        subject: currentSubject,
-                        front: fc.front,
-                        back: fc.back,
-                        level: 1,
-                        nextReviewDate: todayDateStr,
-                        created: Date.now()
-                    });
-                    addedCardsCount++;
-                }
-            });
-            saveFlashcards();
-        }
-
-        // Prepara quiz
-        let hasQuiz = false;
-        if (Array.isArray(generatedData.quiz) && generatedData.quiz.length > 0) {
-            currentQuizQuestions = generatedData.quiz;
-            currentQuizQuestionIndex = 0;
-            currentQuizScore = 0;
-            missedQuizQuestions = [];
-            currentQuizSubject = currentSubject;
-            hasQuiz = true;
-        }
-
-        setTimeout(() => {
-            closeAiGeneratorModal();
-
-            if (hasQuiz) {
-                showToast(`Generati: Quiz (${currentQuizQuestions.length} domande) e ${addedCardsCount} Flashcard!`);
-                openSubjectQuiz(currentSubject);
-            } else {
-                showToast(`Create con successo ${addedCardsCount} Flashcard per ${currentSubject}!`);
-                openSubjectFlashcards(currentSubject);
-            }
-        }, 400);
-    };
-
-    function renderQuizQuestion() {
-        if (!currentQuizQuestions || currentQuizQuestionIndex >= currentQuizQuestions.length) return;
-        const q = currentQuizQuestions[currentQuizQuestionIndex];
-        const qType = q.type || (Array.isArray(q.correctIndices) ? 'multi' : (q.expectedAnswer ? 'open' : 'single'));
-
-        const numEl = document.getElementById('quiz-question-number');
-        const typeBadge = document.getElementById('quiz-question-type-badge');
-        const scoreEl = document.getElementById('quiz-live-score');
-        const titleEl = document.getElementById('quiz-question-title');
-        const optionsCont = document.getElementById('quiz-options-container');
-        const writtenCont = document.getElementById('quiz-written-container');
-        const confirmMultiBtn = document.getElementById('btn-confirm-multi-q');
-        const feedbackBox = document.getElementById('quiz-feedback-box');
-        const nextBtn = document.getElementById('btn-next-quiz-q');
-
-        if (numEl) numEl.innerText = `Domanda ${currentQuizQuestionIndex + 1} di ${currentQuizQuestions.length}`;
-        if (scoreEl) scoreEl.innerText = `Punti: ${currentQuizScore}`;
-        if (titleEl) titleEl.innerText = q.question;
-        if (feedbackBox) {
-            feedbackBox.style.display = 'none';
-            feedbackBox.className = 'quiz-feedback-box';
-        }
-        if (nextBtn) nextBtn.style.display = 'none';
-
-        selectedMultiIndices.clear();
-
-        if (qType === 'open') {
-            if (typeBadge) typeBadge.innerText = 'Risposta scritta';
-            if (optionsCont) optionsCont.style.display = 'none';
-            if (confirmMultiBtn) confirmMultiBtn.style.display = 'none';
-            if (writtenCont) {
-                writtenCont.style.display = 'block';
-                const input = document.getElementById('quiz-written-input');
-                if (input) {
-                    input.value = '';
-                    input.disabled = false;
-                }
-                const submitBtn = document.getElementById('btn-submit-written-q');
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.style.display = 'block';
-                    submitBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Valuta con IA';
-                }
-            }
-        } else if (qType === 'multi') {
-            if (typeBadge) typeBadge.innerText = 'Risposta multipla';
-            if (writtenCont) writtenCont.style.display = 'none';
-            if (optionsCont) {
-                optionsCont.style.display = 'flex';
-                optionsCont.innerHTML = '';
-                const letters = ['A', 'B', 'C', 'D'];
-                (q.options || []).forEach((opt, idx) => {
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = 'quiz-option-btn multi-select';
-                    btn.innerHTML = `
-                        <span class="quiz-option-letter">${letters[idx] || idx}</span>
-                        <span style="flex:1;">${opt}</span>
-                        <div class="quiz-option-checkbox"><i class="fa-solid fa-check"></i></div>
-                    `;
-                    btn.onclick = () => toggleMultiOption(idx, btn);
-                    optionsCont.appendChild(btn);
-                });
-            }
-            if (confirmMultiBtn) {
-                confirmMultiBtn.style.display = 'block';
-                confirmMultiBtn.disabled = false;
-            }
-        } else {
-            if (typeBadge) typeBadge.innerText = 'Scelta singola';
-            if (writtenCont) writtenCont.style.display = 'none';
-            if (confirmMultiBtn) confirmMultiBtn.style.display = 'none';
-            if (optionsCont) {
-                optionsCont.style.display = 'flex';
-                optionsCont.innerHTML = '';
-                const letters = ['A', 'B', 'C', 'D'];
-                (q.options || []).forEach((opt, idx) => {
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = 'quiz-option-btn';
-                    btn.innerHTML = `<span class="quiz-option-letter">${letters[idx] || idx}</span> <span>${opt}</span>`;
-                    btn.onclick = () => selectQuizOption(idx);
-                    optionsCont.appendChild(btn);
-                });
-            }
-        }
-    }
-
-    window.toggleMultiOption = function(idx, btn) {
-        if (selectedMultiIndices.has(idx)) {
-            selectedMultiIndices.delete(idx);
-            btn.classList.remove('selected');
-        } else {
-            selectedMultiIndices.add(idx);
-            btn.classList.add('selected');
-        }
-    };
-
-    window.confirmMultiSelection = function() {
-        const q = currentQuizQuestions[currentQuizQuestionIndex];
-        if (!q) return;
-
-        if (selectedMultiIndices.size === 0) {
-            customAlert("Seleziona almeno una risposta prima di confermare!", "Nessuna selezione");
-            return;
-        }
-
-        const confirmBtn = document.getElementById('btn-confirm-multi-q');
-        if (confirmBtn) confirmBtn.disabled = true;
-
-        const optionsCont = document.getElementById('quiz-options-container');
-        const buttons = optionsCont ? optionsCont.querySelectorAll('.quiz-option-btn') : [];
-        const feedbackBox = document.getElementById('quiz-feedback-box');
-        const nextBtn = document.getElementById('btn-next-quiz-q');
-        const scoreEl = document.getElementById('quiz-live-score');
-
-        buttons.forEach(b => b.onclick = null);
-
-        const correctSet = new Set(Array.isArray(q.correctIndices) ? q.correctIndices : [q.correctIndex || 0]);
-        let allCorrect = true;
-
-        if (selectedMultiIndices.size !== correctSet.size) {
-            allCorrect = false;
-        } else {
-            for (let idx of selectedMultiIndices) {
-                if (!correctSet.has(idx)) {
-                    allCorrect = false;
-                    break;
-                }
-            }
-        }
-
-        buttons.forEach((b, idx) => {
-            if (correctSet.has(idx)) {
-                b.classList.add('correct');
-            } else if (selectedMultiIndices.has(idx)) {
-                b.classList.add('wrong');
-            }
-        });
-
-        if (allCorrect) {
-            currentQuizScore += 2;
-            addXP(20);
-            if (scoreEl) scoreEl.innerText = `Punti: ${currentQuizScore}`;
-            if (feedbackBox) {
-                feedbackBox.className = 'quiz-feedback-box correct';
-                feedbackBox.innerHTML = `<strong><i class="fa-solid fa-check"></i> Tutte le risposte corrette! (+20 XP)</strong><br>${q.explanation || 'Ottima individuazione di tutte le opzioni!'}`;
-                feedbackBox.style.display = 'block';
-            }
-        } else {
-            missedQuizQuestions.push({
-                subject: currentQuizSubject,
-                front: q.question,
-                back: (q.options ? q.options.filter((_, i) => correctSet.has(i)).join('; ') : '') + (q.explanation ? ` — ${q.explanation}` : '')
-            });
-            if (feedbackBox) {
-                feedbackBox.className = 'quiz-feedback-box wrong';
-                feedbackBox.innerHTML = `<strong><i class="fa-solid fa-xmark"></i> Selezione incompleta o non corretta</strong><br>${q.explanation || 'Controlla le opzioni evidenziate in verde.'}`;
-                feedbackBox.style.display = 'block';
-            }
-        }
-
-        if (nextBtn) {
-            nextBtn.style.display = 'block';
-            nextBtn.innerText = currentQuizQuestionIndex + 1 === currentQuizQuestions.length ? 'Mostra Risultati 🏆' : 'Prossima Domanda →';
-        }
-    };
-
-    window.submitWrittenAnswer = async function() {
-        const q = currentQuizQuestions[currentQuizQuestionIndex];
-        if (!q) return;
-
-        const input = document.getElementById('quiz-written-input');
-        const answer = input ? input.value.trim() : '';
-
-        if (answer.length < 5) {
-            customAlert("Scrivi una risposta più completa prima di farla valutare dall'IA!", "Risposta troppo breve");
-            return;
-        }
-
-        const submitBtn = document.getElementById('btn-submit-written-q');
-        const feedbackBox = document.getElementById('quiz-feedback-box');
-        const nextBtn = document.getElementById('btn-next-quiz-q');
-        const scoreEl = document.getElementById('quiz-live-score');
-
-        if (input) input.disabled = true;
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Valutazione IA in corso...`;
-        }
-
-        const apiKey = localStorage.getItem('studylog_gemini_key') || '';
-        let evalResult = null;
-
-        if (apiKey) {
-            try {
-                const evalPrompt = `Sei un professore scolastico italiano. Valuta la seguente risposta scritta data dallo studente a questa domanda di ${currentQuizSubject}.
-Domanda: "${q.question}"
-Risposta ideale attesa: "${q.expectedAnswer || q.explanation}"
-Risposta scritta dallo studente: "${answer}"
-
-Valuta con accuratezza e buon senso didattico se lo studente ha espresso il concetto in modo corretto.
-Rispondi RIGOROSAMENTE con questo formato JSON (senza blocchi markdown):
-{"isCorrect": true/false, "feedback": "Spiegazione sintetica e incoraggiante della correzione (max 2 frasi)."}`;
-
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: evalPrompt }] }],
-                        generationConfig: { responseMimeType: "application/json" }
-                    })
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
-                    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (rawText) {
-                        evalResult = JSON.parse(rawText.replace(/```json/gi, '').replace(/```/g, '').trim());
-                    }
-                }
-            } catch (err) {
-                console.warn('AI evaluation error, falling back to local evaluator:', err);
-            }
-        }
-
-        if (!evalResult) {
-            const expected = (q.expectedAnswer || q.explanation || '').toLowerCase();
-            const student = answer.toLowerCase();
-            const keyWords = (q.keyPoints && q.keyPoints.length > 0)
-                ? q.keyPoints
-                : expected.split(/\s+/).filter(w => w.length > 4);
-
-            let matched = 0;
-            keyWords.forEach(kw => {
-                if (student.includes(kw.toLowerCase())) matched++;
-            });
-
-            const ratio = keyWords.length > 0 ? (matched / keyWords.length) : 0.5;
-            const isCorrect = ratio >= 0.35 || student.length >= expected.length * 0.4;
-
-            evalResult = {
-                isCorrect: isCorrect,
-                feedback: isCorrect
-                    ? `Hai espresso bene i concetti chiave richiesti da ${currentQuizSubject}!`
-                    : `Risposta da integrare. Concetto atteso: ${q.expectedAnswer || q.explanation}`
-            };
-        }
-
-        if (submitBtn) submitBtn.style.display = 'none';
-
-        if (evalResult.isCorrect) {
-            currentQuizScore += 2;
-            addXP(25);
-            if (scoreEl) scoreEl.innerText = `Punti: ${currentQuizScore}`;
-            if (feedbackBox) {
-                feedbackBox.className = 'quiz-feedback-box correct';
-                feedbackBox.innerHTML = `<strong><i class="fa-solid fa-check"></i> Valutazione IA: Corretta! (+25 XP)</strong><br>${evalResult.feedback}`;
-                feedbackBox.style.display = 'block';
-            }
-        } else {
-            missedQuizQuestions.push({
-                subject: currentQuizSubject,
-                front: q.question,
-                back: (q.expectedAnswer || q.explanation) + ` (La tua risposta: "${answer}")`
-            });
-            if (feedbackBox) {
-                feedbackBox.className = 'quiz-feedback-box wrong';
-                feedbackBox.innerHTML = `<strong><i class="fa-solid fa-xmark"></i> Valutazione IA: Da rivedere</strong><br>${evalResult.feedback}`;
-                feedbackBox.style.display = 'block';
-            }
-        }
-
-        if (nextBtn) {
-            nextBtn.style.display = 'block';
-            nextBtn.innerText = currentQuizQuestionIndex + 1 === currentQuizQuestions.length ? 'Mostra Risultati 🏆' : 'Prossima Domanda →';
-        }
-    };
-
-    window.selectQuizOption = function(selectedIndex) {
-        const q = currentQuizQuestions[currentQuizQuestionIndex];
-        if (!q) return;
-
-        const optionsCont = document.getElementById('quiz-options-container');
-        const buttons = optionsCont ? optionsCont.querySelectorAll('.quiz-option-btn') : [];
-        const feedbackBox = document.getElementById('quiz-feedback-box');
-        const nextBtn = document.getElementById('btn-next-quiz-q');
-        const scoreEl = document.getElementById('quiz-live-score');
-
-        buttons.forEach(b => b.disabled = true);
-
-        const isCorrect = selectedIndex === q.correctIndex;
-
-        if (buttons[q.correctIndex]) {
-            buttons[q.correctIndex].classList.add('correct');
-        }
-
-        if (isCorrect) {
-            currentQuizScore++;
-            addXP(15);
-            if (scoreEl) scoreEl.innerText = `Punti: ${currentQuizScore}`;
-            if (feedbackBox) {
-                feedbackBox.className = 'quiz-feedback-box correct';
-                feedbackBox.innerHTML = `<strong><i class="fa-solid fa-check"></i> Esatto! (+15 XP)</strong><br>${q.explanation || 'Risposta corretta!'}`;
-                feedbackBox.style.display = 'block';
-            }
-        } else {
-            if (buttons[selectedIndex]) {
-                buttons[selectedIndex].classList.add('wrong');
-            }
-            missedQuizQuestions.push({
-                subject: currentQuizSubject,
-                front: q.question,
-                back: (q.options[q.correctIndex] || '') + (q.explanation ? ` — ${q.explanation}` : '')
-            });
-            if (feedbackBox) {
-                feedbackBox.className = 'quiz-feedback-box wrong';
-                feedbackBox.innerHTML = `<strong><i class="fa-solid fa-xmark"></i> Non corretta</strong><br>${q.explanation || 'Risposta corretta: ' + q.options[q.correctIndex]}`;
-                feedbackBox.style.display = 'block';
-            }
-        }
-
-        if (nextBtn) {
-            nextBtn.style.display = 'block';
-            nextBtn.innerText = currentQuizQuestionIndex + 1 === currentQuizQuestions.length ? 'Mostra Risultati 🏆' : 'Prossima Domanda →';
-        }
-    };
-
-    window.nextQuizQuestion = function() {
-        currentQuizQuestionIndex++;
-        if (currentQuizQuestionIndex < currentQuizQuestions.length) {
-            renderQuizQuestion();
-        } else {
-            const runnerEl = document.getElementById('ripasso-quiz-runner');
-            const resView = document.getElementById('ripasso-quiz-results');
-            if (runnerEl) runnerEl.style.display = 'none';
-            if (resView) resView.style.display = 'block';
-
-            const emoji = document.getElementById('quiz-result-emoji');
-            const scoreTitle = document.getElementById('quiz-result-score-title');
-            const feedback = document.getElementById('quiz-result-feedback');
-            const flashcardsBtn = document.getElementById('btn-save-quiz-flashcards');
-
-            if (scoreTitle) scoreTitle.innerText = `Hai totalizzato ${currentQuizScore} punti!`;
-
-            if (currentQuizScore >= 3) {
-                if (emoji) emoji.innerText = '🏆';
-                if (feedback) feedback.innerText = `Ottima preparazione su ${currentQuizSubject}! I concetti principali sono ben chiari.`;
-                if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-            } else {
-                if (emoji) emoji.innerText = '📚';
-                if (feedback) feedback.innerText = `Rivedi con calma gli argomenti più ostici di ${currentQuizSubject}. Puoi trasformare i tuoi errori in flashcard per ripassarli con la ripetizione spaziata!`;
-            }
-
-            if (flashcardsBtn) {
-                if (missedQuizQuestions.length > 0) {
-                    flashcardsBtn.style.display = 'block';
-                    flashcardsBtn.disabled = false;
-                    flashcardsBtn.innerHTML = `<i class="fa-solid fa-layer-group"></i> Salva ${missedQuizQuestions.length} ${missedQuizQuestions.length === 1 ? 'errore' : 'errori'} in Flashcard`;
-                } else {
-                    flashcardsBtn.style.display = 'none';
-                }
-            }
-        }
-    };
-
-    window.convertMissedToFlashcards = function() {
-        if (!missedQuizQuestions || missedQuizQuestions.length === 0) return;
-        const btn = document.getElementById('btn-save-quiz-flashcards');
-        missedQuizQuestions.forEach(item => {
-            flashcards.unshift({
-                id: generateId(),
-                subject: item.subject || currentQuizSubject,
-                front: item.front,
-                back: item.back,
-                level: 1,
-                nextReviewDate: todayDateStr,
-                created: Date.now()
-            });
-        });
-        saveFlashcards();
-        renderFlashcardsView();
-        showToast(`Salvate ${missedQuizQuestions.length} flashcard!`);
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-check"></i> Flashcard create con successo!`;
-        }
-    };
 
     // Android Hardware Back Button Bridge
     window.handleAndroidBackPressed = function() {
@@ -3683,14 +2195,6 @@ Rispondi RIGOROSAMENTE con questo formato JSON (senza blocchi markdown):
         if (activeModals.length > 0) {
             activeModals.forEach(m => m.classList.remove('active'));
             return "true";
-        }
-        const fcSession = document.getElementById('ripasso-flashcard-session-view');
-        const quizSession = document.getElementById('ripasso-quiz-session-view');
-        if ((fcSession && fcSession.style.display !== 'none') || (quizSession && quizSession.style.display !== 'none')) {
-            if (typeof window.closeRipassoSession === 'function') {
-                window.closeRipassoSession();
-                return "true";
-            }
         }
         const currentActive = document.querySelector('.bottom-nav .nav-item.active');
         if (currentActive && currentActive.id !== 'nav-study') {
@@ -3704,6 +2208,3 @@ Rispondi RIGOROSAMENTE con questo formato JSON (senza blocchi markdown):
     window.executeHardReset = function() { localStorage.clear(); localStorage.setItem('studylog_record_streak', '0'); window.location.reload(true); }
 
     init();
-    renderPomoPresets();
-    updateFocusStatsUI();
-    updateFocusTimerUI();
