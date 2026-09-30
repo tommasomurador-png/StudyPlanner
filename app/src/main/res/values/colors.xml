@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_light">#F9F7F1</color>
+    <color name="surface_light">#FDFBFC</color>
+    <color name="text_light">#2C2C2C</color>
+    
+    <color name="bg_dark">#161616</color>
+    <color name="surface_dark">#202020</color>
+    <color name="text_dark">#FDFBFC</color>
+</resources>
