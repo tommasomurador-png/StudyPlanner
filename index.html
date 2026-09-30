@@ -16,7 +16,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js?v=2.0.3').then(function(reg) {
+          navigator.serviceWorker.register('sw.js?v=2.0.5').then(function(reg) {
             reg.update();
             reg.onupdatefound = function() {
               const newWorker = reg.installing;
@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.0.3">
+    <link rel="stylesheet" href="css/style.css?v=2.0.5">
 </head>
 <body>
 
@@ -240,36 +240,40 @@
             </div>
         </div>
 
-        <!-- FLASHCARDS & RIPASSO VIEW (UNIFIED) -->
+        <!-- FLASHCARDS & RIPASSO VIEW (UNIFIED HUB DEI RIQUADRI) -->
         <div id="flashcards-view" class="flashcards-view" style="display: none;">
-            <div class="ripasso-header-bar">
-                <div>
-                    <h2 class="section-title" style="margin: 0;">Ripasso & Test</h2>
-                    <div class="flashcards-sub" id="flashcards-due-count">0 carte da ripassare oggi</div>
+            
+            <!-- VISTA 1: HUB DEI RIQUADRI (SCHEMI, FLASHCARD E QUIZ PER MATERIA) -->
+            <div id="ripasso-hub-view">
+                <div class="ripasso-header-bar">
+                    <div>
+                        <h2 class="section-title" style="margin: 0;">Schemi & Ripasso</h2>
+                        <div class="flashcards-sub" id="ripasso-hub-sub">Tocca un riquadro per ripassare o allenarti</div>
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button type="button" class="btn-new-card secondary" onclick="openAiGeneratorModal()" title="Crea con Foto o IA"><i class="fa-solid fa-camera"></i> Foto / IA</button>
+                        <button type="button" class="btn-new-card" onclick="openNewCardModal()"><i class="fa-solid fa-plus"></i> Carta</button>
+                    </div>
                 </div>
-                <div style="display:flex; gap:6px;">
-                    <button type="button" class="btn-new-card secondary" onclick="openAiGeneratorModal()" title="Crea con Foto o IA"><i class="fa-solid fa-wand-magic-sparkles"></i> IA / Foto</button>
-                    <button type="button" class="btn-new-card" onclick="openNewCardModal()"><i class="fa-solid fa-plus"></i> Carta</button>
-                </div>
-            </div>
 
-            <!-- Subject Popover Picker & Segmented Tabs (Carte vs Quiz IA) -->
-            <div class="ripasso-controls-row">
-                <div class="ripasso-picker-col">
+                <!-- Filtro Materia tramite Popover a Tendina -->
+                <div style="margin-top: 8px; margin-bottom: 8px;">
                     <div id="flashcard-subject-popover-container"></div>
                 </div>
-                <div class="ripasso-tabs-segment">
-                    <button type="button" class="ripasso-tab-btn active" id="tab-btn-flashcards" onclick="switchRipassoTab('flashcards')">
-                        <i class="fa-solid fa-layer-group"></i> Carte
-                    </button>
-                    <button type="button" class="ripasso-tab-btn" id="tab-btn-quiz" onclick="switchRipassoTab('quiz')">
-                        <i class="fa-solid fa-bolt"></i> Quiz IA
-                    </button>
-                </div>
+
+                <!-- Griglia dei Riquadri Rettangolari -->
+                <div class="ripasso-box-grid" id="ripasso-box-grid"></div>
             </div>
 
-            <!-- PANNELLO 1: FLASHCARDS (RIPETIZIONE SPAZIATA) -->
-            <div id="ripasso-flashcards-panel">
+            <!-- VISTA 2: SESSIONE STUDIO FLASHCARD -->
+            <div id="ripasso-flashcard-session-view" style="display: none;">
+                <div class="ripasso-session-header">
+                    <button type="button" class="btn-ripasso-back" onclick="closeRipassoSession()">
+                        <i class="fa-solid fa-arrow-left"></i> Torna agli Schemi
+                    </button>
+                    <span class="quiz-badge" id="session-flashcard-subject-badge">Matematica</span>
+                </div>
+
                 <!-- Study Flashcard Card / Container -->
                 <div id="flashcard-study-container">
                     <!-- 3D Flip Card Compatta -->
@@ -329,18 +333,42 @@
                 </div>
             </div>
 
-            <!-- PANNELLO 2: QUIZ AI (INTEGRATO IN RIPASSO) -->
-            <div id="ripasso-quiz-panel" style="display: none;">
-                <!-- Quiz Runner View in panel -->
-                <div id="ripasso-quiz-runner" style="display: none;" class="anim-card">
+            <!-- VISTA 3: SESSIONE QUIZ -->
+            <div id="ripasso-quiz-session-view" style="display: none;">
+                <div class="ripasso-session-header">
+                    <button type="button" class="btn-ripasso-back" onclick="closeRipassoSession()">
+                        <i class="fa-solid fa-arrow-left"></i> Torna agli Schemi
+                    </button>
+                    <span class="quiz-badge" id="session-quiz-subject-badge">Matematica</span>
+                </div>
+
+                <!-- Quiz Runner View -->
+                <div id="ripasso-quiz-runner" class="anim-card">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span class="quiz-badge" id="quiz-question-number">Domanda 1 di 5</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="quiz-badge" id="quiz-question-number">Domanda 1 di 5</span>
+                            <span class="quiz-type-badge" id="quiz-question-type-badge">Scelta multipla</span>
+                        </div>
                         <span class="quiz-score-pill" id="quiz-live-score">Punti: 0</span>
                     </div>
                     
                     <div class="quiz-question-box" id="quiz-question-title">Domanda...</div>
 
+                    <!-- Options list for single & multi selection -->
                     <div class="quiz-options-list" id="quiz-options-container"></div>
+
+                    <!-- Written answer container -->
+                    <div id="quiz-written-container" class="quiz-written-box" style="display: none;">
+                        <textarea id="quiz-written-input" class="quiz-written-textarea" placeholder="Scrivi qui la tua risposta con parole tue..."></textarea>
+                        <button type="button" class="btn-submit" id="btn-submit-written-q" style="margin-top: 10px;" onclick="submitWrittenAnswer()">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Valuta con IA
+                        </button>
+                    </div>
+
+                    <!-- Multi-select confirm button -->
+                    <button type="button" class="btn-submit" id="btn-confirm-multi-q" style="display: none; margin-top: 10px;" onclick="confirmMultiSelection()">
+                        <i class="fa-solid fa-check-double"></i> Conferma Risposte
+                    </button>
 
                     <div id="quiz-feedback-box" class="quiz-feedback-box" style="display: none;"></div>
 
@@ -349,7 +377,7 @@
                     </button>
                 </div>
 
-                <!-- Quiz Results View in panel -->
+                <!-- Quiz Results View -->
                 <div id="ripasso-quiz-results" style="display: none;" class="anim-card" style="text-align: center; padding: 25px 15px;">
                     <div style="font-size: 2.8rem; margin-bottom: 8px;" id="quiz-result-emoji">🏆</div>
                     <h3 style="margin: 0 0 6px 0; color: var(--theme-strong);" id="quiz-result-score-title">Ottimo lavoro!</h3>
@@ -358,21 +386,10 @@
                     <button type="button" class="btn-submit" id="btn-save-quiz-flashcards" onclick="convertMissedToFlashcards()" style="margin-bottom: 10px;">
                         <i class="fa-solid fa-layer-group"></i> Salva Errori in Flashcard
                     </button>
-                    <button type="button" class="choice-btn" onclick="openAiGeneratorModal()">Crea Nuovo Quiz</button>
-                </div>
-
-                <!-- Quiz Empty / Start Prompt View in panel -->
-                <div id="ripasso-quiz-empty" class="anim-card" style="text-align: center; padding: 30px 15px;">
-                    <div style="font-size: 2.5rem; margin-bottom: 10px; color: var(--theme-strong);"><i class="fa-solid fa-brain"></i></div>
-                    <h3 style="margin: 0 0 8px 0; color: var(--theme-strong);">Simulazione e Quiz AI</h3>
-                    <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.45; margin-bottom: 18px;">
-                        Metti alla prova la tua preparazione scattando una foto ai tuoi appunti o inserendo un testo. L'IA genererà domande a risposta multipla su misura.
-                    </p>
-                    <button type="button" class="btn-submit" onclick="openAiGeneratorModal()" style="max-width: 250px; margin: 0 auto;">
-                        <i class="fa-solid fa-camera"></i> Genera con Foto o Note
-                    </button>
+                    <button type="button" class="choice-btn" onclick="closeRipassoSession()">Torna agli Schemi</button>
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -478,6 +495,8 @@
             <h3 style="margin-bottom: 25px; font-weight: 700; text-transform: uppercase; color: var(--theme-strong); text-align: center;">Aggiungi</h3>
             <button class="choice-btn" onclick="openTodoModal()"><i class="fa-solid fa-list-check"></i> Nuova Task Studio</button>
             <button class="choice-btn" onclick="openExamModal()"><i class="fa-solid fa-file-pen"></i> Segna Verifica/Esame</button>
+            <button class="choice-btn" onclick="openFlashcardFromChoice()"><i class="fa-solid fa-layer-group"></i> Nuova Flashcard</button>
+            <button class="choice-btn" onclick="openAiGenFromChoice()"><i class="fa-solid fa-wand-magic-sparkles"></i> Quiz / Flashcard con Foto o IA</button>
         </div>
     </div>
 
@@ -756,27 +775,8 @@
                     <textarea id="ai-gen-notes-input" class="form-control" rows="3" placeholder="Es. Riassunto sulla Rivoluzione Francese, formule di fisica..."></textarea>
                 </div>
 
-                <!-- Selettore Quantità Domande Quiz -->
-                <div class="form-group" style="margin-bottom: 12px;">
-                    <label>Domande Quiz</label>
-                    <div class="count-pills-row" id="quiz-count-pills">
-                        <button type="button" class="count-pill-btn active" data-val="auto" onclick="setQuizCount('auto', this)">Auto</button>
-                        <button type="button" class="count-pill-btn" data-val="3" onclick="setQuizCount(3, this)">3</button>
-                        <button type="button" class="count-pill-btn" data-val="5" onclick="setQuizCount(5, this)">5</button>
-                        <button type="button" class="count-pill-btn" data-val="10" onclick="setQuizCount(10, this)">10</button>
-                    </div>
-                </div>
-
-                <!-- Selettore Quantità Flashcards -->
-                <div class="form-group" style="margin-bottom: 16px;">
-                    <label>Flashcard da creare</label>
-                    <div class="count-pills-row" id="cards-count-pills">
-                        <button type="button" class="count-pill-btn active" data-val="auto" onclick="setCardsCount('auto', this)">Auto</button>
-                        <button type="button" class="count-pill-btn" data-val="0" onclick="setCardsCount(0, this)">Nessuna</button>
-                        <button type="button" class="count-pill-btn" data-val="3" onclick="setCardsCount(3, this)">3</button>
-                        <button type="button" class="count-pill-btn" data-val="5" onclick="setCardsCount(5, this)">5</button>
-                        <button type="button" class="count-pill-btn" data-val="10" onclick="setCardsCount(10, this)">10</button>
-                    </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4; background: var(--bg-color); padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-brain" style="color: var(--theme-strong);"></i> Quantità automatica: l'IA sceglierà il numero ideale di flashcard e domande in base alla ricchezza del materiale o delle foto fornite.
                 </div>
 
                 <button type="button" class="btn-submit" id="btn-execute-ai-gen" onclick="executeAiGeneration()">
@@ -818,7 +818,7 @@
 
 </div>
 
-    <script src="js/app.js?v=2.0.4" defer></script>
+    <script src="js/app.js?v=2.0.5" defer></script>
 
 </body>
 </html>

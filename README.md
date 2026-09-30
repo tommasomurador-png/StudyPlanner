@@ -80,21 +80,23 @@ A differenza delle tradizionali applicazioni per to-do list, Study Planner e' pr
 - Conteggio cumulativo dei minuti a fuoco e delle sessioni portate a termine con successo.
 - Meccanismo di gamification basato su punti Conoscenza (XP), Serie di Fuoco e Gradi Accademici da Matricola fino a Einstein.
 
-### 3. Ripasso e Flashcard con Ripetizione Spaziata (Metodo Leitner)
-- Hub unificato per lo studio con selettore a schede rapido tra Flashcard e Quiz IA.
-- Selettore a tendina compatto per filtrare le carte per materia, coerente con lo stile dei compiti e delle verifiche.
-- Carta tridimensionale con animazione fluida di rotazione per visualizzare domanda e risposta.
+### 3. Schemi, Riquadri e Flashcard con Ripetizione Spaziata (Metodo Leitner)
+- Griglia a riquadri organizzata per materia con card dedicate: Flashcard [Materia], Quiz [Materia] e Verifiche in programma.
+- Creazione rapida di Flashcard e Quiz direttamente dal menu Aggiungi (+) della barra principale.
+- Selettore a tendina compatto per filtrare i riquadri per singola materia o visualizzarli tutti.
+- Sessione di studio con carta tridimensionale con animazione fluida di rotazione per visualizzare domanda e risposta.
 - Classificazione della difficolta' con intervalli scientifici: Difficile (1 giorno), Buono (3 giorni), Facile (7 giorni).
-- Cassetto espandibile per consultare l'intero mazzo, monitorare i livelli delle carte ed eliminare quelle obsolete.
-- Funzione di ripristino per ripassare tutte le carte del mazzo a piacere.
+- Tasto di ritorno rapido agli Schemi con supporto al tasto Indietro hardware di Android.
 
-### 4. Generatore di Quiz e Flashcard con AI e Scansione Foto
-- Scansione multimodale: scatta una foto direttamente con la fotocamera a pagine di quaderni, formulari o libri di testo.
-- Integrazione con Google Gemini (Gemini 2.5 Flash): estrazione automatica dei concetti visivi e testuali per generare sia quiz sia flashcard.
-- Selettore di quantita': imposta il numero desiderato di domande del quiz (Auto, 3, 5, 10) e di flashcard (Auto, Nessuna, 3, 5, 10).
+### 4. Generatore di Quiz e Flashcard con AI e Valutazione Intelligente
+- Scansione multimodale: scatta una foto direttamente con la fotocamera a pagine di quaderni, formulari o schemi di testo.
+- Integrazione con Google Gemini (Gemini 2.5 Flash): estrazione automatica e determinazione intelligente del numero ottimale di domande e schede in base alla ricchezza del materiale.
+- Tre tipologie avanzate di quesiti nei Quiz:
+  - Scelta singola: 4 opzioni con una risposta esatta e feedback immediato.
+  - Risposta multipla: 4 opzioni con caselle di spunta e una o piu' risposte corrette da confermare.
+  - Domanda scritta a risposta aperta: campo di testo libero valutato in tempo reale dall'IA con giudizio di correttezza e spiegazione dettagliata del docente.
 - Motore euristico locale funzionante al 100% offline in modalita' aereo o in assenza di rete.
-- Spiegazione dettagliata della risposta corretta presentata subito dopo la selezione.
-- Conversione automatica delle domande con risposta errata in nuove flashcard del mazzo con un solo tocco.
+- Conversione automatica delle domande con risposta errata o incompleta in nuove flashcard del mazzo con un solo tocco.
 
 ### 5. Statistiche, Calendario e Grafico per Materia
 - Calendario mensile con indicatori distinti per verifiche in programma e compiti da completare.

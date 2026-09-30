@@ -51,23 +51,10 @@ jobs:
       - name: Publish or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'v2.0.4' }}
-          name: "Study Planner Release (${{ github.ref_type == 'tag' && github.ref_name || 'v2.0.4' }})"
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'v2.0.5' }}
+          name: "Study Planner Release ${{ github.ref_type == 'tag' && github.ref_name || 'v2.0.5' }}"
           body: |
-            ## Study Planner (Release v2.0.4)
-
-            Aggiornamento UI e modulo Ripasso & Quiz IA multimodale:
-
-            ### Novita di questa release:
-            - **Interfaccia Flashcard Minimalista:** Menu a tendina compatto per la selezione della materia, identico ai selettori delle verifiche e dei compiti.
-            - **Scansione Foto Appunti con Vision IA:** Possibilita di scattare una foto a pagine di quaderni, libri o schemi con la fotocamera: Gemini analizza visivamente il contenuto per generare flashcard e quiz.
-            - **Selettore Quantita:** Scegli quante domande per quiz (Auto, 3, 5, 10) e quante flashcard generare (Auto, Nessuna, 3, 5, 10).
-            - **Hub Unificato Ripasso & Test:** Quiz IA e flashcard integrati nella stessa sezione con selettore a schede compatto, ottimizzando lo spazio a schermo.
-            - **Compatibilita Totale:** Tutte le funzionalita operano sia sul sito Web/PWA sia sull'applicazione APK Android nativa con fallback offline intelligente.
-
-            ---
-            ### Download APK Diretto:
-            Scarica il file **`StudyPlanner.apk`** allegato per installarlo direttamente sul tuo dispositivo Android.
+            Study Planner Release ${{ github.ref_type == 'tag' && github.ref_name || 'v2.0.5' }}
           draft: false
           prerelease: false
           files: release-output/StudyPlanner.apk

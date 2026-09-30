@@ -905,6 +905,16 @@
         document.getElementById('add-exam-modal').classList.add('active'); 
     }
 
+    window.openFlashcardFromChoice = () => {
+        closeModal('choice-modal');
+        openNewCardModal();
+    };
+
+    window.openAiGenFromChoice = () => {
+        closeModal('choice-modal');
+        openAiGeneratorModal();
+    };
+
     window.openBottomSheet = (id) => {
         if (id === 'settings-sheet') {
             renderSettingsSubjectTags();
@@ -2435,60 +2445,215 @@
     }
 
     window.renderFlashcardsView = function() {
+        const cardSessionView = document.getElementById('ripasso-flashcard-session-view');
+        const quizSessionView = document.getElementById('ripasso-quiz-session-view');
+        if (cardSessionView && cardSessionView.style.display !== 'none') {
+            renderFlashcardsSession();
+        } else if (quizSessionView && quizSessionView.style.display !== 'none') {
+            // Stay in quiz session
+        } else {
+            renderRipassoHub();
+        }
+    };
+
+    window.renderRipassoHub = function() {
+        const hubView = document.getElementById('ripasso-hub-view');
+        const cardSessionView = document.getElementById('ripasso-flashcard-session-view');
+        const quizSessionView = document.getElementById('ripasso-quiz-session-view');
+        const grid = document.getElementById('ripasso-box-grid');
         const popoverContainer = document.getElementById('flashcard-subject-popover-container');
-        const dueCountEl = document.getElementById('flashcards-due-count');
-        const totalCountEl = document.getElementById('total-cards-count');
-        const studyContainer = document.getElementById('flashcard-study-container');
-        const emptyState = document.getElementById('flashcard-empty-state');
-        const drawerContainer = document.getElementById('all-cards-list-container');
-        const progressFill = document.getElementById('card-progress-fill');
 
-        if (!dueCountEl) return;
+        if (!grid) return;
 
-        if (totalCountEl) totalCountEl.innerText = flashcards.length.toString();
+        if (hubView) hubView.style.display = 'block';
+        if (cardSessionView) cardSessionView.style.display = 'none';
+        if (quizSessionView) quizSessionView.style.display = 'none';
 
-        // Filtro Materia tramite Popover a Tendina (come nei task To-Do e Verifiche)
-        const allDeckSubs = flashcards.map(c => c.subject || 'Generale');
-        const rawSubs = [...allDeckSubs, ...(typeof userSubjects !== 'undefined' ? userSubjects : [])];
-        const uniqueSubs = ['Tutte', ...Array.from(new Set(rawSubs.filter(Boolean)))];
+        const deckSubs = flashcards.map(c => c.subject || 'Generale');
+        const allSubs = Array.from(new Set([
+            ...(typeof userSubjects !== 'undefined' ? userSubjects : []),
+            ...deckSubs
+        ].filter(Boolean)));
 
-        const currentDisplay = (selectedFlashcardSubject === 'ALL' || !selectedFlashcardSubject) ? 'Tutte' : selectedFlashcardSubject;
+        const filterItems = ['Tutte', ...allSubs];
+        const currentFilter = (selectedFlashcardSubject === 'ALL' || !selectedFlashcardSubject) ? 'Tutte' : selectedFlashcardSubject;
 
         if (popoverContainer) {
             if (!window.flashcardSubjectPicker) {
                 window.flashcardSubjectPicker = initOptionPopover('flashcard-subject-popover-container', {
-                    items: uniqueSubs,
-                    defaultItem: currentDisplay,
+                    items: filterItems,
+                    defaultItem: currentFilter,
                     icon: 'fa-solid fa-chevron-down',
                     onChange: (val) => {
                         selectedFlashcardSubject = (val === 'Tutte' ? 'ALL' : val);
-                        currentCardIndex = 0;
-                        renderFlashcardsView();
+                        renderRipassoHub();
                     }
                 });
             } else {
-                window.flashcardSubjectPicker.setItems(uniqueSubs);
+                window.flashcardSubjectPicker.setItems(filterItems);
                 const txt = document.getElementById('pop_opt_text_flashcard-subject-popover-container');
-                if (txt) txt.innerText = currentDisplay;
+                if (txt) txt.innerText = currentFilter;
             }
         }
 
-        // Filtra le carte scadute oggi o non ancora ripassate
-        currentDueCards = flashcards.filter(c => {
-            const isDue = !c.nextReviewDate || c.nextReviewDate <= todayDateStr;
-            if (selectedFlashcardSubject === 'ALL') return isDue;
-            return isDue && c.subject === selectedFlashcardSubject;
+        const subjectsToRender = (selectedFlashcardSubject && selectedFlashcardSubject !== 'ALL')
+            ? [selectedFlashcardSubject]
+            : (allSubs.length > 0 ? allSubs : ['Generale']);
+
+        grid.innerHTML = '';
+
+        const scheduledExams = [];
+        if (typeof studyTasks !== 'undefined') {
+            studyTasks.forEach(t => {
+                if (t.isExamDay && (!selectedFlashcardSubject || selectedFlashcardSubject === 'ALL' || t.subject === selectedFlashcardSubject)) {
+                    scheduledExams.push(t);
+                }
+            });
+        }
+
+        subjectsToRender.forEach(subj => {
+            const subjCards = flashcards.filter(c => c.subject === subj);
+            const dueToday = subjCards.filter(c => !c.nextReviewDate || c.nextReviewDate <= todayDateStr).length;
+
+            // 1. Riquadro Flashcard
+            const fcCard = document.createElement('div');
+            fcCard.className = 'ripasso-box-card flashcard-box';
+            fcCard.onclick = () => openSubjectFlashcards(subj);
+            fcCard.innerHTML = `
+                <div class="ripasso-box-card-top">
+                    <div class="ripasso-box-icon-title">
+                        <div class="ripasso-box-icon"><i class="fa-solid fa-layer-group"></i></div>
+                        <div>
+                            <h4 class="ripasso-box-title">Flashcard ${subj}</h4>
+                            <span style="font-size:0.75rem; color:var(--text-muted);">${subjCards.length} ${subjCards.length === 1 ? 'carta' : 'carte'} memorizzate</span>
+                        </div>
+                    </div>
+                    <span class="ripasso-box-badge">${dueToday > 0 ? dueToday + ' oggi' : 'Completate'}</span>
+                </div>
+                <p class="ripasso-box-desc">Ripasso scientifico con ripetizione spaziata e flip card 3D.</p>
+                <div class="ripasso-box-footer">
+                    <span>${dueToday > 0 ? '<i class="fa-solid fa-circle" style="color:var(--danger-color); font-size:0.5rem; vertical-align:middle;"></i> Sessione pronta' : '<i class="fa-solid fa-check"></i> In pari'}</span>
+                    <span>Apri Mazzo <i class="fa-solid fa-chevron-right"></i></span>
+                </div>
+            `;
+            grid.appendChild(fcCard);
+
+            // 2. Riquadro Quiz
+            const qzCard = document.createElement('div');
+            qzCard.className = 'ripasso-box-card quiz-box';
+            qzCard.onclick = () => openSubjectQuiz(subj);
+            qzCard.innerHTML = `
+                <div class="ripasso-box-card-top">
+                    <div class="ripasso-box-icon-title">
+                        <div class="ripasso-box-icon"><i class="fa-solid fa-bolt"></i></div>
+                        <div>
+                            <h4 class="ripasso-box-title">Quiz ${subj}</h4>
+                            <span style="font-size:0.75rem; color:var(--text-muted);">Simulazione e Test</span>
+                        </div>
+                    </div>
+                    <span class="ripasso-box-badge">Test IA</span>
+                </div>
+                <p class="ripasso-box-desc">Domande a scelta singola, risposta multipla e risposte scritte con valutazione IA.</p>
+                <div class="ripasso-box-footer">
+                    <span>Correzione automatica</span>
+                    <span>Inizia Quiz <i class="fa-solid fa-chevron-right"></i></span>
+                </div>
+            `;
+            grid.appendChild(qzCard);
+
+            // 3. Riquadro Verifica se programmata
+            const relatedExams = scheduledExams.filter(e => e.subject === subj);
+            relatedExams.forEach(ex => {
+                const exCard = document.createElement('div');
+                exCard.className = 'ripasso-box-card exam-box';
+                exCard.onclick = () => openSubjectQuiz(subj);
+                exCard.innerHTML = `
+                    <div class="ripasso-box-card-top">
+                        <div class="ripasso-box-icon-title">
+                            <div class="ripasso-box-icon"><i class="fa-solid fa-file-pen"></i></div>
+                            <div>
+                                <h4 class="ripasso-box-title">Verifica ${subj}</h4>
+                                <span style="font-size:0.75rem; color:#d97706; font-weight:600;">Data: ${formatDisplayDate(ex.date)}</span>
+                            </div>
+                        </div>
+                        <span class="ripasso-box-badge" style="color:#d97706; border-color:rgba(217,119,6,0.3);">Verifica</span>
+                    </div>
+                    <p class="ripasso-box-desc">${ex.examPages ? ex.examPages + ' pagine da studiare.' : 'Simulazione per prepararsi alla prova scritta o orale.'}</p>
+                    <div class="ripasso-box-footer" style="color:#d97706;">
+                        <span>Simula Prova</span>
+                        <span>Preparati <i class="fa-solid fa-chevron-right"></i></span>
+                    </div>
+                `;
+                grid.appendChild(exCard);
+            });
         });
 
-        dueCountEl.innerText = `${currentDueCards.length} ${currentDueCards.length === 1 ? 'carta da ripassare' : 'carte da ripassare'} oggi`;
+        // 4. Riquadro Aggiungi con Foto o IA
+        const createCard = document.createElement('div');
+        createCard.className = 'ripasso-box-card create-box';
+        createCard.onclick = () => openAiGeneratorModal();
+        createCard.innerHTML = `
+            <div style="font-size: 1.5rem; color: var(--theme-strong); margin-bottom: 5px;">
+                <i class="fa-solid fa-camera"></i>
+            </div>
+            <div style="font-weight: 700; color: var(--text-main); font-size: 0.95rem; margin-bottom: 2px;">Crea Schemi con Foto o Appunti</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted);">Scatta una foto ai tuoi appunti o quaderni per generare flashcard e quiz con l'IA</div>
+        `;
+        grid.appendChild(createCard);
+    };
 
-        // Render drawer lista completa mazzo
+    window.openSubjectFlashcards = function(subj) {
+        selectedFlashcardSubject = subj;
+        currentCardIndex = 0;
+
+        const hubView = document.getElementById('ripasso-hub-view');
+        const cardSessionView = document.getElementById('ripasso-flashcard-session-view');
+        const quizSessionView = document.getElementById('ripasso-quiz-session-view');
+        const badge = document.getElementById('session-flashcard-subject-badge');
+
+        if (hubView) hubView.style.display = 'none';
+        if (quizSessionView) quizSessionView.style.display = 'none';
+        if (cardSessionView) cardSessionView.style.display = 'block';
+        if (badge) badge.innerText = subj;
+
+        renderFlashcardsSession();
+    };
+
+    window.closeRipassoSession = function() {
+        const hubView = document.getElementById('ripasso-hub-view');
+        const cardSessionView = document.getElementById('ripasso-flashcard-session-view');
+        const quizSessionView = document.getElementById('ripasso-quiz-session-view');
+        if (hubView) hubView.style.display = 'block';
+        if (cardSessionView) cardSessionView.style.display = 'none';
+        if (quizSessionView) quizSessionView.style.display = 'none';
+        renderRipassoHub();
+    };
+
+    function renderFlashcardsSession() {
+        const studyContainer = document.getElementById('flashcard-study-container');
+        const emptyState = document.getElementById('flashcard-empty-state');
+        const drawerContainer = document.getElementById('all-cards-list-container');
+        const totalCountEl = document.getElementById('total-cards-count');
+        const progressFill = document.getElementById('card-progress-fill');
+
+        const subjCards = flashcards.filter(c => {
+            if (!selectedFlashcardSubject || selectedFlashcardSubject === 'ALL') return true;
+            return c.subject === selectedFlashcardSubject;
+        });
+
+        if (totalCountEl) totalCountEl.innerText = subjCards.length.toString();
+
+        currentDueCards = subjCards.filter(c => {
+            return !c.nextReviewDate || c.nextReviewDate <= todayDateStr;
+        });
+
+        // Drawer
         if (drawerContainer) {
             drawerContainer.innerHTML = '';
-            if (flashcards.length === 0) {
-                drawerContainer.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; text-align:center; padding:15px;">Nessuna flashcard nel mazzo. Creane una nuova!</div>';
+            if (subjCards.length === 0) {
+                drawerContainer.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; text-align:center; padding:15px;">Nessuna flashcard in questa materia. Creane una nuova!</div>';
             } else {
-                flashcards.forEach(card => {
+                subjCards.forEach(card => {
                     const row = document.createElement('div');
                     row.className = 'card-deck-row';
                     const lvl = card.level || 1;
@@ -2507,7 +2672,7 @@
             }
         }
 
-        // Stato vuoto o completato per oggi
+        // Empty state
         if (currentDueCards.length === 0 || currentCardIndex >= currentDueCards.length) {
             if (studyContainer) studyContainer.style.display = 'none';
             if (emptyState) emptyState.style.display = 'block';
@@ -2518,7 +2683,6 @@
         if (studyContainer) studyContainer.style.display = 'block';
         if (emptyState) emptyState.style.display = 'none';
 
-        // Mostra la carta corrente
         const card = currentDueCards[currentCardIndex];
         const flipCardEl = document.getElementById('current-flip-card');
         if (flipCardEl) flipCardEl.classList.remove('flipped');
@@ -2537,7 +2701,7 @@
             const pct = Math.round((currentCardIndex / currentDueCards.length) * 100);
             progressFill.style.width = `${pct}%`;
         }
-    };
+    }
 
     window.flipCurrentCard = function() {
         const flipCardEl = document.getElementById('current-flip-card');
@@ -2701,51 +2865,9 @@
         showToast("Chiave Gemini AI salvata!");
     };
 
-    window.switchRipassoTab = function(tab) {
-        const btnCards = document.getElementById('tab-btn-flashcards');
-        const btnQuiz = document.getElementById('tab-btn-quiz');
-        const panelCards = document.getElementById('ripasso-flashcards-panel');
-        const panelQuiz = document.getElementById('ripasso-quiz-panel');
-
-        if (tab === 'quiz') {
-            if (btnQuiz) btnQuiz.classList.add('active');
-            if (btnCards) btnCards.classList.remove('active');
-            if (panelCards) panelCards.style.display = 'none';
-            if (panelQuiz) panelQuiz.style.display = 'block';
-
-            const runner = document.getElementById('ripasso-quiz-runner');
-            const results = document.getElementById('ripasso-quiz-results');
-            const empty = document.getElementById('ripasso-quiz-empty');
-
-            if (currentQuizQuestions && currentQuizQuestions.length > 0) {
-                if (currentQuizQuestionIndex < currentQuizQuestions.length) {
-                    if (runner) runner.style.display = 'block';
-                    if (results) results.style.display = 'none';
-                    if (empty) empty.style.display = 'none';
-                    renderQuizQuestion();
-                } else {
-                    if (runner) runner.style.display = 'none';
-                    if (results) results.style.display = 'block';
-                    if (empty) empty.style.display = 'none';
-                }
-            } else {
-                if (runner) runner.style.display = 'none';
-                if (results) results.style.display = 'none';
-                if (empty) empty.style.display = 'block';
-            }
-        } else {
-            if (btnCards) btnCards.classList.add('active');
-            if (btnQuiz) btnQuiz.classList.remove('active');
-            if (panelCards) panelCards.style.display = 'block';
-            if (panelQuiz) panelQuiz.style.display = 'none';
-            renderFlashcardsView();
-        }
-    };
-
     let selectedAiPhotoBase64 = null;
     let selectedAiPhotoMime = null;
-    let selectedQuizCount = 'auto';
-    let selectedCardsCount = 'auto';
+    let selectedMultiIndices = new Set();
 
     window.openAiGeneratorModal = function() {
         const modal = document.getElementById('ai-generator-modal');
@@ -2767,15 +2889,6 @@
         const notes = document.getElementById('ai-gen-notes-input');
         if (notes) notes.value = '';
         removeAiPhoto();
-
-        selectedQuizCount = 'auto';
-        selectedCardsCount = 'auto';
-        document.querySelectorAll('#quiz-count-pills .count-pill-btn').forEach(b => {
-            b.classList.toggle('active', b.getAttribute('data-val') === 'auto');
-        });
-        document.querySelectorAll('#cards-count-pills .count-pill-btn').forEach(b => {
-            b.classList.toggle('active', b.getAttribute('data-val') === 'auto');
-        });
 
         const formView = document.getElementById('ai-gen-form-view');
         const loadingView = document.getElementById('ai-gen-loading-view');
@@ -2832,23 +2945,116 @@
         if (dropzone) dropzone.style.display = 'block';
     };
 
-    window.setQuizCount = function(val, btn) {
-        selectedQuizCount = val;
-        const container = document.getElementById('quiz-count-pills');
-        if (container) {
-            container.querySelectorAll('.count-pill-btn').forEach(b => b.classList.remove('active'));
+    window.openSubjectQuiz = function(subj) {
+        currentQuizSubject = subj;
+        const hubView = document.getElementById('ripasso-hub-view');
+        const cardSessionView = document.getElementById('ripasso-flashcard-session-view');
+        const quizSessionView = document.getElementById('ripasso-quiz-session-view');
+        const badge = document.getElementById('session-quiz-subject-badge');
+        const runner = document.getElementById('ripasso-quiz-runner');
+        const results = document.getElementById('ripasso-quiz-results');
+
+        if (hubView) hubView.style.display = 'none';
+        if (cardSessionView) cardSessionView.style.display = 'none';
+        if (quizSessionView) quizSessionView.style.display = 'block';
+        if (badge) badge.innerText = subj;
+        if (runner) runner.style.display = 'block';
+        if (results) results.style.display = 'none';
+
+        if (!currentQuizQuestions || currentQuizQuestions.length === 0 || currentQuizSubject !== subj) {
+            currentQuizQuestions = generateSmartSubjectQuiz(subj);
         }
-        if (btn) btn.classList.add('active');
+        currentQuizQuestionIndex = 0;
+        currentQuizScore = 0;
+        missedQuizQuestions = [];
+        renderQuizQuestion();
     };
 
-    window.setCardsCount = function(val, btn) {
-        selectedCardsCount = val;
-        const container = document.getElementById('cards-count-pills');
-        if (container) {
-            container.querySelectorAll('.count-pill-btn').forEach(b => b.classList.remove('active'));
+    function generateSmartSubjectQuiz(subj) {
+        const subjCards = flashcards.filter(c => c.subject === subj);
+        const questions = [];
+
+        // 1. Domanda a scelta singola
+        if (subjCards.length > 0) {
+            const c = subjCards[0];
+            const distractors = ["Concetto secondario non applicabile", "Tesi opposta a quella dell'autore", "Elemento non documentato"];
+            const opts = [c.back, ...distractors].sort(() => Math.random() - 0.5);
+            questions.push({
+                type: 'single',
+                question: `[${subj}] ${c.front}`,
+                options: opts,
+                correctIndex: opts.indexOf(c.back),
+                explanation: `Nel programma di ${subj} la risposta corretta è: ${c.back}`
+            });
+        } else {
+            questions.push({
+                type: 'single',
+                question: `In relazione a ${subj}, quale principio teorico è alla base della disciplina?`,
+                options: [
+                    `I metodi e concetti fondamentali del programma di studio`,
+                    `Un'ipotesi empirica priva di fondamento teorico`,
+                    `Una convenzione superata e contraddetta nei testi`,
+                    `Un'eccezione non verificata`
+                ],
+                correctIndex: 0,
+                explanation: `I fondamenti teorici di ${subj} costituiscono la base per affrontare verifiche ed esami.`
+            });
         }
-        if (btn) btn.classList.add('active');
-    };
+
+        // 2. Domanda a risposta multipla (più opzioni corrette)
+        if (subjCards.length >= 2) {
+            const c1 = subjCards[1];
+            const c2 = subjCards[2] || { back: `Applicazione pratica dei concetti di ${subj}` };
+            const opts = [
+                c1.back,
+                c2.back,
+                `Un errore metodologico escluso in ${subj}`,
+                `Un'interpretazione contraddittoria del testo`
+            ];
+            questions.push({
+                type: 'multi',
+                question: `[${subj}] Quali tra le seguenti affermazioni corrispondono ai concetti studiati?`,
+                options: opts,
+                correctIndices: [0, 1],
+                explanation: `Entrambi gli elementi sintetizzano correttamente gli argomenti di ${subj}.`
+            });
+        } else {
+            questions.push({
+                type: 'multi',
+                question: `Quali tra i seguenti approcci sono raccomandati per lo studio approfondito di ${subj}?`,
+                options: [
+                    `Comprendere a fondo le definizioni e le relazioni logiche`,
+                    `Esercitarsi attivamente con test e ripetizione spaziata`,
+                    `Imparare a memoria senza comprendere il significato`,
+                    `Trattare solo i dettagli secondari trascurando i principi`
+                ],
+                correctIndices: [0, 1],
+                explanation: `La comprensione logica e la pratica attiva consentono una preparazione eccellente.`
+            });
+        }
+
+        // 3. Domanda a risposta scritta aperta
+        if (subjCards.length >= 3) {
+            const c = subjCards[subjCards.length - 1];
+            questions.push({
+                type: 'open',
+                question: `[${subj}] Spiega sinteticamente con parole tue: ${c.front}`,
+                expectedAnswer: c.back,
+                keyPoints: c.back.split(/\s+/).filter(w => w.length > 4),
+                explanation: `Concetto chiave: ${c.back}`
+            });
+        } else {
+            questions.push({
+                type: 'open',
+                question: `Spiega in due frasi i concetti principali dell'argomento di ${subj} che stai preparando.`,
+                expectedAnswer: `Spiegazione chiara delle definizioni, formule o eventi cardine trattati in ${subj}.`,
+                keyPoints: [subj, 'concetto', 'definizione'],
+                explanation: `Esprimere i concetti con parole proprie è la tecnica più efficace per verificare la padronanza della materia.`
+            });
+        }
+
+        return questions;
+    }
 
     function generateOfflineQuizQuestions(text, subject) {
         const sentences = text
@@ -2859,35 +3065,52 @@
         const questions = [];
         
         if (sentences.length >= 2) {
-            for (let i = 0; i < Math.min(sentences.length, 5); i++) {
+            for (let i = 0; i < Math.min(sentences.length, 3); i++) {
                 const s = sentences[i];
                 const words = s.split(/\s+/).filter(w => w.length > 4);
                 const targetWord = words[Math.floor(words.length / 2)] || "il concetto cardine";
                 const maskedSentence = s.replace(new RegExp(targetWord, 'i'), '_______');
 
-                const distractors = ["l'ipotesi secondaria", "il fattore marginale", "l'effetto inverso", "la tesi contraria"];
-                const options = [
-                    targetWord,
-                    distractors[0],
-                    distractors[1],
-                    distractors[2]
-                ];
-                options.sort(() => Math.random() - 0.5);
-                const correctIdx = options.indexOf(targetWord);
+                const distractors = ["l'ipotesi secondaria", "il fattore marginale", "l'effetto inverso"];
+                const options = [targetWord, ...distractors].sort(() => Math.random() - 0.5);
 
                 questions.push({
+                    type: 'single',
                     question: `In base ai tuoi appunti di ${subject}: "${maskedSentence}". Quale elemento completa correttamente la frase?`,
                     options: options,
-                    correctIndex: correctIdx,
+                    correctIndex: options.indexOf(targetWord),
                     explanation: `Nel testo è spiegato che: "${s}".`
                 });
             }
+
+            if (sentences.length >= 3) {
+                questions.push({
+                    type: 'multi',
+                    question: `In base al testo analizzato di ${subject}, quali tra queste affermazioni sono corrette?`,
+                    options: [
+                        sentences[0].substring(0, 70),
+                        sentences[1].substring(0, 70),
+                        "Un elemento escluso ed errato rispetto al testo",
+                        "Un'ipotesi smentita durante l'analisi"
+                    ],
+                    correctIndices: [0, 1],
+                    explanation: `Le prime due frasi rispecchiano fedelmente gli appunti analizzati.`
+                });
+            }
+
+            questions.push({
+                type: 'open',
+                question: `Sintetizza con parole tue il concetto chiave espresso in: "${sentences[0]}"`,
+                expectedAnswer: sentences[0],
+                keyPoints: sentences[0].split(/\s+/).filter(w => w.length > 4),
+                explanation: `Concetto espresso negli appunti: "${sentences[0]}".`
+            });
         }
 
-        while (questions.length < 5) {
-            const idx = questions.length + 1;
+        while (questions.length < 3) {
             questions.push({
-                question: `[Domanda ${idx} - ${subject}] In base al capitolo analizzato, quale delle seguenti affermazioni è corretta?`,
+                type: 'single',
+                question: `[${subject}] In base al capitolo analizzato, quale delle seguenti affermazioni è corretta?`,
                 options: [
                     `Il concetto chiave identificato negli appunti di ${subject}`,
                     `Una supposizione priva di fondamento teorico`,
@@ -2925,25 +3148,11 @@
             loadingTitle.innerText = selectedAiPhotoBase64 ? "Gemini sta leggendo la foto degli appunti..." : "Gemini sta analizzando i tuoi appunti...";
         }
         if (loadingSub) {
-            loadingSub.innerText = "Estrazione di formule, definizioni e creazione automatica di domande.";
+            loadingSub.innerText = "Creazione automatica di flashcard e quiz (scelta singola, multipla e scritta).";
         }
 
         const apiKey = localStorage.getItem('studylog_gemini_key') || '';
         let generatedData = null;
-
-        let numQuizText = "da 3 a 5 domande a risposta multipla";
-        if (selectedQuizCount !== 'auto') {
-            numQuizText = `esattamente ${selectedQuizCount} domande a risposta multipla (se 0 rispondi con array vuoto [])`;
-        }
-
-        let numCardsText = "da 3 a 5 flashcard";
-        if (selectedCardsCount !== 'auto') {
-            if (selectedCardsCount === 0) {
-                numCardsText = "0 flashcard (rispondi con array vuoto [])";
-            } else {
-                numCardsText = `esattamente ${selectedCardsCount} flashcard`;
-            }
-        }
 
         if (apiKey) {
             try {
@@ -2962,20 +3171,21 @@ Esamina con attenzione il materiale fornito (immagine degli appunti/libro e/o te
 ${textNotes ? `Note aggiuntive dello studente:\n"${textNotes}"\n` : ''}
 
 Compito:
-1. Genera ${numCardsText} per la ripetizione spaziata. Ogni flashcard ha un fronte ("front": domanda sintetica, termine chiave o formula) e un retro ("back": risposta o spiegazione chiara).
-2. Genera ${numQuizText}. Ogni domanda del quiz ha:
-   - "question": testo chiaro della domanda
-   - "options": array di 4 opzioni plausibili in italiano
-   - "correctIndex": indice numerico da 0 a 3 della risposta esatta
-   - "explanation": breve spiegazione didattica del perché la risposta è corretta
+1. Genera un numero ideale di flashcard per la memorizzazione a lungo termine in base alla ricchezza del materiale (in genere tra 3 e 8 carte). Ogni flashcard ha "front" (domanda sintetica, termine chiave o formula) e "back" (risposta o spiegazione chiara).
+2. Genera un set bilanciato di domande per il quiz (in genere tra 3 e 6 domande) variando tra queste tre tipologie:
+   a) "single": domanda a scelta singola con 4 opzioni ("options": array di 4 stringhe), "correctIndex" (indice numerico da 0 a 3 della sola risposta esatta) ed "explanation".
+   b) "multi": domanda a risposta multipla con 4 opzioni ("options": array di 4 stringhe), "correctIndices" (array contenente i 2 o 3 indici corretti, es. [0, 2]) ed "explanation".
+   c) "open": domanda a risposta aperta scritta dallo studente, con "expectedAnswer" (risposta ideale attesa dettagliata), "keyPoints" (array di parole chiave fondamentali richieste) ed "explanation".
 
-Rispondi RIGOROSAMENTE con una singola struttura JSON valida, senza blocchi di codice markdown, senza commenti:
+Rispondi RIGOROSAMENTE con una singola struttura JSON valida, senza blocchi markdown, senza commenti:
 {
   "flashcards": [
     { "front": "...", "back": "..." }
   ],
   "quiz": [
-    { "question": "...", "options": ["...", "...", "...", "..."], "correctIndex": 0, "explanation": "..." }
+    { "type": "single", "question": "...", "options": ["...", "...", "...", "..."], "correctIndex": 0, "explanation": "..." },
+    { "type": "multi", "question": "...", "options": ["...", "...", "...", "..."], "correctIndices": [0, 2], "explanation": "..." },
+    { "type": "open", "question": "...", "expectedAnswer": "...", "keyPoints": ["...", "..."], "explanation": "..." }
   ]
 }`;
                 parts.push({ text: promptText });
@@ -3010,33 +3220,27 @@ Rispondi RIGOROSAMENTE con una singola struttura JSON valida, senza blocchi di c
         if (!generatedData) {
             const fallbackText = textNotes || (selectedAiPhotoBase64 ? `Studio di ${currentSubject} basato sull'immagine caricata` : 'Studio generale');
             
-            const offlineQuiz = (selectedQuizCount !== 0) ? generateOfflineQuizQuestions(fallbackText, currentSubject) : [];
-            const quizCountNum = selectedQuizCount === 'auto' ? 5 : Number(selectedQuizCount);
-            const slicedQuiz = offlineQuiz.slice(0, quizCountNum);
-
+            const offlineQuiz = generateOfflineQuizQuestions(fallbackText, currentSubject);
             const offlineCards = [];
-            const cardsCountNum = selectedCardsCount === 'auto' ? 4 : Number(selectedCardsCount);
-            if (cardsCountNum > 0) {
-                const sentences = fallbackText.split(/[.\n;!?]+/).map(s => s.trim()).filter(s => s.length > 15);
-                for (let i = 0; i < Math.min(sentences.length, cardsCountNum); i++) {
-                    const s = sentences[i];
-                    offlineCards.push({
-                        front: `Definisci il concetto chiave di ${currentSubject} (punto ${i + 1})`,
-                        back: s
-                    });
-                }
-                while (offlineCards.length < cardsCountNum) {
-                    const idx = offlineCards.length + 1;
-                    offlineCards.push({
-                        front: `Concetto fondamentale #${idx} - ${currentSubject}`,
-                        back: `Spiegazione ed elementi essenziali relativi a ${currentSubject} estratti dagli appunti.`
-                    });
-                }
+            const sentences = fallbackText.split(/[.\n;!?]+/).map(s => s.trim()).filter(s => s.length > 15);
+            for (let i = 0; i < Math.min(sentences.length, 5); i++) {
+                const s = sentences[i];
+                offlineCards.push({
+                    front: `Definisci il concetto chiave di ${currentSubject} (punto ${i + 1})`,
+                    back: s
+                });
+            }
+            while (offlineCards.length < 3) {
+                const idx = offlineCards.length + 1;
+                offlineCards.push({
+                    front: `Concetto fondamentale #${idx} - ${currentSubject}`,
+                    back: `Spiegazione ed elementi essenziali relativi a ${currentSubject} estratti dagli appunti.`
+                });
             }
 
             generatedData = {
                 flashcards: offlineCards,
-                quiz: slicedQuiz
+                quiz: offlineQuiz
             };
         }
 
@@ -3058,7 +3262,6 @@ Rispondi RIGOROSAMENTE con una singola struttura JSON valida, senza blocchi di c
                 }
             });
             saveFlashcards();
-            renderFlashcardsView();
         }
 
         // Prepara quiz
@@ -3070,19 +3273,17 @@ Rispondi RIGOROSAMENTE con una singola struttura JSON valida, senza blocchi di c
             missedQuizQuestions = [];
             currentQuizSubject = currentSubject;
             hasQuiz = true;
-        } else {
-            currentQuizQuestions = [];
         }
 
         setTimeout(() => {
             closeAiGeneratorModal();
 
             if (hasQuiz) {
-                showToast(`Generati: Quiz (${currentQuizQuestions.length} dom.) e ${addedCardsCount} Flashcard!`);
-                switchRipassoTab('quiz');
+                showToast(`Generati: Quiz (${currentQuizQuestions.length} domande) e ${addedCardsCount} Flashcard!`);
+                openSubjectQuiz(currentSubject);
             } else {
                 showToast(`Create con successo ${addedCardsCount} Flashcard per ${currentSubject}!`);
-                switchRipassoTab('flashcards');
+                openSubjectFlashcards(currentSubject);
             }
         }, 400);
     };
@@ -3090,11 +3291,15 @@ Rispondi RIGOROSAMENTE con una singola struttura JSON valida, senza blocchi di c
     function renderQuizQuestion() {
         if (!currentQuizQuestions || currentQuizQuestionIndex >= currentQuizQuestions.length) return;
         const q = currentQuizQuestions[currentQuizQuestionIndex];
+        const qType = q.type || (Array.isArray(q.correctIndices) ? 'multi' : (q.expectedAnswer ? 'open' : 'single'));
 
         const numEl = document.getElementById('quiz-question-number');
+        const typeBadge = document.getElementById('quiz-question-type-badge');
         const scoreEl = document.getElementById('quiz-live-score');
         const titleEl = document.getElementById('quiz-question-title');
         const optionsCont = document.getElementById('quiz-options-container');
+        const writtenCont = document.getElementById('quiz-written-container');
+        const confirmMultiBtn = document.getElementById('btn-confirm-multi-q');
         const feedbackBox = document.getElementById('quiz-feedback-box');
         const nextBtn = document.getElementById('btn-next-quiz-q');
 
@@ -3107,19 +3312,260 @@ Rispondi RIGOROSAMENTE con una singola struttura JSON valida, senza blocchi di c
         }
         if (nextBtn) nextBtn.style.display = 'none';
 
-        if (optionsCont) {
-            optionsCont.innerHTML = '';
-            const letters = ['A', 'B', 'C', 'D'];
-            (q.options || []).forEach((opt, idx) => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'quiz-option-btn';
-                btn.innerHTML = `<span class="quiz-option-letter">${letters[idx] || idx}</span> <span>${opt}</span>`;
-                btn.onclick = () => selectQuizOption(idx);
-                optionsCont.appendChild(btn);
-            });
+        selectedMultiIndices.clear();
+
+        if (qType === 'open') {
+            if (typeBadge) typeBadge.innerText = 'Risposta scritta';
+            if (optionsCont) optionsCont.style.display = 'none';
+            if (confirmMultiBtn) confirmMultiBtn.style.display = 'none';
+            if (writtenCont) {
+                writtenCont.style.display = 'block';
+                const input = document.getElementById('quiz-written-input');
+                if (input) {
+                    input.value = '';
+                    input.disabled = false;
+                }
+                const submitBtn = document.getElementById('btn-submit-written-q');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.style.display = 'block';
+                    submitBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Valuta con IA';
+                }
+            }
+        } else if (qType === 'multi') {
+            if (typeBadge) typeBadge.innerText = 'Risposta multipla';
+            if (writtenCont) writtenCont.style.display = 'none';
+            if (optionsCont) {
+                optionsCont.style.display = 'flex';
+                optionsCont.innerHTML = '';
+                const letters = ['A', 'B', 'C', 'D'];
+                (q.options || []).forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'quiz-option-btn multi-select';
+                    btn.innerHTML = `
+                        <span class="quiz-option-letter">${letters[idx] || idx}</span>
+                        <span style="flex:1;">${opt}</span>
+                        <div class="quiz-option-checkbox"><i class="fa-solid fa-check"></i></div>
+                    `;
+                    btn.onclick = () => toggleMultiOption(idx, btn);
+                    optionsCont.appendChild(btn);
+                });
+            }
+            if (confirmMultiBtn) {
+                confirmMultiBtn.style.display = 'block';
+                confirmMultiBtn.disabled = false;
+            }
+        } else {
+            if (typeBadge) typeBadge.innerText = 'Scelta singola';
+            if (writtenCont) writtenCont.style.display = 'none';
+            if (confirmMultiBtn) confirmMultiBtn.style.display = 'none';
+            if (optionsCont) {
+                optionsCont.style.display = 'flex';
+                optionsCont.innerHTML = '';
+                const letters = ['A', 'B', 'C', 'D'];
+                (q.options || []).forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'quiz-option-btn';
+                    btn.innerHTML = `<span class="quiz-option-letter">${letters[idx] || idx}</span> <span>${opt}</span>`;
+                    btn.onclick = () => selectQuizOption(idx);
+                    optionsCont.appendChild(btn);
+                });
+            }
         }
     }
+
+    window.toggleMultiOption = function(idx, btn) {
+        if (selectedMultiIndices.has(idx)) {
+            selectedMultiIndices.delete(idx);
+            btn.classList.remove('selected');
+        } else {
+            selectedMultiIndices.add(idx);
+            btn.classList.add('selected');
+        }
+    };
+
+    window.confirmMultiSelection = function() {
+        const q = currentQuizQuestions[currentQuizQuestionIndex];
+        if (!q) return;
+
+        if (selectedMultiIndices.size === 0) {
+            customAlert("Seleziona almeno una risposta prima di confermare!", "Nessuna selezione");
+            return;
+        }
+
+        const confirmBtn = document.getElementById('btn-confirm-multi-q');
+        if (confirmBtn) confirmBtn.disabled = true;
+
+        const optionsCont = document.getElementById('quiz-options-container');
+        const buttons = optionsCont ? optionsCont.querySelectorAll('.quiz-option-btn') : [];
+        const feedbackBox = document.getElementById('quiz-feedback-box');
+        const nextBtn = document.getElementById('btn-next-quiz-q');
+        const scoreEl = document.getElementById('quiz-live-score');
+
+        buttons.forEach(b => b.onclick = null);
+
+        const correctSet = new Set(Array.isArray(q.correctIndices) ? q.correctIndices : [q.correctIndex || 0]);
+        let allCorrect = true;
+
+        if (selectedMultiIndices.size !== correctSet.size) {
+            allCorrect = false;
+        } else {
+            for (let idx of selectedMultiIndices) {
+                if (!correctSet.has(idx)) {
+                    allCorrect = false;
+                    break;
+                }
+            }
+        }
+
+        buttons.forEach((b, idx) => {
+            if (correctSet.has(idx)) {
+                b.classList.add('correct');
+            } else if (selectedMultiIndices.has(idx)) {
+                b.classList.add('wrong');
+            }
+        });
+
+        if (allCorrect) {
+            currentQuizScore += 2;
+            addXP(20);
+            if (scoreEl) scoreEl.innerText = `Punti: ${currentQuizScore}`;
+            if (feedbackBox) {
+                feedbackBox.className = 'quiz-feedback-box correct';
+                feedbackBox.innerHTML = `<strong><i class="fa-solid fa-check"></i> Tutte le risposte corrette! (+20 XP)</strong><br>${q.explanation || 'Ottima individuazione di tutte le opzioni!'}`;
+                feedbackBox.style.display = 'block';
+            }
+        } else {
+            missedQuizQuestions.push({
+                subject: currentQuizSubject,
+                front: q.question,
+                back: (q.options ? q.options.filter((_, i) => correctSet.has(i)).join('; ') : '') + (q.explanation ? ` — ${q.explanation}` : '')
+            });
+            if (feedbackBox) {
+                feedbackBox.className = 'quiz-feedback-box wrong';
+                feedbackBox.innerHTML = `<strong><i class="fa-solid fa-xmark"></i> Selezione incompleta o non corretta</strong><br>${q.explanation || 'Controlla le opzioni evidenziate in verde.'}`;
+                feedbackBox.style.display = 'block';
+            }
+        }
+
+        if (nextBtn) {
+            nextBtn.style.display = 'block';
+            nextBtn.innerText = currentQuizQuestionIndex + 1 === currentQuizQuestions.length ? 'Mostra Risultati 🏆' : 'Prossima Domanda →';
+        }
+    };
+
+    window.submitWrittenAnswer = async function() {
+        const q = currentQuizQuestions[currentQuizQuestionIndex];
+        if (!q) return;
+
+        const input = document.getElementById('quiz-written-input');
+        const answer = input ? input.value.trim() : '';
+
+        if (answer.length < 5) {
+            customAlert("Scrivi una risposta più completa prima di farla valutare dall'IA!", "Risposta troppo breve");
+            return;
+        }
+
+        const submitBtn = document.getElementById('btn-submit-written-q');
+        const feedbackBox = document.getElementById('quiz-feedback-box');
+        const nextBtn = document.getElementById('btn-next-quiz-q');
+        const scoreEl = document.getElementById('quiz-live-score');
+
+        if (input) input.disabled = true;
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Valutazione IA in corso...`;
+        }
+
+        const apiKey = localStorage.getItem('studylog_gemini_key') || '';
+        let evalResult = null;
+
+        if (apiKey) {
+            try {
+                const evalPrompt = `Sei un professore scolastico italiano. Valuta la seguente risposta scritta data dallo studente a questa domanda di ${currentQuizSubject}.
+Domanda: "${q.question}"
+Risposta ideale attesa: "${q.expectedAnswer || q.explanation}"
+Risposta scritta dallo studente: "${answer}"
+
+Valuta con accuratezza e buon senso didattico se lo studente ha espresso il concetto in modo corretto.
+Rispondi RIGOROSAMENTE con questo formato JSON (senza blocchi markdown):
+{"isCorrect": true/false, "feedback": "Spiegazione sintetica e incoraggiante della correzione (max 2 frasi)."}`;
+
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: evalPrompt }] }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (rawText) {
+                        evalResult = JSON.parse(rawText.replace(/```json/gi, '').replace(/```/g, '').trim());
+                    }
+                }
+            } catch (err) {
+                console.warn('AI evaluation error, falling back to local evaluator:', err);
+            }
+        }
+
+        if (!evalResult) {
+            const expected = (q.expectedAnswer || q.explanation || '').toLowerCase();
+            const student = answer.toLowerCase();
+            const keyWords = (q.keyPoints && q.keyPoints.length > 0)
+                ? q.keyPoints
+                : expected.split(/\s+/).filter(w => w.length > 4);
+
+            let matched = 0;
+            keyWords.forEach(kw => {
+                if (student.includes(kw.toLowerCase())) matched++;
+            });
+
+            const ratio = keyWords.length > 0 ? (matched / keyWords.length) : 0.5;
+            const isCorrect = ratio >= 0.35 || student.length >= expected.length * 0.4;
+
+            evalResult = {
+                isCorrect: isCorrect,
+                feedback: isCorrect
+                    ? `Hai espresso bene i concetti chiave richiesti da ${currentQuizSubject}!`
+                    : `Risposta da integrare. Concetto atteso: ${q.expectedAnswer || q.explanation}`
+            };
+        }
+
+        if (submitBtn) submitBtn.style.display = 'none';
+
+        if (evalResult.isCorrect) {
+            currentQuizScore += 2;
+            addXP(25);
+            if (scoreEl) scoreEl.innerText = `Punti: ${currentQuizScore}`;
+            if (feedbackBox) {
+                feedbackBox.className = 'quiz-feedback-box correct';
+                feedbackBox.innerHTML = `<strong><i class="fa-solid fa-check"></i> Valutazione IA: Corretta! (+25 XP)</strong><br>${evalResult.feedback}`;
+                feedbackBox.style.display = 'block';
+            }
+        } else {
+            missedQuizQuestions.push({
+                subject: currentQuizSubject,
+                front: q.question,
+                back: (q.expectedAnswer || q.explanation) + ` (La tua risposta: "${answer}")`
+            });
+            if (feedbackBox) {
+                feedbackBox.className = 'quiz-feedback-box wrong';
+                feedbackBox.innerHTML = `<strong><i class="fa-solid fa-xmark"></i> Valutazione IA: Da rivedere</strong><br>${evalResult.feedback}`;
+                feedbackBox.style.display = 'block';
+            }
+        }
+
+        if (nextBtn) {
+            nextBtn.style.display = 'block';
+            nextBtn.innerText = currentQuizQuestionIndex + 1 === currentQuizQuestions.length ? 'Mostra Risultati 🏆' : 'Prossima Domanda →';
+        }
+    };
 
     window.selectQuizOption = function(selectedIndex) {
         const q = currentQuizQuestions[currentQuizQuestionIndex];
@@ -3175,8 +3621,8 @@ Rispondi RIGOROSAMENTE con una singola struttura JSON valida, senza blocchi di c
         if (currentQuizQuestionIndex < currentQuizQuestions.length) {
             renderQuizQuestion();
         } else {
-            const runnerEl = document.getElementById('ripasso-quiz-runner') || document.getElementById('ai-quiz-runner-view');
-            const resView = document.getElementById('ripasso-quiz-results') || document.getElementById('ai-quiz-results-view');
+            const runnerEl = document.getElementById('ripasso-quiz-runner');
+            const resView = document.getElementById('ripasso-quiz-results');
             if (runnerEl) runnerEl.style.display = 'none';
             if (resView) resView.style.display = 'block';
 
@@ -3185,7 +3631,7 @@ Rispondi RIGOROSAMENTE con una singola struttura JSON valida, senza blocchi di c
             const feedback = document.getElementById('quiz-result-feedback');
             const flashcardsBtn = document.getElementById('btn-save-quiz-flashcards');
 
-            if (scoreTitle) scoreTitle.innerText = `Hai totalizzato ${currentQuizScore} su ${currentQuizQuestions.length}!`;
+            if (scoreTitle) scoreTitle.innerText = `Hai totalizzato ${currentQuizScore} punti!`;
 
             if (currentQuizScore >= 3) {
                 if (emoji) emoji.innerText = '🏆';
@@ -3237,6 +3683,14 @@ Rispondi RIGOROSAMENTE con una singola struttura JSON valida, senza blocchi di c
         if (activeModals.length > 0) {
             activeModals.forEach(m => m.classList.remove('active'));
             return "true";
+        }
+        const fcSession = document.getElementById('ripasso-flashcard-session-view');
+        const quizSession = document.getElementById('ripasso-quiz-session-view');
+        if ((fcSession && fcSession.style.display !== 'none') || (quizSession && quizSession.style.display !== 'none')) {
+            if (typeof window.closeRipassoSession === 'function') {
+                window.closeRipassoSession();
+                return "true";
+            }
         }
         const currentActive = document.querySelector('.bottom-nav .nav-item.active');
         if (currentActive && currentActive.id !== 'nav-study') {
