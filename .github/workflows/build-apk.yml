@@ -51,23 +51,23 @@ jobs:
       - name: Publish or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'v2.0.3' }}
-          name: "Study Planner Release (${{ github.ref_type == 'tag' && github.ref_name || 'v2.0.3' }})"
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'v2.0.4' }}
+          name: "Study Planner Release (${{ github.ref_type == 'tag' && github.ref_name || 'v2.0.4' }})"
           body: |
-            ## 📱 Study Planner (Release v2.0.3)
+            ## Study Planner (Release v2.0.4)
 
-            Nuovo grande aggiornamento con 4 nuove funzionalità integrate sia per il Web sia per l'APK Android:
+            Aggiornamento UI e modulo Ripasso & Quiz IA multimodale:
 
-            ### ✨ Novità di questa release:
-            - **📊 Grafico a Torta / Donut del Tempo di Studio per Materia:** Monitoraggio visivo della ripartizione del carico di studio con legenda dinamica, percentuali e conteggio task per materia.
-            - **🧠 Flashcard con Ripetizione Spaziata (Metodo Leitner):** Memorizzazione a lungo termine con card 3D a ribaltamento, filtri per materia, tracciamento progressi e intervalli intelligenti (1 giorno, 3 giorni, 7 giorni).
-            - **✨ Generatore Automatico di Quiz con AI & Tutor:** Incolla i tuoi appunti per generare istantaneamente quiz a risposta multipla con feedback immediato, spiegazione e conversione immediata degli errori in flashcard. Funziona sia con chiave Google Gemini sia con motore offline intelligente.
-            - **📱 Widget Nativo per Schermata Home Android:** Widget nativo con visualizzazione in tempo reale della serie di giorni (streak di fuoco), promemoria task odierne e avvio rapido del Pomodoro.
-            - **🍅 Pomodoro Timer Minimalista & Calendario Elegante:** Flusso continuo studio/pausa senza distrazioni e animazioni fluide senza rimbalzo.
+            ### Novita di questa release:
+            - **Interfaccia Flashcard Minimalista:** Menu a tendina compatto per la selezione della materia, identico ai selettori delle verifiche e dei compiti.
+            - **Scansione Foto Appunti con Vision IA:** Possibilita di scattare una foto a pagine di quaderni, libri o schemi con la fotocamera: Gemini analizza visivamente il contenuto per generare flashcard e quiz.
+            - **Selettore Quantita:** Scegli quante domande per quiz (Auto, 3, 5, 10) e quante flashcard generare (Auto, Nessuna, 3, 5, 10).
+            - **Hub Unificato Ripasso & Test:** Quiz IA e flashcard integrati nella stessa sezione con selettore a schede compatto, ottimizzando lo spazio a schermo.
+            - **Compatibilita Totale:** Tutte le funzionalita operano sia sul sito Web/PWA sia sull'applicazione APK Android nativa con fallback offline intelligente.
 
             ---
-            ### 📥 Download APK Diretto:
-            Scarica il file **`StudyPlanner.apk`** allegato qui sotto per installarlo direttamente sul tuo smartphone Android!
+            ### Download APK Diretto:
+            Scarica il file **`StudyPlanner.apk`** allegato per installarlo direttamente sul tuo dispositivo Android.
           draft: false
           prerelease: false
           files: release-output/StudyPlanner.apk

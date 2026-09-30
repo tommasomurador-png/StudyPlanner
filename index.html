@@ -48,7 +48,6 @@
     <header>
         <h1 class="user-title">Study Planner</h1>
         <div class="fab-group">
-            <button class="fab-btn secondary" onclick="openAiQuizModal()" title="Assistente & Quiz AI"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
             <button class="fab-btn secondary" onclick="openBottomSheet('settings-sheet')" title="Impostazioni"><i class="fa-solid fa-gear"></i></button>
             <button class="fab-btn" onclick="openChoiceModal()" title="Aggiungi"><i class="fa-solid fa-plus"></i></button>
         </div>
@@ -241,72 +240,137 @@
             </div>
         </div>
 
-        <!-- FLASHCARDS VIEW (SPACED REPETITION) -->
+        <!-- FLASHCARDS & RIPASSO VIEW (UNIFIED) -->
         <div id="flashcards-view" class="flashcards-view" style="display: none;">
-            <div class="flashcards-header-bar">
+            <div class="ripasso-header-bar">
                 <div>
-                    <h2 class="section-title" style="margin: 0;">Flashcard</h2>
+                    <h2 class="section-title" style="margin: 0;">Ripasso & Test</h2>
                     <div class="flashcards-sub" id="flashcards-due-count">0 carte da ripassare oggi</div>
                 </div>
-                <button type="button" class="btn-new-card" onclick="openNewCardModal()"><i class="fa-solid fa-plus"></i> Nuova</button>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" class="btn-new-card secondary" onclick="openAiGeneratorModal()" title="Crea con Foto o IA"><i class="fa-solid fa-wand-magic-sparkles"></i> IA / Foto</button>
+                    <button type="button" class="btn-new-card" onclick="openNewCardModal()"><i class="fa-solid fa-plus"></i> Carta</button>
+                </div>
             </div>
 
-            <!-- Subject Filter Pills -->
-            <div class="card-subject-filters" id="flashcard-subject-filters"></div>
+            <!-- Subject Popover Picker & Segmented Tabs (Carte vs Quiz IA) -->
+            <div class="ripasso-controls-row">
+                <div class="ripasso-picker-col">
+                    <div id="flashcard-subject-popover-container"></div>
+                </div>
+                <div class="ripasso-tabs-segment">
+                    <button type="button" class="ripasso-tab-btn active" id="tab-btn-flashcards" onclick="switchRipassoTab('flashcards')">
+                        <i class="fa-solid fa-layer-group"></i> Carte
+                    </button>
+                    <button type="button" class="ripasso-tab-btn" id="tab-btn-quiz" onclick="switchRipassoTab('quiz')">
+                        <i class="fa-solid fa-bolt"></i> Quiz IA
+                    </button>
+                </div>
+            </div>
 
-            <!-- Study Flashcard Card / Container -->
-            <div id="flashcard-study-container">
-                <!-- 3D Flip Card -->
-                <div class="flip-card-wrapper" id="current-flip-card" onclick="flipCurrentCard()">
-                    <div class="flip-card-inner" id="flip-card-inner">
-                        <div class="flip-card-front">
-                            <div class="card-badge" id="card-front-subject">Materia</div>
-                            <div class="card-prompt-text" id="card-front-text">Caricamento carta...</div>
-                            <div class="card-flip-hint"><i class="fa-solid fa-arrow-rotate-right"></i> Tocca per vedere la risposta</div>
+            <!-- PANNELLO 1: FLASHCARDS (RIPETIZIONE SPAZIATA) -->
+            <div id="ripasso-flashcards-panel">
+                <!-- Study Flashcard Card / Container -->
+                <div id="flashcard-study-container">
+                    <!-- 3D Flip Card Compatta -->
+                    <div class="flip-card-wrapper" id="current-flip-card" onclick="flipCurrentCard()">
+                        <div class="flip-card-inner" id="flip-card-inner">
+                            <div class="flip-card-front">
+                                <div class="card-badge" id="card-front-subject">Materia</div>
+                                <div class="card-prompt-text" id="card-front-text">Caricamento carta...</div>
+                                <div class="card-flip-hint"><i class="fa-solid fa-arrow-rotate-right"></i> Tocca per vedere la risposta</div>
+                            </div>
+                            <div class="flip-card-back">
+                                <div class="card-badge" id="card-back-subject">Risposta</div>
+                                <div class="card-answer-text" id="card-back-text">Caricamento risposta...</div>
+                                <div class="card-flip-hint"><i class="fa-solid fa-check"></i> Valuta la difficoltà sotto</div>
+                            </div>
                         </div>
-                        <div class="flip-card-back">
-                            <div class="card-badge" id="card-back-subject">Risposta</div>
-                            <div class="card-answer-text" id="card-back-text">Caricamento risposta...</div>
-                            <div class="card-flip-hint"><i class="fa-solid fa-check"></i> Valuta la difficoltà sotto</div>
-                        </div>
+                    </div>
+
+                    <!-- Spaced Repetition Buttons -->
+                    <div class="leitner-actions" id="leitner-actions">
+                        <button type="button" class="leitner-btn hard" onclick="rateCardRecall(1)" title="Ripeti domani">
+                            <i class="fa-solid fa-face-frown"></i> Difficile <small>(1 gg)</small>
+                        </button>
+                        <button type="button" class="leitner-btn good" onclick="rateCardRecall(2)" title="Ripeti tra 3 giorni">
+                            <i class="fa-solid fa-face-smile"></i> Buono <small>(3 gg)</small>
+                        </button>
+                        <button type="button" class="leitner-btn easy" onclick="rateCardRecall(3)" title="Ripeti tra 7 giorni">
+                            <i class="fa-solid fa-face-laugh-beam"></i> Facile <small>(7 gg)</small>
+                        </button>
+                    </div>
+
+                    <div class="card-progress-bar-wrap">
+                        <div class="card-progress-fill" id="card-progress-fill"></div>
                     </div>
                 </div>
 
-                <!-- Spaced Repetition Buttons -->
-                <div class="leitner-actions" id="leitner-actions">
-                    <button type="button" class="leitner-btn hard" onclick="rateCardRecall(1)" title="Ripeti domani">
-                        <i class="fa-solid fa-face-frown"></i> Difficile <small>(1 gg)</small>
-                    </button>
-                    <button type="button" class="leitner-btn good" onclick="rateCardRecall(2)" title="Ripeti tra 3 giorni">
-                        <i class="fa-solid fa-face-smile"></i> Buono <small>(3 gg)</small>
-                    </button>
-                    <button type="button" class="leitner-btn easy" onclick="rateCardRecall(3)" title="Ripeti tra 7 giorni">
-                        <i class="fa-solid fa-face-laugh-beam"></i> Facile <small>(7 gg)</small>
-                    </button>
+                <!-- Empty / All Done State -->
+                <div id="flashcard-empty-state" class="anim-card" style="display: none; text-align: center; padding: 30px 15px;">
+                    <div style="font-size: 2.5rem; margin-bottom: 8px;">🎉</div>
+                    <h3 style="margin: 0 0 6px 0; color: var(--theme-strong);">Hai finito per oggi!</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">Tutte le flashcard programmate per oggi sono state ripassate con successo.</p>
+                    <div style="display:flex; flex-direction:column; gap:8px; max-width:240px; margin:0 auto;">
+                        <button type="button" class="choice-btn" onclick="restartAllFlashcards()">Ripassa tutte le carte</button>
+                        <button type="button" class="btn-submit" onclick="openNewCardModal()">+ Aggiungi nuova carta</button>
+                    </div>
                 </div>
 
-                <div class="card-progress-bar-wrap">
-                    <div class="card-progress-fill" id="card-progress-fill"></div>
+                <!-- Drawer / List of All Cards -->
+                <div class="anim-card" style="margin-top: 12px;">
+                    <div class="anim-card-header" style="cursor: pointer;" onclick="toggleCardsListDrawer()">
+                        <div class="anim-card-title"><i class="fa-solid fa-layer-group"></i> Il tuo Mazzo (<span id="total-cards-count">0</span>)</div>
+                        <i class="fa-solid fa-chevron-down" id="cards-drawer-chevron"></i>
+                    </div>
+                    <div class="anim-card-content" id="cards-list-drawer-content" style="display: none; padding-top: 10px;">
+                        <div id="all-cards-list-container"></div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Empty / All Done State -->
-            <div id="flashcard-empty-state" class="anim-card" style="display: none; text-align: center; padding: 35px 20px;">
-                <div style="font-size: 2.8rem; margin-bottom: 12px;">🎉</div>
-                <h3 style="margin: 0 0 8px 0; color: var(--theme-strong);">Hai finito per oggi!</h3>
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">Tutte le flashcard programmate per oggi sono state ripassate con successo.</p>
-                <button type="button" class="choice-btn" style="max-width: 250px; margin: 0 auto 10px;" onclick="restartAllFlashcards()">Ripassa tutte le carte</button>
-                <button type="button" class="btn-submit" style="max-width: 250px; margin: 0 auto;" onclick="openNewCardModal()">+ Aggiungi nuova carta</button>
-            </div>
+            <!-- PANNELLO 2: QUIZ AI (INTEGRATO IN RIPASSO) -->
+            <div id="ripasso-quiz-panel" style="display: none;">
+                <!-- Quiz Runner View in panel -->
+                <div id="ripasso-quiz-runner" style="display: none;" class="anim-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span class="quiz-badge" id="quiz-question-number">Domanda 1 di 5</span>
+                        <span class="quiz-score-pill" id="quiz-live-score">Punti: 0</span>
+                    </div>
+                    
+                    <div class="quiz-question-box" id="quiz-question-title">Domanda...</div>
 
-            <!-- Drawer / List of All Cards -->
-            <div class="anim-card" style="margin-top: 15px;">
-                <div class="anim-card-header" style="cursor: pointer;" onclick="toggleCardsListDrawer()">
-                    <div class="anim-card-title"><i class="fa-solid fa-layer-group"></i> Il tuo Mazzo (<span id="total-cards-count">0</span>)</div>
-                    <i class="fa-solid fa-chevron-down" id="cards-drawer-chevron"></i>
+                    <div class="quiz-options-list" id="quiz-options-container"></div>
+
+                    <div id="quiz-feedback-box" class="quiz-feedback-box" style="display: none;"></div>
+
+                    <button type="button" class="btn-submit" id="btn-next-quiz-q" style="display: none; margin-top: 14px;" onclick="nextQuizQuestion()">
+                        Prossima Domanda <i class="fa-solid fa-arrow-right"></i>
+                    </button>
                 </div>
-                <div class="anim-card-content" id="cards-list-drawer-content" style="display: none; padding-top: 10px;">
-                    <div id="all-cards-list-container"></div>
+
+                <!-- Quiz Results View in panel -->
+                <div id="ripasso-quiz-results" style="display: none;" class="anim-card" style="text-align: center; padding: 25px 15px;">
+                    <div style="font-size: 2.8rem; margin-bottom: 8px;" id="quiz-result-emoji">🏆</div>
+                    <h3 style="margin: 0 0 6px 0; color: var(--theme-strong);" id="quiz-result-score-title">Ottimo lavoro!</h3>
+                    <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 18px;" id="quiz-result-feedback">Hai risposto correttamente.</p>
+                    
+                    <button type="button" class="btn-submit" id="btn-save-quiz-flashcards" onclick="convertMissedToFlashcards()" style="margin-bottom: 10px;">
+                        <i class="fa-solid fa-layer-group"></i> Salva Errori in Flashcard
+                    </button>
+                    <button type="button" class="choice-btn" onclick="openAiGeneratorModal()">Crea Nuovo Quiz</button>
+                </div>
+
+                <!-- Quiz Empty / Start Prompt View in panel -->
+                <div id="ripasso-quiz-empty" class="anim-card" style="text-align: center; padding: 30px 15px;">
+                    <div style="font-size: 2.5rem; margin-bottom: 10px; color: var(--theme-strong);"><i class="fa-solid fa-brain"></i></div>
+                    <h3 style="margin: 0 0 8px 0; color: var(--theme-strong);">Simulazione e Quiz AI</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.45; margin-bottom: 18px;">
+                        Metti alla prova la tua preparazione scattando una foto ai tuoi appunti o inserendo un testo. L'IA genererà domande a risposta multipla su misura.
+                    </p>
+                    <button type="button" class="btn-submit" onclick="openAiGeneratorModal()" style="max-width: 250px; margin: 0 auto;">
+                        <i class="fa-solid fa-camera"></i> Genera con Foto o Note
+                    </button>
                 </div>
             </div>
         </div>
@@ -316,7 +380,7 @@
         <nav class="bottom-nav">
             <div class="nav-item active" onclick="switchView('study', this)" id="nav-study" title="Studio"><i class="fa-solid fa-dumbbell"></i></div>
             <div class="nav-item" onclick="switchView('focus', this)" id="nav-focus" title="Focus Pomodoro"><i class="fa-solid fa-stopwatch"></i></div>
-            <div class="nav-item" onclick="switchView('flashcards', this)" id="nav-flashcards" title="Flashcard"><i class="fa-solid fa-layer-group"></i></div>
+            <div class="nav-item" onclick="switchView('flashcards', this)" id="nav-flashcards" title="Ripasso"><i class="fa-solid fa-layer-group"></i></div>
             <div class="nav-item" onclick="switchView('ranked', this)" id="nav-ranked" title="XP e Gradi"><i class="fa-solid fa-trophy"></i></div>
             <div class="nav-item" onclick="switchView('calendar', this)" id="nav-calendar" title="Statistiche"><i class="fa-solid fa-chart-pie"></i></div>
         </nav>
@@ -644,71 +708,87 @@
         </div>
     </div>
 
-    <!-- MODAL QUIZ & TUTOR AI -->
-    <div class="fullscreen-modal" id="ai-quiz-modal" onclick="closeAiQuizModal()">
-        <div class="glass-panel" onclick="event.stopPropagation()" style="max-width: 500px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--theme-strong); font-size: 1.25rem;"></i>
-                    <h3 style="margin: 0; font-weight: 700; color: var(--theme-strong);">Quiz & Tutor AI</h3>
+    <!-- MODAL GENERATORE IA: FOTO APPUNTI, QUIZ & FLASHCARD -->
+    <div class="fullscreen-modal" id="ai-generator-modal" onclick="closeAiGeneratorModal()">
+        <div class="glass-panel" onclick="event.stopPropagation()" style="max-width: 480px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--theme-strong); font-size: 1.2rem;"></i>
+                    <h3 style="margin: 0; font-weight: 700; color: var(--theme-strong); font-size: 1.1rem;">Crea con IA & Foto</h3>
                 </div>
-                <button class="btn-close-modal-top" onclick="closeAiQuizModal()"><i class="fa-solid fa-xmark"></i></button>
+                <button class="btn-close-modal-top" onclick="closeAiGeneratorModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <!-- View 1: Setup / Input -->
-            <div id="ai-quiz-setup-view">
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Incolla i tuoi appunti o il testo del capitolo: l'IA genererà un quiz interattivo di 5 domande per testare la tua preparazione prima della verifica!</p>
-                
-                <div class="form-group">
+            <!-- View 1: Setup / Form -->
+            <div id="ai-gen-form-view">
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;">
+                    Scatta una foto a una pagina del tuo libro o quaderno, oppure incolla gli appunti. Gemini genererà flashcard e quiz personalizzati per te.
+                </p>
+
+                <!-- Scelta Materia -->
+                <div class="form-group" style="margin-bottom: 12px;">
                     <label>Materia</label>
-                    <select id="ai-quiz-subject-select" class="form-control"></select>
+                    <select id="ai-gen-subject-select" class="form-control"></select>
                 </div>
 
-                <div class="form-group">
-                    <label>Appunti / Testo del Capitolo</label>
-                    <textarea id="ai-quiz-notes-input" class="form-control" rows="5" placeholder="Es. Nel 1789 la Rivoluzione Francese segnò la fine dell'Ancien Régime a causa della grave crisi economica..."></textarea>
+                <!-- Input Foto (Camera / Galleria) -->
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label>Foto Appunti o Pagina del Libro</label>
+                    <input type="file" id="ai-photo-file-input" accept="image/*" style="display: none;" onchange="handleAiPhotoSelected(event)">
+                    
+                    <div class="photo-upload-zone" id="ai-photo-dropzone" onclick="document.getElementById('ai-photo-file-input').click()">
+                        <i class="fa-solid fa-camera" style="font-size: 1.5rem; color: var(--theme-strong); margin-bottom: 6px; display: block;"></i>
+                        <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-main);">Tocca per scattare una foto o caricare da galleria</span>
+                        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">JPG, PNG, HEIC (pagine, schemi, appunti)</div>
+                    </div>
+
+                    <div class="photo-preview-wrap" id="ai-photo-preview-wrap" style="display: none;">
+                        <img id="ai-photo-preview-img" class="photo-preview-img" src="" alt="Anteprima appunto">
+                        <button type="button" class="btn-remove-photo" onclick="removeAiPhoto(event)" title="Rimuovi foto">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <button type="button" class="btn-submit" id="btn-generate-ai-quiz" onclick="startGenerateAiQuiz()">
-                    <i class="fa-solid fa-bolt"></i> Genera Quiz di 5 Domande
+                <!-- Appunti di testo opzionali -->
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label>Appunti Testuali (Opzionale o in alternativa alla foto)</label>
+                    <textarea id="ai-gen-notes-input" class="form-control" rows="3" placeholder="Es. Riassunto sulla Rivoluzione Francese, formule di fisica..."></textarea>
+                </div>
+
+                <!-- Selettore Quantità Domande Quiz -->
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label>Domande Quiz</label>
+                    <div class="count-pills-row" id="quiz-count-pills">
+                        <button type="button" class="count-pill-btn active" data-val="auto" onclick="setQuizCount('auto', this)">Auto</button>
+                        <button type="button" class="count-pill-btn" data-val="3" onclick="setQuizCount(3, this)">3</button>
+                        <button type="button" class="count-pill-btn" data-val="5" onclick="setQuizCount(5, this)">5</button>
+                        <button type="button" class="count-pill-btn" data-val="10" onclick="setQuizCount(10, this)">10</button>
+                    </div>
+                </div>
+
+                <!-- Selettore Quantità Flashcards -->
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label>Flashcard da creare</label>
+                    <div class="count-pills-row" id="cards-count-pills">
+                        <button type="button" class="count-pill-btn active" data-val="auto" onclick="setCardsCount('auto', this)">Auto</button>
+                        <button type="button" class="count-pill-btn" data-val="0" onclick="setCardsCount(0, this)">Nessuna</button>
+                        <button type="button" class="count-pill-btn" data-val="3" onclick="setCardsCount(3, this)">3</button>
+                        <button type="button" class="count-pill-btn" data-val="5" onclick="setCardsCount(5, this)">5</button>
+                        <button type="button" class="count-pill-btn" data-val="10" onclick="setCardsCount(10, this)">10</button>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-submit" id="btn-execute-ai-gen" onclick="executeAiGeneration()">
+                    <i class="fa-solid fa-bolt"></i> Genera con IA
                 </button>
             </div>
 
             <!-- View 2: Loading State -->
-            <div id="ai-quiz-loading-view" style="display: none; text-align: center; padding: 40px 10px;">
+            <div id="ai-gen-loading-view" style="display: none; text-align: center; padding: 35px 10px;">
                 <div class="quiz-spinner"></div>
-                <h4 style="margin: 20px 0 6px 0; color: var(--theme-strong);">L'IA sta analizzando i tuoi appunti...</h4>
-                <p style="font-size: 0.82rem; color: var(--text-muted);">Creazione di domande mirate e opzioni a scelta multipla.</p>
-            </div>
-
-            <!-- View 3: Quiz Runner -->
-            <div id="ai-quiz-runner-view" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                    <span class="quiz-badge" id="quiz-question-number">Domanda 1 di 5</span>
-                    <span class="quiz-score-pill" id="quiz-live-score">Punti: 0</span>
-                </div>
-                
-                <div class="quiz-question-box" id="quiz-question-title">Domanda...</div>
-
-                <div class="quiz-options-list" id="quiz-options-container"></div>
-
-                <div id="quiz-feedback-box" class="quiz-feedback-box" style="display: none;"></div>
-
-                <button type="button" class="btn-submit" id="btn-next-quiz-q" style="display: none; margin-top: 15px;" onclick="nextQuizQuestion()">
-                    Prossima Domanda <i class="fa-solid fa-arrow-right"></i>
-                </button>
-            </div>
-
-            <!-- View 4: Quiz Results -->
-            <div id="ai-quiz-results-view" style="display: none; text-align: center; padding: 20px 10px;">
-                <div style="font-size: 3rem; margin-bottom: 10px;" id="quiz-result-emoji">🏆</div>
-                <h3 style="margin: 0 0 6px 0; color: var(--theme-strong);" id="quiz-result-score-title">Ottimo lavoro!</h3>
-                <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 20px;" id="quiz-result-feedback">Hai totalizzato 4 su 5 risposte corrette.</p>
-                
-                <button type="button" class="btn-submit" id="btn-save-quiz-flashcards" onclick="convertMissedToFlashcards()" style="margin-bottom: 10px;">
-                    <i class="fa-solid fa-layer-group"></i> Salva Domande Sbagliate in Flashcard
-                </button>
-                <button type="button" class="choice-btn" onclick="resetAiQuizView()">Nuovo Quiz</button>
+                <h4 style="margin: 18px 0 6px 0; color: var(--theme-strong);" id="ai-gen-loading-title">Gemini sta leggendo i tuoi appunti...</h4>
+                <p style="font-size: 0.8rem; color: var(--text-muted);" id="ai-gen-loading-sub">Estrazione di concetti, formule e creazione automatica di domande.</p>
             </div>
         </div>
     </div>
@@ -738,7 +818,7 @@
 
 </div>
 
-    <script src="js/app.js?v=2.0.3" defer></script>
+    <script src="js/app.js?v=2.0.4" defer></script>
 
 </body>
 </html>

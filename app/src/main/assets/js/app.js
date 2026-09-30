@@ -2435,7 +2435,7 @@
     }
 
     window.renderFlashcardsView = function() {
-        const filtersContainer = document.getElementById('flashcard-subject-filters');
+        const popoverContainer = document.getElementById('flashcard-subject-popover-container');
         const dueCountEl = document.getElementById('flashcards-due-count');
         const totalCountEl = document.getElementById('total-cards-count');
         const studyContainer = document.getElementById('flashcard-study-container');
@@ -2443,29 +2443,35 @@
         const drawerContainer = document.getElementById('all-cards-list-container');
         const progressFill = document.getElementById('card-progress-fill');
 
-        if (!filtersContainer || !dueCountEl) return;
+        if (!dueCountEl) return;
 
         if (totalCountEl) totalCountEl.innerText = flashcards.length.toString();
 
-        // Filtri materie
-        filtersContainer.innerHTML = '';
+        // Filtro Materia tramite Popover a Tendina (come nei task To-Do e Verifiche)
         const allDeckSubs = flashcards.map(c => c.subject || 'Generale');
-        const combinedSubs = ['ALL', ...allDeckSubs, ...(typeof userSubjects !== 'undefined' ? userSubjects : [])];
-        const uniqueSubs = Array.from(new Set(combinedSubs));
+        const rawSubs = [...allDeckSubs, ...(typeof userSubjects !== 'undefined' ? userSubjects : [])];
+        const uniqueSubs = ['Tutte', ...Array.from(new Set(rawSubs.filter(Boolean)))];
 
-        uniqueSubs.forEach(s => {
-            const isAct = s === selectedFlashcardSubject;
-            const pill = document.createElement('button');
-            pill.type = 'button';
-            pill.className = `card-filter-pill ${isAct ? 'active' : ''}`;
-            pill.innerText = s === 'ALL' ? 'Tutte' : s;
-            pill.onclick = () => {
-                selectedFlashcardSubject = s;
-                currentCardIndex = 0;
-                renderFlashcardsView();
-            };
-            filtersContainer.appendChild(pill);
-        });
+        const currentDisplay = (selectedFlashcardSubject === 'ALL' || !selectedFlashcardSubject) ? 'Tutte' : selectedFlashcardSubject;
+
+        if (popoverContainer) {
+            if (!window.flashcardSubjectPicker) {
+                window.flashcardSubjectPicker = initOptionPopover('flashcard-subject-popover-container', {
+                    items: uniqueSubs,
+                    defaultItem: currentDisplay,
+                    icon: 'fa-solid fa-chevron-down',
+                    onChange: (val) => {
+                        selectedFlashcardSubject = (val === 'Tutte' ? 'ALL' : val);
+                        currentCardIndex = 0;
+                        renderFlashcardsView();
+                    }
+                });
+            } else {
+                window.flashcardSubjectPicker.setItems(uniqueSubs);
+                const txt = document.getElementById('pop_opt_text_flashcard-subject-popover-container');
+                if (txt) txt.innerText = currentDisplay;
+            }
+        }
 
         // Filtra le carte scadute oggi o non ancora ripassate
         currentDueCards = flashcards.filter(c => {
@@ -2695,55 +2701,164 @@
         showToast("Chiave Gemini AI salvata!");
     };
 
-    window.openAiQuizModal = function() {
-        const modal = document.getElementById('ai-quiz-modal');
-        const select = document.getElementById('ai-quiz-subject-select');
+    window.switchRipassoTab = function(tab) {
+        const btnCards = document.getElementById('tab-btn-flashcards');
+        const btnQuiz = document.getElementById('tab-btn-quiz');
+        const panelCards = document.getElementById('ripasso-flashcards-panel');
+        const panelQuiz = document.getElementById('ripasso-quiz-panel');
+
+        if (tab === 'quiz') {
+            if (btnQuiz) btnQuiz.classList.add('active');
+            if (btnCards) btnCards.classList.remove('active');
+            if (panelCards) panelCards.style.display = 'none';
+            if (panelQuiz) panelQuiz.style.display = 'block';
+
+            const runner = document.getElementById('ripasso-quiz-runner');
+            const results = document.getElementById('ripasso-quiz-results');
+            const empty = document.getElementById('ripasso-quiz-empty');
+
+            if (currentQuizQuestions && currentQuizQuestions.length > 0) {
+                if (currentQuizQuestionIndex < currentQuizQuestions.length) {
+                    if (runner) runner.style.display = 'block';
+                    if (results) results.style.display = 'none';
+                    if (empty) empty.style.display = 'none';
+                    renderQuizQuestion();
+                } else {
+                    if (runner) runner.style.display = 'none';
+                    if (results) results.style.display = 'block';
+                    if (empty) empty.style.display = 'none';
+                }
+            } else {
+                if (runner) runner.style.display = 'none';
+                if (results) results.style.display = 'none';
+                if (empty) empty.style.display = 'block';
+            }
+        } else {
+            if (btnCards) btnCards.classList.add('active');
+            if (btnQuiz) btnQuiz.classList.remove('active');
+            if (panelCards) panelCards.style.display = 'block';
+            if (panelQuiz) panelQuiz.style.display = 'none';
+            renderFlashcardsView();
+        }
+    };
+
+    let selectedAiPhotoBase64 = null;
+    let selectedAiPhotoMime = null;
+    let selectedQuizCount = 'auto';
+    let selectedCardsCount = 'auto';
+
+    window.openAiGeneratorModal = function() {
+        const modal = document.getElementById('ai-generator-modal');
+        const select = document.getElementById('ai-gen-subject-select');
         if (select) {
             select.innerHTML = '';
-            const subs = (typeof userSubjects !== 'undefined' && userSubjects.length > 0) ? userSubjects : ['Storia', 'Filosofia', 'Scienze', 'Italiano'];
+            const subs = (typeof userSubjects !== 'undefined' && userSubjects.length > 0) ? userSubjects : ['Storia', 'Filosofia', 'Scienze', 'Italiano', 'Matematica', 'Fisica', 'Inglese'];
             subs.forEach(s => {
                 const opt = document.createElement('option');
                 opt.value = s;
                 opt.innerText = s;
                 select.appendChild(opt);
             });
+            if (selectedFlashcardSubject && selectedFlashcardSubject !== 'ALL') {
+                select.value = selectedFlashcardSubject;
+            }
         }
-        resetAiQuizView();
+
+        const notes = document.getElementById('ai-gen-notes-input');
+        if (notes) notes.value = '';
+        removeAiPhoto();
+
+        selectedQuizCount = 'auto';
+        selectedCardsCount = 'auto';
+        document.querySelectorAll('#quiz-count-pills .count-pill-btn').forEach(b => {
+            b.classList.toggle('active', b.getAttribute('data-val') === 'auto');
+        });
+        document.querySelectorAll('#cards-count-pills .count-pill-btn').forEach(b => {
+            b.classList.toggle('active', b.getAttribute('data-val') === 'auto');
+        });
+
+        const formView = document.getElementById('ai-gen-form-view');
+        const loadingView = document.getElementById('ai-gen-loading-view');
+        if (formView) formView.style.display = 'block';
+        if (loadingView) loadingView.style.display = 'none';
+
         if (modal) modal.classList.add('active');
     };
 
-    window.closeAiQuizModal = function() {
-        const modal = document.getElementById('ai-quiz-modal');
+    window.closeAiGeneratorModal = function() {
+        const modal = document.getElementById('ai-generator-modal');
         if (modal) modal.classList.remove('active');
     };
 
-    window.resetAiQuizView = function() {
-        const setup = document.getElementById('ai-quiz-setup-view');
-        const loading = document.getElementById('ai-quiz-loading-view');
-        const runner = document.getElementById('ai-quiz-runner-view');
-        const results = document.getElementById('ai-quiz-results-view');
+    window.openAiQuizModal = window.openAiGeneratorModal;
+    window.closeAiQuizModal = window.closeAiGeneratorModal;
 
-        if (setup) setup.style.display = 'block';
-        if (loading) loading.style.display = 'none';
-        if (runner) runner.style.display = 'none';
-        if (results) results.style.display = 'none';
+    window.handleAiPhotoSelected = function(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
 
-        currentQuizQuestions = [];
-        currentQuizQuestionIndex = 0;
-        currentQuizScore = 0;
-        missedQuizQuestions = [];
+        if (file.size > 8 * 1024 * 1024) {
+            customAlert("La foto selezionata supera 8MB. Prova a scattarla a risoluzione standard o usa un file più leggero.", "Foto troppo grande");
+            return;
+        }
+
+        selectedAiPhotoMime = file.type || 'image/jpeg';
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const fullDataUrl = evt.target.result;
+            selectedAiPhotoBase64 = fullDataUrl.split(',')[1];
+
+            const previewWrap = document.getElementById('ai-photo-preview-wrap');
+            const previewImg = document.getElementById('ai-photo-preview-img');
+            const dropzone = document.getElementById('ai-photo-dropzone');
+
+            if (previewImg) previewImg.src = fullDataUrl;
+            if (previewWrap) previewWrap.style.display = 'flex';
+            if (dropzone) dropzone.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    };
+
+    window.removeAiPhoto = function(e) {
+        if (e) e.stopPropagation();
+        selectedAiPhotoBase64 = null;
+        selectedAiPhotoMime = null;
+        const fileInput = document.getElementById('ai-photo-file-input');
+        if (fileInput) fileInput.value = '';
+
+        const previewWrap = document.getElementById('ai-photo-preview-wrap');
+        const dropzone = document.getElementById('ai-photo-dropzone');
+        if (previewWrap) previewWrap.style.display = 'none';
+        if (dropzone) dropzone.style.display = 'block';
+    };
+
+    window.setQuizCount = function(val, btn) {
+        selectedQuizCount = val;
+        const container = document.getElementById('quiz-count-pills');
+        if (container) {
+            container.querySelectorAll('.count-pill-btn').forEach(b => b.classList.remove('active'));
+        }
+        if (btn) btn.classList.add('active');
+    };
+
+    window.setCardsCount = function(val, btn) {
+        selectedCardsCount = val;
+        const container = document.getElementById('cards-count-pills');
+        if (container) {
+            container.querySelectorAll('.count-pill-btn').forEach(b => b.classList.remove('active'));
+        }
+        if (btn) btn.classList.add('active');
     };
 
     function generateOfflineQuizQuestions(text, subject) {
-        // Smart offline parser per generare quiz contestuali anche senza connessione o chiave
         const sentences = text
             .split(/[.\n;!?]+/)
             .map(s => s.trim())
-            .filter(s => s.length > 25);
+            .filter(s => s.length > 20);
 
         const questions = [];
         
-        if (sentences.length >= 3) {
+        if (sentences.length >= 2) {
             for (let i = 0; i < Math.min(sentences.length, 5); i++) {
                 const s = sentences[i];
                 const words = s.split(/\s+/).filter(w => w.length > 4);
@@ -2757,9 +2872,8 @@
                     distractors[1],
                     distractors[2]
                 ];
-                const correctOpt = targetWord;
                 options.sort(() => Math.random() - 0.5);
-                const correctIdx = options.indexOf(correctOpt);
+                const correctIdx = options.indexOf(targetWord);
 
                 questions.push({
                     question: `In base ai tuoi appunti di ${subject}: "${maskedSentence}". Quale elemento completa correttamente la frase?`,
@@ -2788,33 +2902,89 @@
         return questions;
     }
 
-    window.startGenerateAiQuiz = async function() {
-        const subjectSelect = document.getElementById('ai-quiz-subject-select');
-        const notesInput = document.getElementById('ai-quiz-notes-input');
+    window.executeAiGeneration = async function() {
+        const subjectSelect = document.getElementById('ai-gen-subject-select');
+        const notesInput = document.getElementById('ai-gen-notes-input');
 
-        currentQuizSubject = subjectSelect ? subjectSelect.value : 'Studio';
-        const text = notesInput ? notesInput.value.trim() : '';
+        const currentSubject = subjectSelect ? subjectSelect.value : 'Studio';
+        const textNotes = notesInput ? notesInput.value.trim() : '';
 
-        if (text.length < 20) {
-            customAlert("Incolla almeno una frase o un breve paragrafo dei tuoi appunti per generare il quiz!", "Appunti troppo brevi");
+        if (!selectedAiPhotoBase64 && textNotes.length < 15) {
+            customAlert("Scatta una foto ai tuoi appunti o scrivi almeno una frase per generare il ripasso!", "Dati insufficienti");
             return;
         }
 
-        document.getElementById('ai-quiz-setup-view').style.display = 'none';
-        document.getElementById('ai-quiz-loading-view').style.display = 'block';
+        const formView = document.getElementById('ai-gen-form-view');
+        const loadingView = document.getElementById('ai-gen-loading-view');
+        const loadingTitle = document.getElementById('ai-gen-loading-title');
+        const loadingSub = document.getElementById('ai-gen-loading-sub');
+
+        if (formView) formView.style.display = 'none';
+        if (loadingView) loadingView.style.display = 'block';
+        if (loadingTitle) {
+            loadingTitle.innerText = selectedAiPhotoBase64 ? "Gemini sta leggendo la foto degli appunti..." : "Gemini sta analizzando i tuoi appunti...";
+        }
+        if (loadingSub) {
+            loadingSub.innerText = "Estrazione di formule, definizioni e creazione automatica di domande.";
+        }
 
         const apiKey = localStorage.getItem('studylog_gemini_key') || '';
-        let generated = null;
+        let generatedData = null;
+
+        let numQuizText = "da 3 a 5 domande a risposta multipla";
+        if (selectedQuizCount !== 'auto') {
+            numQuizText = `esattamente ${selectedQuizCount} domande a risposta multipla (se 0 rispondi con array vuoto [])`;
+        }
+
+        let numCardsText = "da 3 a 5 flashcard";
+        if (selectedCardsCount !== 'auto') {
+            if (selectedCardsCount === 0) {
+                numCardsText = "0 flashcard (rispondi con array vuoto [])";
+            } else {
+                numCardsText = `esattamente ${selectedCardsCount} flashcard`;
+            }
+        }
 
         if (apiKey) {
             try {
-                const prompt = `Sei un professore italiano di ${currentQuizSubject}. In base a questo testo di studio fornito dallo studente:\n"${text}"\n\nCrea esattamente 5 domande a scelta multipla con 4 opzioni ciascuna per testare la sua preparazione. Rispondi RIGOROSAMENTE con un array JSON di 5 oggetti (nessun testo di contorno, nessun markdown):\n[{"question": "Testo della domanda...", "options": ["Opzione A", "Opzione B", "Opzione C", "Opzione D"], "correctIndex": 0, "explanation": "Spiegazione sintetica della risposta corretta..."}]`;
+                const parts = [];
+                if (selectedAiPhotoBase64) {
+                    parts.push({
+                        inline_data: {
+                            mime_type: selectedAiPhotoMime || 'image/jpeg',
+                            data: selectedAiPhotoBase64
+                        }
+                    });
+                }
+
+                const promptText = `Sei un tutor scolastico italiano esperto nella materia "${currentSubject}".
+Esamina con attenzione il materiale fornito (immagine degli appunti/libro e/o testo sottostante).
+${textNotes ? `Note aggiuntive dello studente:\n"${textNotes}"\n` : ''}
+
+Compito:
+1. Genera ${numCardsText} per la ripetizione spaziata. Ogni flashcard ha un fronte ("front": domanda sintetica, termine chiave o formula) e un retro ("back": risposta o spiegazione chiara).
+2. Genera ${numQuizText}. Ogni domanda del quiz ha:
+   - "question": testo chiaro della domanda
+   - "options": array di 4 opzioni plausibili in italiano
+   - "correctIndex": indice numerico da 0 a 3 della risposta esatta
+   - "explanation": breve spiegazione didattica del perché la risposta è corretta
+
+Rispondi RIGOROSAMENTE con una singola struttura JSON valida, senza blocchi di codice markdown, senza commenti:
+{
+  "flashcards": [
+    { "front": "...", "back": "..." }
+  ],
+  "quiz": [
+    { "question": "...", "options": ["...", "...", "...", "..."], "correctIndex": 0, "explanation": "..." }
+  ]
+}`;
+                parts.push({ text: promptText });
 
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
+                        contents: [{ parts: parts }],
                         generationConfig: {
                             responseMimeType: "application/json"
                         }
@@ -2826,31 +2996,95 @@
                     const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
                     if (rawText) {
                         const cleaned = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-                        const parsed = JSON.parse(cleaned);
-                        if (Array.isArray(parsed) && parsed.length >= 3) {
-                            generated = parsed.slice(0, 5);
-                        }
+                        generatedData = JSON.parse(cleaned);
                     }
+                } else {
+                    console.warn('Gemini API call failed with status:', res.status);
                 }
             } catch (err) {
-                console.warn('Gemini API request failed, using smart offline fallback:', err);
+                console.warn('Gemini API fetch error:', err);
             }
         }
 
-        if (!generated || generated.length === 0) {
-            generated = generateOfflineQuizQuestions(text, currentQuizSubject);
+        // Offline Fallback se non c'è chiave o errore API
+        if (!generatedData) {
+            const fallbackText = textNotes || (selectedAiPhotoBase64 ? `Studio di ${currentSubject} basato sull'immagine caricata` : 'Studio generale');
+            
+            const offlineQuiz = (selectedQuizCount !== 0) ? generateOfflineQuizQuestions(fallbackText, currentSubject) : [];
+            const quizCountNum = selectedQuizCount === 'auto' ? 5 : Number(selectedQuizCount);
+            const slicedQuiz = offlineQuiz.slice(0, quizCountNum);
+
+            const offlineCards = [];
+            const cardsCountNum = selectedCardsCount === 'auto' ? 4 : Number(selectedCardsCount);
+            if (cardsCountNum > 0) {
+                const sentences = fallbackText.split(/[.\n;!?]+/).map(s => s.trim()).filter(s => s.length > 15);
+                for (let i = 0; i < Math.min(sentences.length, cardsCountNum); i++) {
+                    const s = sentences[i];
+                    offlineCards.push({
+                        front: `Definisci il concetto chiave di ${currentSubject} (punto ${i + 1})`,
+                        back: s
+                    });
+                }
+                while (offlineCards.length < cardsCountNum) {
+                    const idx = offlineCards.length + 1;
+                    offlineCards.push({
+                        front: `Concetto fondamentale #${idx} - ${currentSubject}`,
+                        back: `Spiegazione ed elementi essenziali relativi a ${currentSubject} estratti dagli appunti.`
+                    });
+                }
+            }
+
+            generatedData = {
+                flashcards: offlineCards,
+                quiz: slicedQuiz
+            };
         }
 
-        currentQuizQuestions = generated;
-        currentQuizQuestionIndex = 0;
-        currentQuizScore = 0;
-        missedQuizQuestions = [];
+        // Aggiungi flashcards create
+        let addedCardsCount = 0;
+        if (Array.isArray(generatedData.flashcards) && generatedData.flashcards.length > 0) {
+            generatedData.flashcards.forEach(fc => {
+                if (fc.front && fc.back) {
+                    flashcards.unshift({
+                        id: generateId(),
+                        subject: currentSubject,
+                        front: fc.front,
+                        back: fc.back,
+                        level: 1,
+                        nextReviewDate: todayDateStr,
+                        created: Date.now()
+                    });
+                    addedCardsCount++;
+                }
+            });
+            saveFlashcards();
+            renderFlashcardsView();
+        }
+
+        // Prepara quiz
+        let hasQuiz = false;
+        if (Array.isArray(generatedData.quiz) && generatedData.quiz.length > 0) {
+            currentQuizQuestions = generatedData.quiz;
+            currentQuizQuestionIndex = 0;
+            currentQuizScore = 0;
+            missedQuizQuestions = [];
+            currentQuizSubject = currentSubject;
+            hasQuiz = true;
+        } else {
+            currentQuizQuestions = [];
+        }
 
         setTimeout(() => {
-            document.getElementById('ai-quiz-loading-view').style.display = 'none';
-            document.getElementById('ai-quiz-runner-view').style.display = 'block';
-            renderQuizQuestion();
-        }, 500);
+            closeAiGeneratorModal();
+
+            if (hasQuiz) {
+                showToast(`Generati: Quiz (${currentQuizQuestions.length} dom.) e ${addedCardsCount} Flashcard!`);
+                switchRipassoTab('quiz');
+            } else {
+                showToast(`Create con successo ${addedCardsCount} Flashcard per ${currentSubject}!`);
+                switchRipassoTab('flashcards');
+            }
+        }, 400);
     };
 
     function renderQuizQuestion() {
@@ -2941,9 +3175,10 @@
         if (currentQuizQuestionIndex < currentQuizQuestions.length) {
             renderQuizQuestion();
         } else {
-            document.getElementById('ai-quiz-runner-view').style.display = 'none';
-            const resView = document.getElementById('ai-quiz-results-view');
-            resView.style.display = 'block';
+            const runnerEl = document.getElementById('ripasso-quiz-runner') || document.getElementById('ai-quiz-runner-view');
+            const resView = document.getElementById('ripasso-quiz-results') || document.getElementById('ai-quiz-results-view');
+            if (runnerEl) runnerEl.style.display = 'none';
+            if (resView) resView.style.display = 'block';
 
             const emoji = document.getElementById('quiz-result-emoji');
             const scoreTitle = document.getElementById('quiz-result-score-title');
@@ -2988,6 +3223,7 @@
             });
         });
         saveFlashcards();
+        renderFlashcardsView();
         showToast(`Salvate ${missedQuizQuestions.length} flashcard!`);
         if (btn) {
             btn.disabled = true;

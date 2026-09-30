@@ -80,16 +80,18 @@ A differenza delle tradizionali applicazioni per to-do list, Study Planner e' pr
 - Conteggio cumulativo dei minuti a fuoco e delle sessioni portate a termine con successo.
 - Meccanismo di gamification basato su punti Conoscenza (XP), Serie di Fuoco e Gradi Accademici da Matricola fino a Einstein.
 
-### 3. Flashcard con Ripetizione Spaziata (Metodo Leitner)
+### 3. Ripasso e Flashcard con Ripetizione Spaziata (Metodo Leitner)
+- Hub unificato per lo studio con selettore a schede rapido tra Flashcard e Quiz IA.
+- Selettore a tendina compatto per filtrare le carte per materia, coerente con lo stile dei compiti e delle verifiche.
 - Carta tridimensionale con animazione fluida di rotazione per visualizzare domanda e risposta.
 - Classificazione della difficolta' con intervalli scientifici: Difficile (1 giorno), Buono (3 giorni), Facile (7 giorni).
-- Filtri per singola materia di studio per eseguire sessioni mirate su specifici argomenti.
 - Cassetto espandibile per consultare l'intero mazzo, monitorare i livelli delle carte ed eliminare quelle obsolete.
 - Funzione di ripristino per ripassare tutte le carte del mazzo a piacere.
 
-### 4. Generatore di Quiz con AI e Tutor
-- Trasformazione istantanea di appunti o capitoli incollati in 5 domande a risposta multipla con 4 alternative ciascuna.
-- Supporto per chiave API personale Google Gemini (Google AI Studio) per elaborazioni avanzate.
+### 4. Generatore di Quiz e Flashcard con AI e Scansione Foto
+- Scansione multimodale: scatta una foto direttamente con la fotocamera a pagine di quaderni, formulari o libri di testo.
+- Integrazione con Google Gemini (Gemini 2.5 Flash): estrazione automatica dei concetti visivi e testuali per generare sia quiz sia flashcard.
+- Selettore di quantita': imposta il numero desiderato di domande del quiz (Auto, 3, 5, 10) e di flashcard (Auto, Nessuna, 3, 5, 10).
 - Motore euristico locale funzionante al 100% offline in modalita' aereo o in assenza di rete.
 - Spiegazione dettagliata della risposta corretta presentata subito dopo la selezione.
 - Conversione automatica delle domande con risposta errata in nuove flashcard del mazzo con un solo tocco.
