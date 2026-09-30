@@ -1731,6 +1731,27 @@
         checkAndSendSmartNotification();
     }
 
+    function syncAndroidWidget() {
+        try {
+            if (window.AndroidNative && typeof window.AndroidNative.updateWidgetData === 'function') {
+                const todayTasks = getTasksForDate(todayDateStr).filter(t => !t.isExamDay);
+                const pendingTasks = todayTasks.filter(t => !t.isDone && !completedTasks[`${todayDateStr}_${t._id}`]);
+                let summaryText = "";
+                if (todayTasks.length === 0) {
+                    summaryText = "Nessuna task per oggi! 🎉";
+                } else if (pendingTasks.length === 0) {
+                    summaryText = "Tutte le task completate! 🏆";
+                } else {
+                    const firstSub = pendingTasks[0].subject || "Studio";
+                    summaryText = `${pendingTasks.length} task da completare (${firstSub})`;
+                }
+                window.AndroidNative.updateWidgetData(currentStreak || 0, summaryText);
+            }
+        } catch(err) {
+            console.warn('Android widget sync error:', err);
+        }
+    }
+
     function init() {
         document.body.addEventListener('click', initAudio, { once: true }); 
         applySettingsUI(); 
@@ -1744,6 +1765,9 @@
         renderHeatmap(); 
         renderStreakCalendar(); 
         renderMonthCalendar();
+        renderSubjectDonutChart();
+        loadFlashcards();
+        initGeminiKeyInput();
         
         setInterval(() => {
             checkAndSendSmartNotification();
@@ -1785,6 +1809,8 @@
 
         const dashesContainer = document.getElementById('dash-streak-dashes'); dashesContainer.innerHTML = '';
         for(let i=5; i>=0; i--) { let d = new Date(); d.setDate(d.getDate() - i); let activeClass = isDayStudied(formatDateStr(d)) ? 'active' : ''; dashesContainer.innerHTML += `<div class="streak-dash ${activeClass}"></div>`; }
+        
+        syncAndroidWidget();
     }
 
     let scrollTimeout;
@@ -1899,10 +1925,13 @@
         document.getElementById('study-view').style.display = view === 'study' ? 'block' : 'none';
         const focusView = document.getElementById('focus-view');
         if (focusView) focusView.style.display = view === 'focus' ? 'block' : 'none';
+        const flashcardsView = document.getElementById('flashcards-view');
+        if (flashcardsView) flashcardsView.style.display = view === 'flashcards' ? 'block' : 'none';
         document.getElementById('ranked-view').style.display = view === 'ranked' ? 'block' : 'none';
         document.getElementById('calendar-view').style.display = view === 'calendar' ? 'block' : 'none';
-        if(view === 'calendar') { renderSheetData(); renderMonthCalendar(); }
+        if(view === 'calendar') { renderSheetData(); renderMonthCalendar(); renderSubjectDonutChart(); }
         if(view === 'focus') { renderPomoPresets(); updateFocusStatsUI(); updateFocusTimerUI(); }
+        if(view === 'flashcards') { renderFlashcardsView(); }
     }
 
     function renderSheetData() {
@@ -2033,7 +2062,7 @@
             grid.innerHTML += `<div class="cal-cell ${isToday ? 'today' : ''} ${statusClass}" onclick="window.openDayDetails('${dateStr}')"><span class="cal-day-num">${day}</span>${dotsHtml}</div>`;
         }
     }
-    window.changeMonth = function(dir) { navDate.setMonth(navDate.getMonth() + dir); renderMonthCalendar(); }
+    window.changeMonth = function(dir) { navDate.setMonth(navDate.getMonth() + dir); renderMonthCalendar(); renderSubjectDonutChart(); }
 
     window.openDayDetails = function(dateStr) {
         const tasks = getTasksForDate(dateStr); 
@@ -2250,9 +2279,725 @@
         }
     }
 
+    // =========================================================================
+    // FEATURE 5: GRAFICO A TORTA / DONUT DEL TEMPO DI STUDIO PER MATERIA
+    // =========================================================================
+    window.renderSubjectDonutChart = function() {
+        const container = document.getElementById('subject-donut-container');
+        const slicesGroup = document.getElementById('donut-slices-group');
+        const centerVal = document.getElementById('donut-center-val');
+        const legendList = document.getElementById('subject-donut-legend');
+        if (!container || !slicesGroup || !legendList) return;
+
+        slicesGroup.innerHTML = '';
+        legendList.innerHTML = '';
+
+        const colors = [
+            '#6366f1', '#ec4899', '#f59e0b', '#10b981', 
+            '#3b82f6', '#8b5cf6', '#14b8a6', '#f97316', '#06b6d4', '#e11d48'
+        ];
+
+        let subjectCounts = {};
+        let totalTasks = 0;
+
+        // Raccoglie i compiti da myTodos
+        if (typeof myTodos !== 'undefined' && Array.isArray(myTodos)) {
+            myTodos.forEach(t => {
+                const sub = (t.subject || 'Generale').trim();
+                subjectCounts[sub] = (subjectCounts[sub] || 0) + 1;
+                totalTasks++;
+            });
+        }
+
+        // Raccoglie gli esami/verifiche da myExams
+        if (typeof myExams !== 'undefined' && Array.isArray(myExams)) {
+            myExams.forEach(e => {
+                const sub = (e.subject || 'Generale').trim();
+                subjectCounts[sub] = (subjectCounts[sub] || 0) + 1;
+                totalTasks++;
+            });
+        }
+
+        // Se non ci sono ancora task create, visualizza una panoramica delle materie configurate
+        if (totalTasks === 0) {
+            if (typeof userSubjects !== 'undefined' && userSubjects && userSubjects.length > 0) {
+                userSubjects.slice(0, 4).forEach(s => {
+                    subjectCounts[s] = 1;
+                    totalTasks++;
+                });
+            } else {
+                subjectCounts['Studio'] = 1;
+                totalTasks = 1;
+            }
+        }
+
+        const subjects = Object.keys(subjectCounts);
+        const radius = 58;
+        const circumference = 2 * Math.PI * radius; // ~364.42
+
+        let accumulatedOffset = 0;
+        if (centerVal) centerVal.innerText = `${totalTasks}`;
+        const centerLabel = document.querySelector('.donut-center-label');
+        if (centerLabel) centerLabel.innerText = totalTasks === 1 ? 'Task' : 'Task Totali';
+
+        subjects.forEach((sub, idx) => {
+            const count = subjectCounts[sub];
+            const pct = (count / totalTasks) * 100;
+            const dashLen = (pct / 100) * circumference;
+            const color = colors[idx % colors.length];
+
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('class', 'donut-slice');
+            circle.setAttribute('cx', '80');
+            circle.setAttribute('cy', '80');
+            circle.setAttribute('r', radius.toString());
+            circle.setAttribute('stroke', color);
+            circle.setAttribute('stroke-dasharray', `${dashLen} ${circumference}`);
+            circle.setAttribute('stroke-dashoffset', `${-accumulatedOffset}`);
+            circle.setAttribute('title', `${sub}: ${Math.round(pct)}%`);
+            slicesGroup.appendChild(circle);
+
+            accumulatedOffset += dashLen;
+
+            const legendItem = document.createElement('div');
+            legendItem.className = 'donut-legend-item';
+            legendItem.innerHTML = `
+                <div class="donut-legend-subject">
+                    <span class="donut-legend-dot" style="background: ${color};"></span>
+                    <span>${sub}</span>
+                </div>
+                <div class="donut-legend-meta">
+                    <span class="donut-legend-pct">${Math.round(pct)}%</span>
+                    <span>(${count} ${count === 1 ? 'task' : 'task'})</span>
+                </div>
+            `;
+            legendList.appendChild(legendItem);
+        });
+    };
+
+    // =========================================================================
+    // FEATURE 2: FLASHCARD CON RIPETIZIONE SPAZIATA (LEITNER BOX)
+    // =========================================================================
+    let flashcards = [];
+    let currentCardIndex = 0;
+    let currentDueCards = [];
+    let selectedFlashcardSubject = 'ALL';
+
+    window.loadFlashcards = function() {
+        try {
+            const stored = localStorage.getItem('studylog_flashcards');
+            if (stored) {
+                flashcards = JSON.parse(stored);
+            }
+        } catch(e) {
+            flashcards = [];
+        }
+
+        if (!flashcards || flashcards.length === 0) {
+            const sub1 = (typeof userSubjects !== 'undefined' && userSubjects[0]) ? userSubjects[0] : 'Italiano';
+            const sub2 = (typeof userSubjects !== 'undefined' && userSubjects[1]) ? userSubjects[1] : 'Storia';
+            const sub3 = (typeof userSubjects !== 'undefined' && userSubjects[2]) ? userSubjects[2] : 'Filosofia';
+            flashcards = [
+                {
+                    id: generateId(),
+                    subject: sub1,
+                    front: "Chi è l'autore della 'Divina Commedia'?",
+                    back: "Dante Alighieri, capolavoro iniziato intorno al 1304 e suddiviso in Inferno, Purgatorio e Paradiso.",
+                    level: 1,
+                    nextReviewDate: todayDateStr,
+                    created: Date.now()
+                },
+                {
+                    id: generateId(),
+                    subject: sub2,
+                    front: "In quale anno scoppiò la Rivoluzione Francese?",
+                    back: "Nel 1789, con la fondamentale presa della Bastiglia il 14 luglio a Parigi.",
+                    level: 1,
+                    nextReviewDate: todayDateStr,
+                    created: Date.now()
+                },
+                {
+                    id: generateId(),
+                    subject: sub3,
+                    front: "Qual è il celebre motto attribuito a Socrate?",
+                    back: "'So di non sapere' (la consapevolezza dei propri limiti come base per la vera conoscenza).",
+                    level: 1,
+                    nextReviewDate: todayDateStr,
+                    created: Date.now()
+                }
+            ];
+            saveFlashcards();
+        }
+    };
+
+    function saveFlashcards() {
+        localStorage.setItem('studylog_flashcards', JSON.stringify(flashcards));
+    }
+
+    window.renderFlashcardsView = function() {
+        const filtersContainer = document.getElementById('flashcard-subject-filters');
+        const dueCountEl = document.getElementById('flashcards-due-count');
+        const totalCountEl = document.getElementById('total-cards-count');
+        const studyContainer = document.getElementById('flashcard-study-container');
+        const emptyState = document.getElementById('flashcard-empty-state');
+        const drawerContainer = document.getElementById('all-cards-list-container');
+        const progressFill = document.getElementById('card-progress-fill');
+
+        if (!filtersContainer || !dueCountEl) return;
+
+        if (totalCountEl) totalCountEl.innerText = flashcards.length.toString();
+
+        // Filtri materie
+        filtersContainer.innerHTML = '';
+        const allDeckSubs = flashcards.map(c => c.subject || 'Generale');
+        const combinedSubs = ['ALL', ...allDeckSubs, ...(typeof userSubjects !== 'undefined' ? userSubjects : [])];
+        const uniqueSubs = Array.from(new Set(combinedSubs));
+
+        uniqueSubs.forEach(s => {
+            const isAct = s === selectedFlashcardSubject;
+            const pill = document.createElement('button');
+            pill.type = 'button';
+            pill.className = `card-filter-pill ${isAct ? 'active' : ''}`;
+            pill.innerText = s === 'ALL' ? 'Tutte' : s;
+            pill.onclick = () => {
+                selectedFlashcardSubject = s;
+                currentCardIndex = 0;
+                renderFlashcardsView();
+            };
+            filtersContainer.appendChild(pill);
+        });
+
+        // Filtra le carte scadute oggi o non ancora ripassate
+        currentDueCards = flashcards.filter(c => {
+            const isDue = !c.nextReviewDate || c.nextReviewDate <= todayDateStr;
+            if (selectedFlashcardSubject === 'ALL') return isDue;
+            return isDue && c.subject === selectedFlashcardSubject;
+        });
+
+        dueCountEl.innerText = `${currentDueCards.length} ${currentDueCards.length === 1 ? 'carta da ripassare' : 'carte da ripassare'} oggi`;
+
+        // Render drawer lista completa mazzo
+        if (drawerContainer) {
+            drawerContainer.innerHTML = '';
+            if (flashcards.length === 0) {
+                drawerContainer.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; text-align:center; padding:15px;">Nessuna flashcard nel mazzo. Creane una nuova!</div>';
+            } else {
+                flashcards.forEach(card => {
+                    const row = document.createElement('div');
+                    row.className = 'card-deck-row';
+                    const lvl = card.level || 1;
+                    row.innerHTML = `
+                        <div class="card-deck-main">
+                            <div class="card-deck-front">${card.front}</div>
+                            <div class="card-deck-sub">
+                                <span><i class="fa-solid fa-book-open"></i> ${card.subject}</span>
+                                <span class="card-lvl-pill lvl-${lvl}">Liv. ${lvl} (${lvl === 1 ? '1gg' : lvl === 2 ? '3gg' : '7gg'})</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-card-delete" onclick="deleteFlashcard('${card.id}')" title="Elimina"><i class="fa-solid fa-trash-can"></i></button>
+                    `;
+                    drawerContainer.appendChild(row);
+                });
+            }
+        }
+
+        // Stato vuoto o completato per oggi
+        if (currentDueCards.length === 0 || currentCardIndex >= currentDueCards.length) {
+            if (studyContainer) studyContainer.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'block';
+            if (progressFill) progressFill.style.width = '100%';
+            return;
+        }
+
+        if (studyContainer) studyContainer.style.display = 'block';
+        if (emptyState) emptyState.style.display = 'none';
+
+        // Mostra la carta corrente
+        const card = currentDueCards[currentCardIndex];
+        const flipCardEl = document.getElementById('current-flip-card');
+        if (flipCardEl) flipCardEl.classList.remove('flipped');
+
+        const frontSub = document.getElementById('card-front-subject');
+        const frontTxt = document.getElementById('card-front-text');
+        const backSub = document.getElementById('card-back-subject');
+        const backTxt = document.getElementById('card-back-text');
+
+        if (frontSub) frontSub.innerText = card.subject || 'Materia';
+        if (frontTxt) frontTxt.innerText = card.front || '';
+        if (backSub) backSub.innerText = card.subject || 'Risposta';
+        if (backTxt) backTxt.innerText = card.back || '';
+
+        if (progressFill) {
+            const pct = Math.round((currentCardIndex / currentDueCards.length) * 100);
+            progressFill.style.width = `${pct}%`;
+        }
+    };
+
+    window.flipCurrentCard = function() {
+        const flipCardEl = document.getElementById('current-flip-card');
+        if (flipCardEl) flipCardEl.classList.toggle('flipped');
+    };
+
+    window.rateCardRecall = function(rating) {
+        if (!currentDueCards || currentCardIndex >= currentDueCards.length) return;
+        const card = currentDueCards[currentCardIndex];
+        const today = new Date();
+
+        if (rating === 1) {
+            // Difficile: ripete domani (Livello 1)
+            card.level = 1;
+            const d = new Date(today);
+            d.setDate(d.getDate() + 1);
+            card.nextReviewDate = formatDateStr(d);
+        } else if (rating === 2) {
+            // Buono: ripete tra 3 giorni (Livello 2)
+            card.level = Math.min((card.level || 1) + 1, 3);
+            const d = new Date(today);
+            d.setDate(d.getDate() + (card.level === 2 ? 3 : 4));
+            card.nextReviewDate = formatDateStr(d);
+        } else if (rating === 3) {
+            // Facile: ripete tra 7 giorni (Livello 3)
+            card.level = 3;
+            const d = new Date(today);
+            d.setDate(d.getDate() + 7);
+            card.nextReviewDate = formatDateStr(d);
+        }
+
+        saveFlashcards();
+        addXP(10);
+
+        currentCardIndex++;
+        if (currentCardIndex >= currentDueCards.length) {
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 75, spread: 60, origin: { y: 0.65 } });
+            }
+        }
+        renderFlashcardsView();
+    };
+
+    window.openNewCardModal = function() {
+        const modal = document.getElementById('new-flashcard-modal');
+        const select = document.getElementById('new-card-subject');
+        const front = document.getElementById('new-card-front');
+        const back = document.getElementById('new-card-back');
+
+        if (select) {
+            select.innerHTML = '';
+            const subs = (typeof userSubjects !== 'undefined' && userSubjects.length > 0) ? userSubjects : ['Italiano', 'Storia', 'Matematica', 'Scienze'];
+            subs.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.innerText = s;
+                select.appendChild(opt);
+            });
+        }
+        if (front) front.value = '';
+        if (back) back.value = '';
+        if (modal) modal.classList.add('active');
+    };
+
+    window.closeNewCardModal = function() {
+        const modal = document.getElementById('new-flashcard-modal');
+        if (modal) modal.classList.remove('active');
+    };
+
+    window.saveNewFlashcard = function() {
+        const select = document.getElementById('new-card-subject');
+        const front = document.getElementById('new-card-front');
+        const back = document.getElementById('new-card-back');
+
+        const frontVal = front ? front.value.trim() : '';
+        const backVal = back ? back.value.trim() : '';
+        const subVal = select ? select.value : 'Generale';
+
+        if (!frontVal || !backVal) {
+            customAlert("Inserisci sia il fronte (domanda/termine), sia il retro (risposta/definizione)!", "Campi incompleti");
+            return;
+        }
+
+        const newCard = {
+            id: generateId(),
+            subject: subVal,
+            front: frontVal,
+            back: backVal,
+            level: 1,
+            nextReviewDate: todayDateStr,
+            created: Date.now()
+        };
+
+        flashcards.unshift(newCard);
+        saveFlashcards();
+        closeNewCardModal();
+        showToast("Flashcard aggiunta con successo!");
+        currentCardIndex = 0;
+        renderFlashcardsView();
+    };
+
+    window.deleteFlashcard = function(id) {
+        customConfirm({
+            title: "Elimina Flashcard",
+            message: "Vuoi davvero rimuovere questa carta dal tuo mazzo?",
+            isDanger: true,
+            confirmText: "Elimina",
+            cancelText: "Annulla"
+        }).then(ok => {
+            if (ok) {
+                flashcards = flashcards.filter(c => c.id !== id);
+                saveFlashcards();
+                renderFlashcardsView();
+                showToast("Flashcard eliminata");
+            }
+        });
+    };
+
+    window.restartAllFlashcards = function() {
+        flashcards.forEach(c => {
+            c.nextReviewDate = todayDateStr;
+        });
+        saveFlashcards();
+        currentCardIndex = 0;
+        renderFlashcardsView();
+        showToast("Tutte le carte sono pronte per il ripasso!");
+    };
+
+    window.toggleCardsListDrawer = function() {
+        const content = document.getElementById('cards-list-drawer-content');
+        const chevron = document.getElementById('cards-drawer-chevron');
+        if (!content) return;
+        if (content.style.display === 'none' || !content.style.display) {
+            content.style.display = 'block';
+            if (chevron) chevron.style.transform = 'rotate(180deg)';
+        } else {
+            content.style.display = 'none';
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+        }
+    };
+
+    // =========================================================================
+    // FEATURE 6: GENERATORE AUTOMATICO DI QUIZ CON AI (GEMINI + OFFLINE SMART)
+    // =========================================================================
+    let currentQuizQuestions = [];
+    let currentQuizQuestionIndex = 0;
+    let currentQuizScore = 0;
+    let missedQuizQuestions = [];
+    let currentQuizSubject = "";
+
+    window.initGeminiKeyInput = function() {
+        const input = document.getElementById('settings-gemini-key');
+        if (input) {
+            const saved = localStorage.getItem('studylog_gemini_key') || '';
+            input.value = saved;
+        }
+    };
+
+    window.saveGeminiApiKey = function(val) {
+        localStorage.setItem('studylog_gemini_key', (val || '').trim());
+        showToast("Chiave Gemini AI salvata!");
+    };
+
+    window.openAiQuizModal = function() {
+        const modal = document.getElementById('ai-quiz-modal');
+        const select = document.getElementById('ai-quiz-subject-select');
+        if (select) {
+            select.innerHTML = '';
+            const subs = (typeof userSubjects !== 'undefined' && userSubjects.length > 0) ? userSubjects : ['Storia', 'Filosofia', 'Scienze', 'Italiano'];
+            subs.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.innerText = s;
+                select.appendChild(opt);
+            });
+        }
+        resetAiQuizView();
+        if (modal) modal.classList.add('active');
+    };
+
+    window.closeAiQuizModal = function() {
+        const modal = document.getElementById('ai-quiz-modal');
+        if (modal) modal.classList.remove('active');
+    };
+
+    window.resetAiQuizView = function() {
+        const setup = document.getElementById('ai-quiz-setup-view');
+        const loading = document.getElementById('ai-quiz-loading-view');
+        const runner = document.getElementById('ai-quiz-runner-view');
+        const results = document.getElementById('ai-quiz-results-view');
+
+        if (setup) setup.style.display = 'block';
+        if (loading) loading.style.display = 'none';
+        if (runner) runner.style.display = 'none';
+        if (results) results.style.display = 'none';
+
+        currentQuizQuestions = [];
+        currentQuizQuestionIndex = 0;
+        currentQuizScore = 0;
+        missedQuizQuestions = [];
+    };
+
+    function generateOfflineQuizQuestions(text, subject) {
+        // Smart offline parser per generare quiz contestuali anche senza connessione o chiave
+        const sentences = text
+            .split(/[.\n;!?]+/)
+            .map(s => s.trim())
+            .filter(s => s.length > 25);
+
+        const questions = [];
+        
+        if (sentences.length >= 3) {
+            for (let i = 0; i < Math.min(sentences.length, 5); i++) {
+                const s = sentences[i];
+                const words = s.split(/\s+/).filter(w => w.length > 4);
+                const targetWord = words[Math.floor(words.length / 2)] || "il concetto cardine";
+                const maskedSentence = s.replace(new RegExp(targetWord, 'i'), '_______');
+
+                const distractors = ["l'ipotesi secondaria", "il fattore marginale", "l'effetto inverso", "la tesi contraria"];
+                const options = [
+                    targetWord,
+                    distractors[0],
+                    distractors[1],
+                    distractors[2]
+                ];
+                const correctOpt = targetWord;
+                options.sort(() => Math.random() - 0.5);
+                const correctIdx = options.indexOf(correctOpt);
+
+                questions.push({
+                    question: `In base ai tuoi appunti di ${subject}: "${maskedSentence}". Quale elemento completa correttamente la frase?`,
+                    options: options,
+                    correctIndex: correctIdx,
+                    explanation: `Nel testo è spiegato che: "${s}".`
+                });
+            }
+        }
+
+        while (questions.length < 5) {
+            const idx = questions.length + 1;
+            questions.push({
+                question: `[Domanda ${idx} - ${subject}] In base al capitolo analizzato, quale delle seguenti affermazioni è corretta?`,
+                options: [
+                    `Il concetto chiave identificato negli appunti di ${subject}`,
+                    `Una supposizione priva di fondamento teorico`,
+                    `Una conclusione opposta a quella esposta dall'autore`,
+                    `Un dettaglio marginale smentito nel testo`
+                ],
+                correctIndex: 0,
+                explanation: `I tuoi appunti approfondiscono i concetti fondamentali di ${subject}.`
+            });
+        }
+
+        return questions;
+    }
+
+    window.startGenerateAiQuiz = async function() {
+        const subjectSelect = document.getElementById('ai-quiz-subject-select');
+        const notesInput = document.getElementById('ai-quiz-notes-input');
+
+        currentQuizSubject = subjectSelect ? subjectSelect.value : 'Studio';
+        const text = notesInput ? notesInput.value.trim() : '';
+
+        if (text.length < 20) {
+            customAlert("Incolla almeno una frase o un breve paragrafo dei tuoi appunti per generare il quiz!", "Appunti troppo brevi");
+            return;
+        }
+
+        document.getElementById('ai-quiz-setup-view').style.display = 'none';
+        document.getElementById('ai-quiz-loading-view').style.display = 'block';
+
+        const apiKey = localStorage.getItem('studylog_gemini_key') || '';
+        let generated = null;
+
+        if (apiKey) {
+            try {
+                const prompt = `Sei un professore italiano di ${currentQuizSubject}. In base a questo testo di studio fornito dallo studente:\n"${text}"\n\nCrea esattamente 5 domande a scelta multipla con 4 opzioni ciascuna per testare la sua preparazione. Rispondi RIGOROSAMENTE con un array JSON di 5 oggetti (nessun testo di contorno, nessun markdown):\n[{"question": "Testo della domanda...", "options": ["Opzione A", "Opzione B", "Opzione C", "Opzione D"], "correctIndex": 0, "explanation": "Spiegazione sintetica della risposta corretta..."}]`;
+
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: {
+                            responseMimeType: "application/json"
+                        }
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (rawText) {
+                        const cleaned = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                        const parsed = JSON.parse(cleaned);
+                        if (Array.isArray(parsed) && parsed.length >= 3) {
+                            generated = parsed.slice(0, 5);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Gemini API request failed, using smart offline fallback:', err);
+            }
+        }
+
+        if (!generated || generated.length === 0) {
+            generated = generateOfflineQuizQuestions(text, currentQuizSubject);
+        }
+
+        currentQuizQuestions = generated;
+        currentQuizQuestionIndex = 0;
+        currentQuizScore = 0;
+        missedQuizQuestions = [];
+
+        setTimeout(() => {
+            document.getElementById('ai-quiz-loading-view').style.display = 'none';
+            document.getElementById('ai-quiz-runner-view').style.display = 'block';
+            renderQuizQuestion();
+        }, 500);
+    };
+
+    function renderQuizQuestion() {
+        if (!currentQuizQuestions || currentQuizQuestionIndex >= currentQuizQuestions.length) return;
+        const q = currentQuizQuestions[currentQuizQuestionIndex];
+
+        const numEl = document.getElementById('quiz-question-number');
+        const scoreEl = document.getElementById('quiz-live-score');
+        const titleEl = document.getElementById('quiz-question-title');
+        const optionsCont = document.getElementById('quiz-options-container');
+        const feedbackBox = document.getElementById('quiz-feedback-box');
+        const nextBtn = document.getElementById('btn-next-quiz-q');
+
+        if (numEl) numEl.innerText = `Domanda ${currentQuizQuestionIndex + 1} di ${currentQuizQuestions.length}`;
+        if (scoreEl) scoreEl.innerText = `Punti: ${currentQuizScore}`;
+        if (titleEl) titleEl.innerText = q.question;
+        if (feedbackBox) {
+            feedbackBox.style.display = 'none';
+            feedbackBox.className = 'quiz-feedback-box';
+        }
+        if (nextBtn) nextBtn.style.display = 'none';
+
+        if (optionsCont) {
+            optionsCont.innerHTML = '';
+            const letters = ['A', 'B', 'C', 'D'];
+            (q.options || []).forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'quiz-option-btn';
+                btn.innerHTML = `<span class="quiz-option-letter">${letters[idx] || idx}</span> <span>${opt}</span>`;
+                btn.onclick = () => selectQuizOption(idx);
+                optionsCont.appendChild(btn);
+            });
+        }
+    }
+
+    window.selectQuizOption = function(selectedIndex) {
+        const q = currentQuizQuestions[currentQuizQuestionIndex];
+        if (!q) return;
+
+        const optionsCont = document.getElementById('quiz-options-container');
+        const buttons = optionsCont ? optionsCont.querySelectorAll('.quiz-option-btn') : [];
+        const feedbackBox = document.getElementById('quiz-feedback-box');
+        const nextBtn = document.getElementById('btn-next-quiz-q');
+        const scoreEl = document.getElementById('quiz-live-score');
+
+        buttons.forEach(b => b.disabled = true);
+
+        const isCorrect = selectedIndex === q.correctIndex;
+
+        if (buttons[q.correctIndex]) {
+            buttons[q.correctIndex].classList.add('correct');
+        }
+
+        if (isCorrect) {
+            currentQuizScore++;
+            addXP(15);
+            if (scoreEl) scoreEl.innerText = `Punti: ${currentQuizScore}`;
+            if (feedbackBox) {
+                feedbackBox.className = 'quiz-feedback-box correct';
+                feedbackBox.innerHTML = `<strong><i class="fa-solid fa-check"></i> Esatto! (+15 XP)</strong><br>${q.explanation || 'Risposta corretta!'}`;
+                feedbackBox.style.display = 'block';
+            }
+        } else {
+            if (buttons[selectedIndex]) {
+                buttons[selectedIndex].classList.add('wrong');
+            }
+            missedQuizQuestions.push({
+                subject: currentQuizSubject,
+                front: q.question,
+                back: (q.options[q.correctIndex] || '') + (q.explanation ? ` — ${q.explanation}` : '')
+            });
+            if (feedbackBox) {
+                feedbackBox.className = 'quiz-feedback-box wrong';
+                feedbackBox.innerHTML = `<strong><i class="fa-solid fa-xmark"></i> Non corretta</strong><br>${q.explanation || 'Risposta corretta: ' + q.options[q.correctIndex]}`;
+                feedbackBox.style.display = 'block';
+            }
+        }
+
+        if (nextBtn) {
+            nextBtn.style.display = 'block';
+            nextBtn.innerText = currentQuizQuestionIndex + 1 === currentQuizQuestions.length ? 'Mostra Risultati 🏆' : 'Prossima Domanda →';
+        }
+    };
+
+    window.nextQuizQuestion = function() {
+        currentQuizQuestionIndex++;
+        if (currentQuizQuestionIndex < currentQuizQuestions.length) {
+            renderQuizQuestion();
+        } else {
+            document.getElementById('ai-quiz-runner-view').style.display = 'none';
+            const resView = document.getElementById('ai-quiz-results-view');
+            resView.style.display = 'block';
+
+            const emoji = document.getElementById('quiz-result-emoji');
+            const scoreTitle = document.getElementById('quiz-result-score-title');
+            const feedback = document.getElementById('quiz-result-feedback');
+            const flashcardsBtn = document.getElementById('btn-save-quiz-flashcards');
+
+            if (scoreTitle) scoreTitle.innerText = `Hai totalizzato ${currentQuizScore} su ${currentQuizQuestions.length}!`;
+
+            if (currentQuizScore >= 3) {
+                if (emoji) emoji.innerText = '🏆';
+                if (feedback) feedback.innerText = `Ottima preparazione su ${currentQuizSubject}! I concetti principali sono ben chiari.`;
+                if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            } else {
+                if (emoji) emoji.innerText = '📚';
+                if (feedback) feedback.innerText = `Rivedi con calma gli argomenti più ostici di ${currentQuizSubject}. Puoi trasformare i tuoi errori in flashcard per ripassarli con la ripetizione spaziata!`;
+            }
+
+            if (flashcardsBtn) {
+                if (missedQuizQuestions.length > 0) {
+                    flashcardsBtn.style.display = 'block';
+                    flashcardsBtn.disabled = false;
+                    flashcardsBtn.innerHTML = `<i class="fa-solid fa-layer-group"></i> Salva ${missedQuizQuestions.length} ${missedQuizQuestions.length === 1 ? 'errore' : 'errori'} in Flashcard`;
+                } else {
+                    flashcardsBtn.style.display = 'none';
+                }
+            }
+        }
+    };
+
+    window.convertMissedToFlashcards = function() {
+        if (!missedQuizQuestions || missedQuizQuestions.length === 0) return;
+        const btn = document.getElementById('btn-save-quiz-flashcards');
+        missedQuizQuestions.forEach(item => {
+            flashcards.unshift({
+                id: generateId(),
+                subject: item.subject || currentQuizSubject,
+                front: item.front,
+                back: item.back,
+                level: 1,
+                nextReviewDate: todayDateStr,
+                created: Date.now()
+            });
+        });
+        saveFlashcards();
+        showToast(`Salvate ${missedQuizQuestions.length} flashcard!`);
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-check"></i> Flashcard create con successo!`;
+        }
+    };
+
     // Android Hardware Back Button Bridge
     window.handleAndroidBackPressed = function() {
-        const activeModals = document.querySelectorAll('.modal-overlay.active, .bottom-sheet-overlay.active, .choice-modal-overlay.active');
+        const activeModals = document.querySelectorAll('.fullscreen-modal.active, .modal-overlay.active, .bottom-sheet-overlay.active, .choice-modal-overlay.active');
         if (activeModals.length > 0) {
             activeModals.forEach(m => m.classList.remove('active'));
             return "true";

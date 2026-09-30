@@ -18,6 +18,28 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Pomodoro Focus",
+      "short_name": "Focus",
+      "description": "Avvia il timer Pomodoro per lo studio",
+      "url": "./index.html?view=focus",
+      "icons": [{ "src": "1790418729575_cutout.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Flashcard Studio",
+      "short_name": "Flashcard",
+      "description": "Ripassa le tue flashcard con ripetizione spaziata",
+      "url": "./index.html?view=flashcards",
+      "icons": [{ "src": "1790418729575_cutout.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Compiti di Oggi",
+      "short_name": "Compiti",
+      "description": "Visualizza i compiti programmati per oggi",
+      "url": "./index.html?view=study",
+      "icons": [{ "src": "1790418729575_cutout.png", "sizes": "192x192" }]
+    }
   ]
 }
-

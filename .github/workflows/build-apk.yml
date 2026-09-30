@@ -51,19 +51,19 @@ jobs:
       - name: Publish or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'v2.0.1' }}
-          name: "Study Planner Release (${{ github.ref_type == 'tag' && github.ref_name || 'v2.0.1' }})"
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'v2.0.3' }}
+          name: "Study Planner Release (${{ github.ref_type == 'tag' && github.ref_name || 'v2.0.3' }})"
           body: |
-            ## 📱 Study Planner (Release Ufficiale)
+            ## 📱 Study Planner (Release v2.0.3)
 
-            Aggiornamento dell'applicazione con Pomodoro Timer minimalista, badge unificati e supporto Android nativo.
+            Nuovo grande aggiornamento con 4 nuove funzionalità integrate sia per il Web sia per l'APK Android:
 
             ### ✨ Novità di questa release:
-            - **🍅 Pomodoro Timer Minimalista:** Modalità *Lavoro* e *Pausa* affiancate con selezione rapida dei tempi, design ultra-pulito senza distrazioni e ciclo automatico studio/pausa.
-            - **🎨 Badge GitHub Uniformi:** Tutti i 4 badge della repository condividono lo stesso stile grafico moderno (`for-the-badge`).
-            - **📅 Calendario Planning Ottimizzato:** Griglia elegante senza sovrapposizioni e legenda separata.
-            - **⚡ Animazioni Fluide Senza Rimbalzo:** Eliminato ogni saltino dalle card e dai menu a scomparsa.
-            - **🌐 Cache Web Automatica:** PWA aggiornata con strategia Network-First.
+            - **📊 Grafico a Torta / Donut del Tempo di Studio per Materia:** Monitoraggio visivo della ripartizione del carico di studio con legenda dinamica, percentuali e conteggio task per materia.
+            - **🧠 Flashcard con Ripetizione Spaziata (Metodo Leitner):** Memorizzazione a lungo termine con card 3D a ribaltamento, filtri per materia, tracciamento progressi e intervalli intelligenti (1 giorno, 3 giorni, 7 giorni).
+            - **✨ Generatore Automatico di Quiz con AI & Tutor:** Incolla i tuoi appunti per generare istantaneamente quiz a risposta multipla con feedback immediato, spiegazione e conversione immediata degli errori in flashcard. Funziona sia con chiave Google Gemini sia con motore offline intelligente.
+            - **📱 Widget Nativo per Schermata Home Android:** Widget nativo con visualizzazione in tempo reale della serie di giorni (streak di fuoco), promemoria task odierne e avvio rapido del Pomodoro.
+            - **🍅 Pomodoro Timer Minimalista & Calendario Elegante:** Flusso continuo studio/pausa senza distrazioni e animazioni fluide senza rimbalzo.
 
             ---
             ### 📥 Download APK Diretto:

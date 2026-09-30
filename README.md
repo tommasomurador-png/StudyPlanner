@@ -18,14 +18,18 @@
 
 ## ✨ Caratteristiche Principali
 
+- **📊 Grafico a Torta / Donut del Tempo per Materia:** Visualizza all'istante la percentuale e la ripartizione del carico di studio con legenda interattiva.
+- **🧠 Flashcard con Ripetizione Spaziata (Metodo Leitner):** Carta 3D a ribaltamento per memorizzare formule, date e definizioni con intervalli progressivi a 1, 3 e 7 giorni.
+- **✨ Generatore Automatico di Quiz con AI & Tutor:** Incolla i tuoi appunti per generare 5 domande a risposta multipla con feedback istantaneo e conversione in un clic delle risposte errate in nuove flashcard (supporta sia Google Gemini che smart tutor offline).
+- **📱 Widget Nativo per Schermata Home Android:** Tieni sempre d'occhio la tua serie di studio (streak) e le task di oggi direttamente dalla schermata iniziale del tuo telefono.
+- **🍅 Pomodoro Timer Minimalista:** Modalità *Lavoro* e *Pausa* affiancate con selezione rapida della durata, interfaccia priva di distrazioni e ciclo automatico studio/pausa.
+- **📅 Calendario Planning & Diario:** Griglia del mese senza sovrapposizioni visive e mappa di impegno heatmap (90 giorni).
 - **🧠 Algoritmo di Studio Intelligente:** Divide le pagine e gli esercizi in modo bilanciato fino al giorno della verifica, calcolando automaticamente il ritmo giornaliero.
 - **🔄 Gestione Dinamica del Carico:** Se un giorno studi meno del previsto, il sistema redistribuisce equamente le pagine rimanenti sui giorni successivi.
-- **🎯 Focus Timer & Deep Work (Stile Curbox):** Timer Pomodoro integrato (15, 25, 45, 60 min) con indicatore circolare, frasi motivazionali, conteggio delle sessioni, vibrazione aptica e ricompense in XP per mantenere alta la concentrazione ed eliminare le distrazioni.
-- **📅 Calendario Interattivo a Scorrimento:** Naviga tra le giornate passate e future con un fluido slider settimanale.
 - **💤 Modalità Snooze (Rimanda Task):** Rimanda manualmente o lascia che l'intelligenza automatica riprogrammi i tuoi compiti in base a priorità e carichi di lavoro.
 - **⛔ Giorni di Pausa Specifici:** Seleziona date precise e multiple in cui non vuoi ricevere compiti (con validità compresa tra oggi e la scadenza).
 - **🎨 Temi & Sfondi Personalizzabili:** Scegli tra tema Chiaro e Scuro e imposta lo sfondo a pallini, righe, quadretti o pulito in stile Bullet Journal.
-- **🔥 Serie di Fuoco & XP:** Tieni traccia della tua costanza giornaliera e sblocca gradi accademici (da Matricola a Einstein) completando i task e le sessioni di focus.
+- **🔥 Serie di Fuoco & Gradi Accademici:** Tieni traccia della tua costanza giornaliera e sblocca gradi accademici (da Matricola a Einstein) completando i task, i quiz e le sessioni di focus.
 
 ---
 
@@ -56,8 +60,8 @@ StudyPlanner/
 ├── app/                     # Modulo applicazione Android nativo
 │   ├── src/main/
 │   │   ├── assets/          # Bundle offline dell'app (HTML, CSS, JS, immagini)
-│   │   ├── java/.../        # MainActivity.kt (gestione WebView, tasto indietro, vibrazione aptica)
-│   │   ├── res/             # Icone mipmap, temi nativi Day/Night, colori, stringhe
+│   │   ├── java/.../        # MainActivity.kt & StudyPlannerWidgetProvider.kt (AppWidgetProvider nativo)
+│   │   ├── res/             # Icone mipmap, layout widget, xml provider, colori, stringhe
 │   │   └── AndroidManifest.xml
 │   └── build.gradle.kts     # Configurazione Gradle del modulo App
 ├── css/

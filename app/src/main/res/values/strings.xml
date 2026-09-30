@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Study Planner</string>
+    <string name="widget_description">Mostra la serie di studio, i compiti di oggi e l\'accesso rapido al Pomodoro.</string>
 </resources>

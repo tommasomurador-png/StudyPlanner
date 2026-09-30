@@ -120,6 +120,11 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
             }
+
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                handleTargetView(intent)
+            }
         }
 
         webView.webChromeClient = object : WebChromeClient() {
@@ -217,6 +222,20 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun updateWidgetData(streak: Int, tasksSummary: String) {
+            try {
+                val prefs = context.getSharedPreferences(StudyPlannerWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
+                prefs.edit()
+                    .putInt(StudyPlannerWidgetProvider.KEY_STREAK, streak)
+                    .putString(StudyPlannerWidgetProvider.KEY_TASKS_SUMMARY, tasksSummary)
+                    .apply()
+                StudyPlannerWidgetProvider.updateAllWidgets(context)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        @JavascriptInterface
         fun vibrate(durationMs: Long) {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -232,6 +251,21 @@ class MainActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleTargetView(intent)
+    }
+
+    private fun handleTargetView(intent: Intent?) {
+        val targetView = intent?.getStringExtra(StudyPlannerWidgetProvider.EXTRA_VIEW)
+        if (!targetView.isNullOrEmpty()) {
+            webView.post {
+                webView.evaluateJavascript("window.switchView ? window.switchView('$targetView', document.getElementById('nav-$targetView')) : null", null)
             }
         }
     }
