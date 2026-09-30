@@ -15,11 +15,25 @@
     <link rel="apple-touch-icon" href="1790418729575_cutout.png">
     <script>
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('sw.js?v=2.0.0').then(function(reg) {
+            reg.update();
+            reg.onupdatefound = function() {
+              const newWorker = reg.installing;
+              if (newWorker) {
+                newWorker.onstatechange = function() {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    window.location.reload();
+                  }
+                };
+              }
+            };
+          }).catch(function(err) { console.log('SW reg error:', err); });
+        });
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=2.0.0">
 </head>
 <body>
 
@@ -537,7 +551,7 @@
 
 </div>
 
-    <script src="js/app.js" defer></script>
+    <script src="js/app.js?v=2.0.0" defer></script>
 
 </body>
 </html>
