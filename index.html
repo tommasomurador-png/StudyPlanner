@@ -16,7 +16,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js?v=2.0.0').then(function(reg) {
+          navigator.serviceWorker.register('sw.js?v=2.0.1').then(function(reg) {
             reg.update();
             reg.onupdatefound = function() {
               const newWorker = reg.installing;
@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.0.0">
+    <link rel="stylesheet" href="css/style.css?v=2.0.1">
 </head>
 <body>
 
@@ -158,14 +158,20 @@
             <button class="btn-hard-reset" onclick="promptHardReset()"><i class="fa-solid fa-eraser"></i> Cancella Taccuino (Reset)</button>
         </div>
 
-        <!-- FOCUS VIEW (IN SPIRITO CURBOX) -->
+        <!-- POMODORO VIEW (MINIMALISTA) -->
         <div id="focus-view" class="focus-view" style="display: none;">
-            <div class="anim-card focus-card">
-                <div class="focus-header">
-                    <div class="focus-badge"><i class="fa-solid fa-bolt"></i> MODALITÀ FOCUS</div>
-                    <div class="focus-subtitle">Studio profondo senza distrazioni</div>
+            <div class="anim-card pomodoro-card">
+                <!-- Selettore Lavoro & Pausa affiancati -->
+                <div class="pomodoro-modes">
+                    <button type="button" class="pomo-mode-btn active" id="pomo-btn-work" onclick="switchPomodoroMode('work')">
+                        <i class="fa-solid fa-brain"></i> <span>Lavoro</span>
+                    </button>
+                    <button type="button" class="pomo-mode-btn" id="pomo-btn-break" onclick="switchPomodoroMode('break')">
+                        <i class="fa-solid fa-mug-hot"></i> <span>Pausa</span>
+                    </button>
                 </div>
 
+                <!-- Ghiera Circolare Minimalista -->
                 <div class="focus-timer-ring">
                     <svg class="focus-svg" viewBox="0 0 200 200">
                         <circle class="focus-circle-bg" cx="100" cy="100" r="82"></circle>
@@ -173,37 +179,23 @@
                     </svg>
                     <div class="focus-time-display">
                         <span id="focus-time-text">25:00</span>
-                        <div class="focus-mode-label" id="focus-mode-label">STUDIO PROFONDO</div>
                     </div>
                 </div>
 
-                <div class="focus-presets">
-                    <button type="button" class="focus-pill" onclick="setFocusDuration(15, this)">15 min</button>
-                    <button type="button" class="focus-pill active" onclick="setFocusDuration(25, this)">25 min</button>
-                    <button type="button" class="focus-pill" onclick="setFocusDuration(45, this)">45 min</button>
-                    <button type="button" class="focus-pill" onclick="setFocusDuration(60, this)">60 min</button>
+                <!-- Selettore Durata (Pillole minimali) -->
+                <div class="focus-presets" id="pomo-presets-container">
+                    <!-- Popolato dinamicamente da JS in base alla modalità Lavoro o Pausa -->
                 </div>
 
-                <div class="focus-task-selector">
-                    <label class="focus-select-label">Cosa stai studiando?</label>
-                    <select id="focus-task-select" class="form-input focus-select-input">
-                        <option value="Studio Libero">📖 Studio Libero</option>
-                    </select>
-                </div>
-
+                <!-- Controlli Minimalisti -->
                 <div class="focus-controls">
                     <button type="button" class="btn-focus-action" id="focus-btn-reset" onclick="resetFocusTimer()" title="Azzera">
                         <i class="fa-solid fa-rotate-left"></i>
                     </button>
                     <button type="button" class="btn-focus-main" id="focus-btn-start" onclick="toggleFocusTimer()">
                         <i class="fa-solid fa-play" id="focus-icon-play"></i> 
-                        <span id="focus-text-play">Inizia Focus</span>
+                        <span id="focus-text-play">Inizia</span>
                     </button>
-                </div>
-
-                <div class="focus-quote-box">
-                    <i class="fa-solid fa-quote-left quote-icon"></i>
-                    <span id="focus-quote">"Spegni le distrazioni e dai il massimo in questa sessione!"</span>
                 </div>
             </div>
 
@@ -551,7 +543,7 @@
 
 </div>
 
-    <script src="js/app.js?v=2.0.0" defer></script>
+    <script src="js/app.js?v=2.0.1" defer></script>
 
 </body>
 </html>

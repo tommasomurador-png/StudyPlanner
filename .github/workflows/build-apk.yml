@@ -51,18 +51,19 @@ jobs:
       - name: Publish or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v2.0.0"
-          name: "Study Planner v2.0 - Android & Web Release"
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'v2.0.1' }}
+          name: "Study Planner Release (${{ github.ref_type == 'tag' && github.ref_name || 'v2.0.1' }})"
           body: |
-            ## 📱 Study Planner v2.0 (Release Ufficiale)
+            ## 📱 Study Planner (Release Ufficiale)
 
-            Aggiornamento dell'applicazione con supporto Android nativo e Web PWA.
+            Aggiornamento dell'applicazione con Pomodoro Timer minimalista, badge unificati e supporto Android nativo.
 
-            ### ✨ Novità Principali:
-            - **🎯 Focus Mode & Pomodoro:** Nuovo timer di concentrazione ispirato a Curbox con ghiera circolare fluida, preset da 15, 25, 45 e 60 minuti, selettore materie e citazioni motivazionali.
-            - **📅 Calendario Planning rinnovato:** Griglia mensile moderna, numeri delle giornate centrati, gestione intelligente dei pallini task senza sovrapposizioni e barra legenda inferiore dedicata.
-            - **✨ Animazioni fluide senza rimbalzo:** Eliminato il saltino ("bounce/overshoot") dall'apertura dei pannelli e dal tocco delle card.
-            - **🌐 Cache Web & Service Worker:** Aggiornamento istantaneo del sito online con strategia Network-First e rimozione automatica delle vecchie versioni dalla memoria del browser.
+            ### ✨ Novità di questa release:
+            - **🍅 Pomodoro Timer Minimalista:** Modalità *Lavoro* e *Pausa* affiancate con selezione rapida dei tempi, design ultra-pulito senza distrazioni e ciclo automatico studio/pausa.
+            - **🎨 Badge GitHub Uniformi:** Tutti i 4 badge della repository condividono lo stesso stile grafico moderno (`for-the-badge`).
+            - **📅 Calendario Planning Ottimizzato:** Griglia elegante senza sovrapposizioni e legenda separata.
+            - **⚡ Animazioni Fluide Senza Rimbalzo:** Eliminato ogni saltino dalle card e dai menu a scomparsa.
+            - **🌐 Cache Web Automatica:** PWA aggiornata con strategia Network-First.
 
             ---
             ### 📥 Download APK Diretto:

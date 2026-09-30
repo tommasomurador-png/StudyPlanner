@@ -1874,7 +1874,7 @@
         document.getElementById('ranked-view').style.display = view === 'ranked' ? 'block' : 'none';
         document.getElementById('calendar-view').style.display = view === 'calendar' ? 'block' : 'none';
         if(view === 'calendar') { renderSheetData(); renderMonthCalendar(); }
-        if(view === 'focus') { updateFocusTaskSelector(); updateFocusStatsUI(); updateFocusTimerUI(); }
+        if(view === 'focus') { renderPomoPresets(); updateFocusStatsUI(); updateFocusTimerUI(); }
     }
 
     function renderSheetData() {
@@ -2043,12 +2043,15 @@
         for(let i=83; i>=0; i--) { let d = new Date(); d.setDate(d.getDate() - i); let dStr = formatDateStr(d); let activeClass = isDayStudied(dStr) ? 'lvl-3' : ''; grid.innerHTML += `<div class="heat-cell ${activeClass}"></div>`; }
     }
 
-    // --- FOCUS MODE (IN SPIRITO CURBOX) ---
+    // --- POMODORO TIMER MINIMALISTA ---
+    let currentPomoMode = 'work'; // 'work' | 'break'
+    let workMinutes = 25;
+    let breakMinutes = 5;
     let focusMinutes = 25;
-    let focusSecondsLeft = focusMinutes * 60;
     let focusInterval = null;
+    let focusSecondsLeft = 25 * 60;
     let isFocusRunning = false;
-    let focusTotalSeconds = focusMinutes * 60;
+    let focusTotalSeconds = 25 * 60;
 
     let focusStats = JSON.parse(localStorage.getItem('studylog_focus_stats') || '{"totalMinutes": 0, "sessions": 0}');
 
@@ -2059,19 +2062,63 @@
         if (sessEl) sessEl.innerText = focusStats.sessions;
     }
 
-    window.setFocusDuration = function(minutes, btn) {
+    window.switchPomodoroMode = function(mode) {
         if (isFocusRunning) {
-            if (!confirm('Vuoi interrompere la sessione corrente per cambiare durata?')) return;
+            if (!confirm('Vuoi interrompere la sessione corrente per cambiare modalità?')) return;
             clearInterval(focusInterval);
             isFocusRunning = false;
-            updateFocusPlayBtnUI();
+        }
+        currentPomoMode = mode;
+        const workBtn = document.getElementById('pomo-btn-work');
+        const breakBtn = document.getElementById('pomo-btn-break');
+        if (workBtn && breakBtn) {
+            if (mode === 'work') {
+                workBtn.classList.add('active');
+                breakBtn.classList.remove('active');
+            } else {
+                breakBtn.classList.add('active');
+                workBtn.classList.remove('active');
+            }
+        }
+        focusMinutes = (mode === 'work') ? workMinutes : breakMinutes;
+        focusTotalSeconds = focusMinutes * 60;
+        focusSecondsLeft = focusTotalSeconds;
+
+        renderPomoPresets();
+        updateFocusTimerUI();
+        updateFocusPlayBtnUI();
+    };
+
+    window.renderPomoPresets = function() {
+        const container = document.getElementById('pomo-presets-container');
+        if (!container) return;
+        const presets = (currentPomoMode === 'work') ? [15, 25, 45, 60] : [5, 10, 15, 20];
+        const activeVal = (currentPomoMode === 'work') ? workMinutes : breakMinutes;
+        container.innerHTML = presets.map(m => 
+            `<button type="button" class="focus-pill ${m === activeVal ? 'active' : ''}" onclick="setPomoDuration(${m}, this)">${m} min</button>`
+        ).join('');
+    };
+
+    window.setPomoDuration = function(minutes, btn) {
+        if (isFocusRunning) {
+            if (!confirm('Vuoi azzerare il timer e impostare la nuova durata?')) return;
+            clearInterval(focusInterval);
+            isFocusRunning = false;
+        }
+        if (currentPomoMode === 'work') {
+            workMinutes = minutes;
+        } else {
+            breakMinutes = minutes;
         }
         focusMinutes = minutes;
         focusTotalSeconds = minutes * 60;
         focusSecondsLeft = focusTotalSeconds;
+
         document.querySelectorAll('.focus-pill').forEach(p => p.classList.remove('active'));
         if (btn) btn.classList.add('active');
+
         updateFocusTimerUI();
+        updateFocusPlayBtnUI();
     };
 
     function updateFocusTimerUI() {
@@ -2081,22 +2128,13 @@
         const timeEl = document.getElementById('focus-time-text');
         if (timeEl) timeEl.innerText = timeStr;
 
-        const labelEl = document.getElementById('focus-mode-label');
-        if (labelEl) {
-            if (isFocusRunning) {
-                labelEl.innerText = 'IN CONCENTRAZIONE';
-                labelEl.style.color = 'var(--theme-strong)';
-            } else if (focusSecondsLeft < focusTotalSeconds) {
-                labelEl.innerText = 'SESSIONE IN PAUSA';
-                labelEl.style.color = 'var(--theme-mid)';
-            } else {
-                labelEl.innerText = 'STUDIO PROFONDO';
-                labelEl.style.color = 'var(--text-muted)';
-            }
-        }
-
         const progressEl = document.getElementById('focus-circle-progress');
         if (progressEl) {
+            if (currentPomoMode === 'break') {
+                progressEl.classList.add('break-mode');
+            } else {
+                progressEl.classList.remove('break-mode');
+            }
             const circumference = 2 * Math.PI * 82; // approx 515.22
             const fraction = (focusTotalSeconds - focusSecondsLeft) / focusTotalSeconds;
             const offset = circumference * (1 - fraction);
@@ -2114,7 +2152,7 @@
             textEl.innerText = 'Pausa';
         } else {
             iconEl.className = 'fa-solid fa-play';
-            textEl.innerText = focusSecondsLeft < focusTotalSeconds ? 'Riprendi' : 'Inizia Focus';
+            textEl.innerText = focusSecondsLeft < focusTotalSeconds ? 'Riprendi' : 'Inizia';
         }
     }
 
@@ -2126,11 +2164,6 @@
         } else {
             isFocusRunning = true;
             updateFocusPlayBtnUI();
-            
-            const quoteEl = document.getElementById('focus-quote');
-            if (quoteEl && motivationalPhrases.length > 0) {
-                quoteEl.innerText = `"${motivationalPhrases[Math.floor(Math.random() * motivationalPhrases.length)]}"`;
-            }
 
             focusInterval = setInterval(() => {
                 if (focusSecondsLeft > 0) {
@@ -2155,54 +2188,49 @@
     };
 
     function completeFocusSession() {
-        focusStats.totalMinutes += focusMinutes;
-        focusStats.sessions += 1;
-        localStorage.setItem('studylog_focus_stats', JSON.stringify(focusStats));
-        updateFocusStatsUI();
+        if (currentPomoMode === 'work') {
+            focusStats.totalMinutes += focusMinutes;
+            focusStats.sessions += 1;
+            localStorage.setItem('studylog_focus_stats', JSON.stringify(focusStats));
+            updateFocusStatsUI();
 
-        // Segna studio per la serie di fuoco
-        if (typeof studyDays !== 'undefined') {
-            studyDays[todayDateStr] = true;
-            localStorage.setItem('studylog_studydays', JSON.stringify(studyDays));
-            updateStreakDisplay();
-        }
-
-        // Confetti celebration
-        if (typeof confetti === 'function') {
-            confetti({ particleCount: 90, spread: 65, origin: { y: 0.6 } });
-        }
-
-        // Award XP
-        addXP(30);
-
-        const taskSelect = document.getElementById('focus-task-select');
-        const studiedSubject = taskSelect ? taskSelect.value : 'Studio';
-
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
-                type: 'SHOW_NOTIFICATION',
-                title: 'Sessione di Focus Completata! 🎯',
-                body: `Ottimo lavoro con ${studiedSubject}! Hai completato ${focusMinutes} min di studio concentrato (+30 XP).`
-            });
-        }
-    }
-
-    function updateFocusTaskSelector() {
-        const select = document.getElementById('focus-task-select');
-        if (!select) return;
-        const currentVal = select.value;
-        select.innerHTML = '<option value="Studio Libero">📖 Studio Libero</option>';
-        const todayTasks = getTasksForDate(todayDateStr);
-        todayTasks.forEach(t => {
-            if (!t.isExamDay && !t.isDone && !completedTasks[`${todayDateStr}_${t._id}`]) {
-                const opt = document.createElement('option');
-                opt.value = t.title;
-                opt.textContent = `📝 ${t.subject ? t.subject + ' - ' : ''}${t.title}`;
-                select.appendChild(opt);
+            // Segna studio per la serie di fuoco
+            if (typeof studyDays !== 'undefined') {
+                studyDays[todayDateStr] = true;
+                localStorage.setItem('studylog_studydays', JSON.stringify(studyDays));
+                updateStreakDisplay();
             }
-        });
-        if (currentVal && [...select.options].some(o => o.value === currentVal)) {
-            select.value = currentVal;
+
+            // Confetti celebration
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 90, spread: 65, origin: { y: 0.6 } });
+            }
+
+            // Award XP
+            addXP(30);
+
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'SHOW_NOTIFICATION',
+                    title: 'Pomodoro Completato! 🍅',
+                    body: `Grande sessione di ${focusMinutes} min completata (+30 XP). Ora fai una pausa di ${breakMinutes} min! ☕`
+                });
+            }
+
+            // Passa automaticamente alla pausa
+            switchPomodoroMode('break');
+        } else {
+            // Pausa completata
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'SHOW_NOTIFICATION',
+                    title: 'Pausa Terminata! ☕',
+                    body: 'Sei pronto per il prossimo Pomodoro di studio? 🍅'
+                });
+            }
+
+            // Torna automaticamente al lavoro
+            switchPomodoroMode('work');
         }
     }
 
@@ -2225,5 +2253,6 @@
     window.executeHardReset = function() { localStorage.clear(); localStorage.setItem('studylog_record_streak', '0'); window.location.reload(true); }
 
     init();
+    renderPomoPresets();
     updateFocusStatsUI();
     updateFocusTimerUI();

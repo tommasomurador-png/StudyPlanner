@@ -681,41 +681,53 @@
             opacity: 0.85;
         }
 
-        /* --- STILI FOCUS TIMER (IN SPIRITO CURBOX) --- */
+        /* --- STILI POMODORO MINIMALISTA --- */
         .focus-view {
             padding-bottom: 25px;
         }
-        .focus-card {
+        .pomodoro-card {
             text-align: center;
-            padding: 30px 20px 24px;
-        }
-        .focus-header {
-            margin-bottom: 22px;
-        }
-        .focus-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            padding: 6px 14px;
-            border-radius: 20px;
-            background: var(--bg-color);
+            padding: 26px 20px 22px;
+            background: var(--surface-color);
             border: 1px solid var(--border-color);
-            color: var(--theme-strong);
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
+            border-radius: 28px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.03);
         }
-        .focus-subtitle {
-            font-size: 0.82rem;
+        .pomodoro-modes {
+            display: inline-flex;
+            background: var(--bg-color);
+            padding: 4px;
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+            margin: 0 auto 18px;
+            gap: 4px;
+        }
+        .pomo-mode-btn {
+            background: transparent;
+            border: none;
+            padding: 8px 22px;
+            border-radius: 20px;
             color: var(--text-muted);
-            margin-top: 6px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .pomo-mode-btn.active {
+            background: var(--theme-strong);
+            color: var(--surface-color);
+        }
+        .pomo-mode-btn:active {
+            opacity: 0.85;
         }
         .focus-timer-ring {
             position: relative;
             width: 215px;
             height: 215px;
-            margin: 0 auto 20px;
+            margin: 0 auto 15px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -740,7 +752,10 @@
             stroke-linecap: round;
             stroke-dasharray: 515;
             stroke-dashoffset: 0;
-            transition: stroke-dashoffset 0.8s linear;
+            transition: stroke-dashoffset 0.8s linear, stroke 0.3s ease;
+        }
+        .focus-circle-progress.break-mode {
+            stroke: var(--theme-mid);
         }
         .focus-time-display {
             position: relative;
@@ -751,30 +766,22 @@
             z-index: 2;
         }
         #focus-time-text {
-            font-size: 3rem;
+            font-size: 3.4rem;
             font-weight: 700;
             color: var(--text-main);
-            letter-spacing: -1.5px;
+            letter-spacing: -2px;
             font-variant-numeric: tabular-nums;
             line-height: 1;
-        }
-        .focus-mode-label {
-            font-size: 0.68rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            color: var(--text-muted);
-            margin-top: 10px;
-            text-transform: uppercase;
         }
         .focus-presets {
             display: flex;
             justify-content: center;
             gap: 10px;
-            margin: 15px 0 20px;
+            margin: 10px 0 22px;
             flex-wrap: wrap;
         }
         .focus-pill {
-            background: var(--surface-color);
+            background: var(--bg-color);
             color: var(--text-muted);
             border: 1px solid var(--border-color);
             padding: 8px 18px;
@@ -792,40 +799,20 @@
         .focus-pill:active {
             opacity: 0.85;
         }
-        .focus-task-selector {
-            margin-bottom: 22px;
-            text-align: center;
-        }
-        .focus-select-label {
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-        .focus-select-input {
-            width: 100%;
-            max-width: 320px;
-            margin: 0 auto;
-            text-align: center;
-            border-radius: 14px;
-            font-weight: 600;
-            font-family: inherit;
-        }
         .focus-controls {
             display: flex;
             justify-content: center;
             gap: 16px;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
         .btn-focus-main {
             background: var(--theme-strong);
             color: var(--surface-color);
             border: none;
-            padding: 14px 30px;
+            padding: 14px 34px;
             border-radius: 30px;
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-weight: 700;
             display: flex;
             align-items: center;
@@ -841,7 +828,7 @@
             width: 48px;
             height: 48px;
             border-radius: 50%;
-            background: var(--surface-color);
+            background: var(--bg-color);
             color: var(--text-main);
             border: 1px solid var(--border-color);
             display: flex;
@@ -852,27 +839,8 @@
             transition: opacity 0.2s ease, background 0.2s ease;
         }
         .btn-focus-action:hover {
-            background: var(--theme-empty);
+            background: var(--surface-color);
         }
         .btn-focus-action:active {
             opacity: 0.7;
-        }
-        .focus-quote-box {
-            margin-top: 24px;
-            padding: 14px 18px;
-            border-radius: 14px;
-            background: var(--surface-color);
-            border: 1px dashed var(--border-color);
-            font-size: 0.82rem;
-            color: var(--text-muted);
-            font-style: italic;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            justify-content: center;
-        }
-        .quote-icon {
-            font-size: 0.85rem;
-            color: var(--theme-mid);
-            opacity: 0.6;
         }

@@ -5,7 +5,7 @@
 
 [![GitHub Pages](https://img.shields.io/badge/Status-Online-success?style=for-the-badge&logo=github)](https://tommasomurador-png.github.io/StudyPlanner/)
 [![Download APK](https://img.shields.io/badge/Download-APK-success?style=for-the-badge&logo=android)](https://github.com/tommasomurador-png/StudyPlanner/releases/latest)
-[![Build Android APK](https://github.com/tommasomurador-png/StudyPlanner/actions/workflows/build-apk.yml/badge.svg)](https://github.com/tommasomurador-png/StudyPlanner/actions/workflows/build-apk.yml)
+[![Build Android APK](https://img.shields.io/github/actions/workflow/status/tommasomurador-png/StudyPlanner/build-apk.yml?branch=main&style=for-the-badge&logo=github-actions&label=BUILD)](https://github.com/tommasomurador-png/StudyPlanner/actions/workflows/build-apk.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
 <p align="center">
