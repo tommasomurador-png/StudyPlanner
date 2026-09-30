@@ -712,6 +712,18 @@
         const badge = document.getElementById('notif-badge-count');
         if (!label) return;
         
+        if (window.AndroidNative && window.AndroidNative.isNativeAndroid()) {
+            const hasPerm = window.AndroidNative.hasNotificationPermission ? window.AndroidNative.hasNotificationPermission() : true;
+            if (hasPerm) {
+                label.innerText = "Notifiche Attive";
+                if(badge) badge.style.display = 'none';
+            } else {
+                label.innerText = "Attiva Notifiche";
+                if(badge) badge.style.display = 'inline-block';
+            }
+            return;
+        }
+
         if (!("Notification" in window)) {
             label.innerText = "Non supportate";
             return;
@@ -734,6 +746,16 @@
         setTimeout(() => {
             btnElement.classList.remove('animate-bell');
         }, 500);
+
+        if (window.AndroidNative && window.AndroidNative.isNativeAndroid()) {
+            if (window.AndroidNative.requestNotificationPermission) {
+                window.AndroidNative.requestNotificationPermission();
+            }
+            showToast("Notifiche Android collegate!");
+            sendLocalNotification("Study Planner 📚", "Le notifiche sono configurate e operative correttamente!");
+            updateNotificationBellUI();
+            return;
+        }
 
         if (!("Notification" in window)) {
             customAlert("Il tuo browser o dispositivo non supporta le notifiche.");
@@ -760,6 +782,11 @@
     }
 
     function sendLocalNotification(title, body) {
+        if (window.AndroidNative && window.AndroidNative.showNotification) {
+            window.AndroidNative.showNotification(title, body);
+            return;
+        }
+
         if (!("Notification" in window) || Notification.permission !== "granted") return;
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.ready.then(registration => {
@@ -780,7 +807,8 @@
     }
 
     function checkAndSendSmartNotification() {
-        if (!("Notification" in window) || Notification.permission !== "granted") return;
+        const isAndroid = window.AndroidNative && window.AndroidNative.isNativeAndroid();
+        if (!isAndroid && (!("Notification" in window) || Notification.permission !== "granted")) return;
         let tasks = getTasksForDate(todayDateStr);
         let actionableTasks = tasks.filter(t => !t.isExamDay);
         if (actionableTasks.length === 0) return; 
@@ -2209,25 +2237,13 @@
             // Award XP
             addXP(30);
 
-            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({
-                    type: 'SHOW_NOTIFICATION',
-                    title: 'Pomodoro Completato! 🍅',
-                    body: `Grande sessione di ${focusMinutes} min completata (+30 XP). Ora fai una pausa di ${breakMinutes} min! ☕`
-                });
-            }
+            sendLocalNotification('Pomodoro Completato! 🍅', `Grande sessione di ${focusMinutes} min completata (+30 XP). Ora fai una pausa di ${breakMinutes} min! ☕`);
 
             // Passa automaticamente alla pausa
             switchPomodoroMode('break');
         } else {
             // Pausa completata
-            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({
-                    type: 'SHOW_NOTIFICATION',
-                    title: 'Pausa Terminata! ☕',
-                    body: 'Sei pronto per il prossimo Pomodoro di studio? 🍅'
-                });
-            }
+            sendLocalNotification('Pausa Terminata! ☕', 'Sei pronto per il prossimo Pomodoro di studio? 🍅');
 
             // Torna automaticamente al lavoro
             switchPomodoroMode('work');
