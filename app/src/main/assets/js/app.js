@@ -1962,11 +1962,11 @@
     function renderMonthCalendar() {
         const grid = document.getElementById('analytics-calendar-grid'); if(!grid) return;
         const monthYearLabel = document.getElementById('cal-month-year'); const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
-        const year = navDate.getFullYear(); const month = navDate.getMonth(); monthYearLabel.innerText = `${monthNames[month]} ${year}`;
+        const year = navDate.getFullYear(); const month = navDate.getMonth(); if(monthYearLabel) monthYearLabel.innerText = `${monthNames[month]} ${year}`;
         grid.innerHTML = `<div class="cal-day-name">Lu</div><div class="cal-day-name">Ma</div><div class="cal-day-name">Me</div><div class="cal-day-name">Gi</div><div class="cal-day-name">Ve</div><div class="cal-day-name">Sa</div><div class="cal-day-name">Do</div>`;
         const firstDayIndex = new Date(year, month, 1).getDay(); const totalDays = new Date(year, month + 1, 0).getDate();
         let offset = firstDayIndex === 0 ? 6 : firstDayIndex - 1; 
-        for (let i = 0; i < offset; i++) grid.innerHTML += `<div></div>`;
+        for (let i = 0; i < offset; i++) grid.innerHTML += `<div class="cal-cell empty"></div>`;
         const todayNoTime = new Date(new Date().setHours(0,0,0,0)).getTime();
 
         for (let day = 1; day <= totalDays; day++) {
@@ -1984,10 +1984,25 @@
 
             let statusClass = ''; if (hasExamDay) statusClass = 'has-exam'; else if (hasPending) statusClass = 'has-pending'; else if (hasCompleted && !hasPending) statusClass = 'all-done';
 
-            let dotsHtml = '<div class="cal-cell-dots">'; if (hasExamDay) dotsHtml += '<div class="cal-dot exam"></div>';
-            tasks.forEach(t => { if (!t.isExamDay) dotsHtml += '<div class="cal-dot"></div>'; }); dotsHtml += '</div>';
+            let dotsHtml = '';
+            const activeStudyTasks = tasks.filter(t => !t.isExamDay);
+            if (hasExamDay || activeStudyTasks.length > 0) {
+                dotsHtml = '<div class="cal-cell-dots">';
+                let dotCount = 0;
+                if (hasExamDay) {
+                    dotsHtml += '<div class="cal-dot exam"></div>';
+                    dotCount++;
+                }
+                for (let k = 0; k < activeStudyTasks.length && dotCount < 3; k++) {
+                    const t = activeStudyTasks[k];
+                    const isDone = t.isDone || completedTasks[`${dateStr}_${t._id}`];
+                    dotsHtml += `<div class="cal-dot ${isDone ? 'done' : ''}"></div>`;
+                    dotCount++;
+                }
+                dotsHtml += '</div>';
+            }
 
-            grid.innerHTML += `<div class="cal-cell ${isToday ? 'today' : ''} ${statusClass}" onclick="window.openDayDetails('${dateStr}')"><span>${day}</span>${dotsHtml}</div>`;
+            grid.innerHTML += `<div class="cal-cell ${isToday ? 'today' : ''} ${statusClass}" onclick="window.openDayDetails('${dateStr}')"><span class="cal-day-num">${day}</span>${dotsHtml}</div>`;
         }
     }
     window.changeMonth = function(dir) { navDate.setMonth(navDate.getMonth() + dir); renderMonthCalendar(); }
@@ -2066,9 +2081,23 @@
         const timeEl = document.getElementById('focus-time-text');
         if (timeEl) timeEl.innerText = timeStr;
 
+        const labelEl = document.getElementById('focus-mode-label');
+        if (labelEl) {
+            if (isFocusRunning) {
+                labelEl.innerText = 'IN CONCENTRAZIONE';
+                labelEl.style.color = 'var(--theme-strong)';
+            } else if (focusSecondsLeft < focusTotalSeconds) {
+                labelEl.innerText = 'SESSIONE IN PAUSA';
+                labelEl.style.color = 'var(--theme-mid)';
+            } else {
+                labelEl.innerText = 'STUDIO PROFONDO';
+                labelEl.style.color = 'var(--text-muted)';
+            }
+        }
+
         const progressEl = document.getElementById('focus-circle-progress');
         if (progressEl) {
-            const circumference = 2 * Math.PI * 85; // approx 534
+            const circumference = 2 * Math.PI * 82; // approx 515.22
             const fraction = (focusTotalSeconds - focusSecondsLeft) / focusTotalSeconds;
             const offset = circumference * (1 - fraction);
             progressEl.style.strokeDasharray = `${circumference}`;

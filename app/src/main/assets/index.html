@@ -103,15 +103,17 @@
                     <div class="anim-card-title"><i class="fa-regular fa-calendar-days"></i> Calendario Planning</div>
                 </div>
                 <div class="anim-card-content">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 15px;">
-                        <button onclick="changeMonth(-1)" style="background:none; border:none; color:var(--theme-strong); font-size:1.2rem; cursor:pointer;"><i class="fa-solid fa-chevron-left"></i></button>
-                        <h3 id="cal-month-year" style="margin:0; font-weight:600; font-size: 1rem;">Settembre 2026</h3>
-                        <button onclick="changeMonth(1)" style="background:none; border:none; color:var(--theme-strong); font-size:1.2rem; cursor:pointer;"><i class="fa-solid fa-chevron-right"></i></button>
+                    <div class="cal-header-bar">
+                        <button type="button" class="cal-nav-btn" onclick="changeMonth(-1)" title="Mese precedente"><i class="fa-solid fa-chevron-left"></i></button>
+                        <h3 id="cal-month-year" class="cal-month-title">Settembre 2026</h3>
+                        <button type="button" class="cal-nav-btn" onclick="changeMonth(1)" title="Mese successivo"><i class="fa-solid fa-chevron-right"></i></button>
                     </div>
+                    
                     <div class="calendar-grid" id="analytics-calendar-grid"></div>
-                    <div style="display: flex; justify-content: center; gap: 15px; margin-top: 20px; font-size: 0.7rem; color: var(--text-muted); font-weight: 500;">
-                        <div style="display: flex; align-items: center; gap: 5px;"><div class="cal-dot"></div> Task attive</div>
-                        <div style="display: flex; align-items: center; gap: 5px;"><div class="cal-dot exam"></div> Verifiche</div>
+                    
+                    <div class="cal-legend-bar">
+                        <div class="cal-legend-item"><span class="cal-dot"></span> Task attive</div>
+                        <div class="cal-legend-item"><span class="cal-dot exam"></span> Verifiche</div>
                     </div>
                 </div>
             </div>
@@ -140,16 +142,20 @@
             </div>
             
             <button class="btn-hard-reset" onclick="promptHardReset()"><i class="fa-solid fa-eraser"></i> Cancella Taccuino (Reset)</button>
+        </div>
 
         <!-- FOCUS VIEW (IN SPIRITO CURBOX) -->
         <div id="focus-view" class="focus-view" style="display: none;">
-            <div class="section-title">Sessione di Focus</div>
-            
-            <div class="anim-card" style="text-align: center; padding: 28px 20px;">
+            <div class="anim-card focus-card">
+                <div class="focus-header">
+                    <div class="focus-badge"><i class="fa-solid fa-bolt"></i> MODALITÀ FOCUS</div>
+                    <div class="focus-subtitle">Studio profondo senza distrazioni</div>
+                </div>
+
                 <div class="focus-timer-ring">
                     <svg class="focus-svg" viewBox="0 0 200 200">
-                        <circle class="focus-circle-bg" cx="100" cy="100" r="85"></circle>
-                        <circle class="focus-circle-progress" id="focus-circle-progress" cx="100" cy="100" r="85"></circle>
+                        <circle class="focus-circle-bg" cx="100" cy="100" r="82"></circle>
+                        <circle class="focus-circle-progress" id="focus-circle-progress" cx="100" cy="100" r="82"></circle>
                     </svg>
                     <div class="focus-time-display">
                         <span id="focus-time-text">25:00</span>
@@ -157,27 +163,33 @@
                     </div>
                 </div>
 
-                <div class="focus-presets" style="display: flex; justify-content: center; gap: 8px; margin: 20px 0 15px; flex-wrap: wrap;">
+                <div class="focus-presets">
                     <button type="button" class="focus-pill" onclick="setFocusDuration(15, this)">15 min</button>
                     <button type="button" class="focus-pill active" onclick="setFocusDuration(25, this)">25 min</button>
                     <button type="button" class="focus-pill" onclick="setFocusDuration(45, this)">45 min</button>
                     <button type="button" class="focus-pill" onclick="setFocusDuration(60, this)">60 min</button>
                 </div>
 
-                <div class="focus-task-selector" style="margin-bottom: 20px;">
-                    <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Cosa stai studiando?</label>
-                    <select id="focus-task-select" class="form-input" style="width: 100%; max-width: 320px; margin: 0 auto; text-align: center;">
+                <div class="focus-task-selector">
+                    <label class="focus-select-label">Cosa stai studiando?</label>
+                    <select id="focus-task-select" class="form-input focus-select-input">
                         <option value="Studio Libero">📖 Studio Libero</option>
                     </select>
                 </div>
 
-                <div class="focus-controls" style="display: flex; justify-content: center; gap: 14px; align-items: center;">
-                    <button type="button" class="btn-focus-action" id="focus-btn-reset" onclick="resetFocusTimer()" title="Azzera"><i class="fa-solid fa-rotate-left"></i></button>
-                    <button type="button" class="btn-focus-main" id="focus-btn-start" onclick="toggleFocusTimer()"><i class="fa-solid fa-play" id="focus-icon-play"></i> <span id="focus-text-play">Inizia Focus</span></button>
+                <div class="focus-controls">
+                    <button type="button" class="btn-focus-action" id="focus-btn-reset" onclick="resetFocusTimer()" title="Azzera">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </button>
+                    <button type="button" class="btn-focus-main" id="focus-btn-start" onclick="toggleFocusTimer()">
+                        <i class="fa-solid fa-play" id="focus-icon-play"></i> 
+                        <span id="focus-text-play">Inizia Focus</span>
+                    </button>
                 </div>
 
-                <div class="focus-quote" id="focus-quote" style="margin-top: 24px; font-size: 0.85rem; color: var(--text-muted); font-style: italic;">
-                    "Spegni le distrazioni e dai il massimo in questa sessione!"
+                <div class="focus-quote-box">
+                    <i class="fa-solid fa-quote-left quote-icon"></i>
+                    <span id="focus-quote">"Spegni le distrazioni e dai il massimo in questa sessione!"</span>
                 </div>
             </div>
 
@@ -198,8 +210,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-
         </div>
     </div>
 
