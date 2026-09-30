@@ -1841,15 +1841,28 @@
         showToast(`Widget impostato su: ${theme === 'dark' ? 'Scuro' : 'Chiaro'}`);
     };
 
-    window.setWidgetTransparency = function(pct) {
-        currentWidgetTransparency = pct;
-        localStorage.setItem('studylog_widget_transparency', pct.toString());
-        updateWidgetSettingsUI();
+    window.onWidgetTransparencySlider = function(val) {
+        const intVal = Math.max(0, Math.min(100, parseInt(val) || 0));
+        currentWidgetTransparency = intVal;
+        localStorage.setItem('studylog_widget_transparency', intVal.toString());
+        const lbl = document.getElementById('widget-trans-val');
+        if (lbl) lbl.innerText = `${intVal}%`;
         if (window.AndroidNative && typeof window.AndroidNative.setWidgetSettings === 'function') {
             window.AndroidNative.setWidgetSettings(currentWidgetTheme, currentWidgetTransparency);
         }
         syncAndroidWidget();
-        showToast(`Trasparenza widget: ${pct}%`);
+    };
+
+    window.setWidgetSettingsFromNative = function(theme, trans) {
+        if (theme) {
+            currentWidgetTheme = theme;
+            localStorage.setItem('studylog_widget_theme', theme);
+        }
+        if (typeof trans === 'number') {
+            currentWidgetTransparency = trans;
+            localStorage.setItem('studylog_widget_transparency', trans.toString());
+        }
+        updateWidgetSettingsUI();
     };
 
     function updateWidgetSettingsUI() {
@@ -1859,12 +1872,10 @@
             btnDark.classList.toggle('selected', currentWidgetTheme === 'dark');
             btnLight.classList.toggle('selected', currentWidgetTheme === 'light');
         }
-        [0, 30, 60, 100].forEach(p => {
-            const btn = document.getElementById(`btn-widget-trans-${p}`);
-            if (btn) {
-                btn.classList.toggle('selected', currentWidgetTransparency === p);
-            }
-        });
+        const slider = document.getElementById('widget-trans-slider');
+        const lbl = document.getElementById('widget-trans-val');
+        if (slider) slider.value = currentWidgetTransparency;
+        if (lbl) lbl.innerText = `${currentWidgetTransparency}%`;
     }
 
     window.syncFromNativeWidget = function(completedJsonStr) {

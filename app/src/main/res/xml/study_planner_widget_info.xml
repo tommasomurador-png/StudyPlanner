@@ -6,5 +6,7 @@
     android:initialLayout="@layout/widget_study_planner"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
+    android:configure="com.tommasomurador.studyplanner.WidgetSettingsActivity"
+    android:widgetFeatures="reconfigurable|configuration_optional"
     android:description="@string/widget_description">
 </appwidget-provider>

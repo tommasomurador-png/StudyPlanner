@@ -110,10 +110,11 @@ class StudyPlannerRemoteViewsFactory(private val context: Context) : RemoteViews
         }
         views.setOnClickFillInIntent(R.id.widget_item_checkbox, fillInIntent)
 
-        // Tapping title opens the app
+        // Tapping anywhere on the item (except checkbox) opens the app
         val openAppIntent = Intent().apply {
             putExtra(StudyPlannerWidgetProvider.EXTRA_OPEN_APP, true)
         }
+        views.setOnClickFillInIntent(R.id.widget_item_container, openAppIntent)
         views.setOnClickFillInIntent(R.id.widget_item_title, openAppIntent)
 
         return views

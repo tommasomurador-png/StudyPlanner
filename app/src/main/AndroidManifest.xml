@@ -44,6 +44,16 @@
             android:permission="android.permission.BIND_REMOTEVIEWS"
             android:exported="false" />
 
+        <activity
+            android:name=".WidgetSettingsActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.DayNight.Dialog"
+            android:windowSoftInputMode="stateHidden">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
     </application>
 
 </manifest>

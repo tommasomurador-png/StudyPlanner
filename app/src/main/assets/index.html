@@ -226,12 +226,12 @@
                     <button type="button" class="choice-btn" id="btn-widget-theme-light" onclick="setWidgetTheme('light')"><i class="fa-solid fa-sun"></i> Chiaro</button>
                 </div>
 
-                <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-top: 12px; margin-bottom: 8px;">Trasparenza Sfondo</div>
-                <div class="settings-grid" style="grid-template-columns: repeat(4, 1fr);">
-                    <button type="button" class="choice-btn" id="btn-widget-trans-0" onclick="setWidgetTransparency(0)">0%</button>
-                    <button type="button" class="choice-btn" id="btn-widget-trans-30" onclick="setWidgetTransparency(30)">30%</button>
-                    <button type="button" class="choice-btn" id="btn-widget-trans-60" onclick="setWidgetTransparency(60)">60%</button>
-                    <button type="button" class="choice-btn" id="btn-widget-trans-100" onclick="setWidgetTransparency(100)">100%</button>
+                <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-top: 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>Trasparenza Sfondo</span>
+                    <span id="widget-trans-val" style="color: var(--theme-strong); font-weight: 700; font-size: 0.95rem;">0%</span>
+                </div>
+                <div style="padding: 4px 0 8px 0;">
+                    <input type="range" id="widget-trans-slider" min="0" max="100" value="0" style="width: 100%; accent-color: var(--theme-strong); cursor: pointer;" oninput="onWidgetTransparencySlider(this.value)">
                 </div>
             </div>
             

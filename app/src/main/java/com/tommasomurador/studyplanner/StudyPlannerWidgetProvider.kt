@@ -118,6 +118,9 @@ class StudyPlannerWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.widget_header_title, mainPendingIntent)
+            views.setOnClickPendingIntent(R.id.widget_empty_text, mainPendingIntent)
+            views.setOnClickPendingIntent(R.id.widget_root, mainPendingIntent)
+            views.setOnClickPendingIntent(R.id.widget_bg, mainPendingIntent)
 
             // Intent to open "Add Task" modal on "+" tap
             val addIntent = Intent(context, MainActivity::class.java).apply {

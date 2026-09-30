@@ -220,7 +220,7 @@ class MainActivity : AppCompatActivity() {
                 )
 
                 val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setSmallIcon(R.drawable.ic_notification)
                     .setContentTitle(title)
                     .setContentText(body)
                     .setStyle(NotificationCompat.BigTextStyle().bigText(body))
@@ -309,11 +309,17 @@ class MainActivity : AppCompatActivity() {
         syncWidgetCompletionToJs()
     }
 
+    fun updateWidgetSettingsInJs(theme: String, transparency: Int) {
+        webView.post {
+            webView.evaluateJavascript("window.setWidgetSettingsFromNative ? window.setWidgetSettingsFromNative('$theme', $transparency) : null", null)
+        }
+    }
+
     private fun handleTargetView(intent: Intent?) {
         val action = intent?.getStringExtra(StudyPlannerWidgetProvider.EXTRA_ACTION)
         if (action == StudyPlannerWidgetProvider.ACTION_OPEN_ADD) {
             webView.postDelayed({
-                webView.evaluateJavascript("window.openTodoModal ? window.openTodoModal() : null", null)
+                webView.evaluateJavascript("window.openChoiceModal ? window.openChoiceModal() : (window.openTodoModal ? window.openTodoModal() : null)", null)
             }, 300)
             return
         }
