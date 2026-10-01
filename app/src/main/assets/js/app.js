@@ -767,34 +767,12 @@
         if (typeof updateWidgetSettingsUI === 'function') updateWidgetSettingsUI();
     }
 
-    window.toggleAppTheme = function(event) {
-        const nextTheme = savedTheme === 'light' ? 'dark' : 'light';
-        const x = event.clientX || window.innerWidth / 2;
-        const y = event.clientY || window.innerHeight / 2;
-        const newBgColor = nextTheme === 'dark' ? '#161616' : '#F9F7F1';
-
-        const overlay = document.createElement('div');
-        overlay.className = 'theme-transition-overlay';
-        overlay.style.backgroundColor = newBgColor;
-        
-        const maxRadius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
-        overlay.style.clipPath = `circle(0px at ${x}px ${y}px)`;
-        document.body.appendChild(overlay);
-
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                overlay.style.clipPath = `circle(${maxRadius}px at ${x}px ${y}px)`;
-            });
-        });
-
-        setTimeout(() => {
-            savedTheme = nextTheme;
-            localStorage.setItem('studylog_theme', nextTheme);
-            document.documentElement.setAttribute('data-theme', nextTheme);
-            applySettingsUI();
-        }, 250);
-
-        setTimeout(() => { overlay.remove(); }, 650);
+    window.toggleAppTheme = function() {
+        savedTheme = savedTheme === 'light' ? 'dark' : 'light';
+        localStorage.setItem('studylog_theme', savedTheme);
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        applySettingsUI();
+        if (typeof renderSubjectDonutChart === 'function') renderSubjectDonutChart();
     }
 
     function updateNotificationBellUI() {

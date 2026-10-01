@@ -95,10 +95,15 @@ class StudyPlannerWidgetProvider : AppWidgetProvider() {
             // Setup Theme & Transparency
             val isLight = theme == "light"
             val alpha = (((100 - transparency) * 255) / 100).coerceIn(0, 255)
-            val baseColor = if (isLight) 0x00F5F5F7 else 0x00141416
-            val colorWithAlpha = (alpha shl 24) or (baseColor and 0x00FFFFFF)
+            val baseColor = if (isLight) Color.parseColor("#FFFFFF") else Color.parseColor("#141416")
 
-            views.setInt(R.id.widget_bg, "setColorFilter", colorWithAlpha)
+            views.setInt(R.id.widget_bg, "setColorFilter", baseColor)
+            views.setInt(R.id.widget_bg, "setImageAlpha", alpha)
+            if (alpha == 0) {
+                views.setViewVisibility(R.id.widget_bg, android.view.View.INVISIBLE)
+            } else {
+                views.setViewVisibility(R.id.widget_bg, android.view.View.VISIBLE)
+            }
 
             val textColor = if (isLight) Color.parseColor("#111111") else Color.parseColor("#FFFFFF")
             val emptyTextColor = if (isLight) Color.parseColor("#666666") else Color.parseColor("#999999")
