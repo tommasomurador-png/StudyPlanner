@@ -23,6 +23,8 @@ class WidgetSettingsActivity : AppCompatActivity() {
     private lateinit var btnThemeLight: LinearLayout
     private lateinit var textThemeDark: TextView
     private lateinit var textThemeLight: TextView
+    private lateinit var iconThemeDark: ImageView
+    private lateinit var iconThemeLight: ImageView
 
     private lateinit var textTransVal: TextView
     private lateinit var seekBarTrans: SeekBar
@@ -54,15 +56,19 @@ class WidgetSettingsActivity : AppCompatActivity() {
         selectedTheme = prefs.getString(StudyPlannerWidgetProvider.KEY_THEME, "dark") ?: "dark"
         selectedTransparency = prefs.getInt(StudyPlannerWidgetProvider.KEY_TRANSPARENCY, 0).coerceIn(0, 100)
 
-        // Find Views
+        // Find Theme Views
         btnThemeDark = findViewById(R.id.btn_theme_dark)
         btnThemeLight = findViewById(R.id.btn_theme_light)
         textThemeDark = findViewById(R.id.text_theme_dark)
         textThemeLight = findViewById(R.id.text_theme_light)
+        iconThemeDark = findViewById(R.id.icon_theme_dark)
+        iconThemeLight = findViewById(R.id.icon_theme_light)
 
+        // Find Transparency Views
         textTransVal = findViewById(R.id.text_transparency_value)
         seekBarTrans = findViewById(R.id.seekbar_transparency)
 
+        // Find Preview Views
         previewBg = findViewById(R.id.widget_preview_bg)
         previewTitle = findViewById(R.id.widget_preview_title)
         previewAdd = findViewById(R.id.widget_preview_add)
@@ -73,13 +79,6 @@ class WidgetSettingsActivity : AppCompatActivity() {
 
         val btnCancel = findViewById<TextView>(R.id.btn_cancel)
         val btnSave = findViewById<TextView>(R.id.btn_save)
-
-        // Preset Chips
-        findViewById<TextView>(R.id.chip_trans_0).setOnClickListener { setTransparency(0) }
-        findViewById<TextView>(R.id.chip_trans_25).setOnClickListener { setTransparency(25) }
-        findViewById<TextView>(R.id.chip_trans_50).setOnClickListener { setTransparency(50) }
-        findViewById<TextView>(R.id.chip_trans_75).setOnClickListener { setTransparency(75) }
-        findViewById<TextView>(R.id.chip_trans_100).setOnClickListener { setTransparency(100) }
 
         // Setup Theme Click Listeners
         btnThemeDark.setOnClickListener {
@@ -135,26 +134,23 @@ class WidgetSettingsActivity : AppCompatActivity() {
         updatePreview()
     }
 
-    private fun setTransparency(value: Int) {
-        selectedTransparency = value.coerceIn(0, 100)
-        seekBarTrans.progress = selectedTransparency
-        textTransVal.text = "$selectedTransparency%"
-        updatePreview()
-    }
-
     private fun updateThemeButtons() {
         if (selectedTheme == "light") {
             btnThemeLight.setBackgroundResource(R.drawable.bg_pill_active)
             textThemeLight.setTextColor(Color.WHITE)
+            iconThemeLight.setColorFilter(Color.WHITE)
 
             btnThemeDark.setBackgroundResource(R.drawable.bg_pill_inactive)
-            textThemeDark.setTextColor(Color.parseColor("#8E8E93"))
+            textThemeDark.setTextColor(Color.parseColor("#9E9EA6"))
+            iconThemeDark.setColorFilter(Color.parseColor("#9E9EA6"))
         } else {
             btnThemeDark.setBackgroundResource(R.drawable.bg_pill_active)
             textThemeDark.setTextColor(Color.WHITE)
+            iconThemeDark.setColorFilter(Color.WHITE)
 
             btnThemeLight.setBackgroundResource(R.drawable.bg_pill_inactive)
-            textThemeLight.setTextColor(Color.parseColor("#8E8E93"))
+            textThemeLight.setTextColor(Color.parseColor("#9E9EA6"))
+            iconThemeLight.setColorFilter(Color.parseColor("#9E9EA6"))
         }
     }
 
@@ -173,7 +169,7 @@ class WidgetSettingsActivity : AppCompatActivity() {
         }
 
         val primaryTextColor = if (isLight) Color.parseColor("#111111") else Color.parseColor("#FFFFFF")
-        val secondaryTextColor = if (isLight) Color.parseColor("#888888") else Color.parseColor("#777777")
+        val secondaryTextColor = if (isLight) Color.parseColor("#666666") else Color.parseColor("#A0A0A0")
         val iconTint = if (isLight) Color.parseColor("#333333") else Color.parseColor("#DDDDDD")
 
         previewTitle.setTextColor(primaryTextColor)
