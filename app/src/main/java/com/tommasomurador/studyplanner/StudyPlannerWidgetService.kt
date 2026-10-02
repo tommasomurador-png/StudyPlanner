@@ -25,6 +25,7 @@ class StudyPlannerRemoteViewsFactory(private val context: Context) : RemoteViews
     data class WidgetTask(
         val id: String,
         val title: String,
+        val subtitle: String,
         val subject: String,
         val isDone: Boolean
     )
@@ -55,11 +56,12 @@ class StudyPlannerRemoteViewsFactory(private val context: Context) : RemoteViews
                 val id = obj.optString("id", "")
                 val key = obj.optString("setKey", id)
                 val title = obj.optString("title", "")
+                val subtitle = obj.optString("subtitle", "")
                 val subject = obj.optString("subject", "")
                 
                 val isCompleted = completedObj.optBoolean(key, false) || obj.optBoolean("isDone", false)
 
-                taskList.add(WidgetTask(id = key, title = title, subject = subject, isDone = isCompleted))
+                taskList.add(WidgetTask(id = key, title = title, subtitle = subtitle, subject = subject, isDone = isCompleted))
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -90,6 +92,8 @@ class StudyPlannerRemoteViewsFactory(private val context: Context) : RemoteViews
             if (task.isDone) Color.parseColor("#777777") else Color.parseColor("#FFFFFF")
         }
 
+        val subtitleColor = if (isLightTheme) Color.parseColor("#666666") else Color.parseColor("#A0A0A5")
+
         if (task.isDone) {
             val spannable = SpannableString(displayTitle)
             spannable.setSpan(StrikethroughSpan(), 0, spannable.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -102,6 +106,14 @@ class StudyPlannerRemoteViewsFactory(private val context: Context) : RemoteViews
             views.setInt(R.id.widget_item_checkbox, "setColorFilter", iconTint)
         }
         views.setTextColor(R.id.widget_item_title, textColor)
+
+        if (task.subtitle.isNotEmpty()) {
+            views.setViewVisibility(R.id.widget_item_subtitle, android.view.View.VISIBLE)
+            views.setTextViewText(R.id.widget_item_subtitle, task.subtitle)
+            views.setTextColor(R.id.widget_item_subtitle, subtitleColor)
+        } else {
+            views.setViewVisibility(R.id.widget_item_subtitle, android.view.View.GONE)
+        }
 
         // Fill-in intent for toggling the task
         val fillInIntent = Intent().apply {
@@ -116,6 +128,7 @@ class StudyPlannerRemoteViewsFactory(private val context: Context) : RemoteViews
         }
         views.setOnClickFillInIntent(R.id.widget_item_container, openAppIntent)
         views.setOnClickFillInIntent(R.id.widget_item_title, openAppIntent)
+        views.setOnClickFillInIntent(R.id.widget_item_subtitle, openAppIntent)
 
         return views
     }

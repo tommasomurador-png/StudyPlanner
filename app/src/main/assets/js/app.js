@@ -9,29 +9,29 @@
     let selectedDateStr = todayDateStr;
 
     const motivationalPhrases = [
-        "Inizia a studiare, dai che prima inizi prima finisci!",
-        "Il successo Ã¨ la somma di piccoli sforzi ripetuti giorno dopo giorno.",
+        "Inizia a studiare, prima inizi prima finisci!",
+        "Il successo e' la somma di piccoli sforzi ripetuti giorno dopo giorno.",
         "Non rimandare a domani quello che puoi studiare oggi!",
-        "Ogni pagina studiata Ã¨ un passo in piÃ¹ verso i tuoi sogni.",
-        "Mettiti comodo, apri il libro e fai il vuoto intorno a te: tu vali!",
-        "La fatica di oggi Ã¨ il successo di domani. Coraggio!",
-        "Concentrazione al massimo: il tuo futuro ti sta aspettando.",
-        "Anche un piccolo progresso quotidiano fa la differenza.",
-        "Spegni le distrazioni e dai il massimo in questa sessione!",
-        "Sei piÃ¹ vicino al tuo traguardo rispetto a ieri. Continua cosÃ¬!"
+        "Ogni pagina studiata e' un passo in piu' verso i tuoi traguardi.",
+        "Mettiti comodo, apri il libro e fai il vuoto intorno a te.",
+        "La costanza di oggi e' il risultato di domani. Coraggio!",
+        "Concentrazione al massimo: il tuo obiettivo ti aspetta.",
+        "Anche una singola pagina completata fa la differenza.",
+        "Spegni le distrazioni e completa la tua quota di oggi!",
+        "Sei piu' vicino al tuo traguardo rispetto a ieri. Continua cosi'!"
     ];
 
     const completedPhrases = [
-        "Ottimo lavoro! Hai completato tutte le task di oggi. Ora puoi rilassarti!",
-        "Spettacolare! Hai chiuso la giornata con zero debiti di studio.",
+        "Ottimo lavoro! Hai completato tutte le quote di studio di oggi.",
+        "Obiettivo raggiunto! Hai chiuso la giornata con zero debiti di studio.",
         "Missione compiuta! Goditi il tuo meritato riposo.",
-        "Sei un mito! Hai completato tutto il programma di oggi.",
-        "Giornata sbaragliata! Riposati, te lo sei proprio meritato.",
-        "Tutto fatto! La tua costanza ti porterÃ  lontano.",
+        "Hai completato tutto il programma pianificato per oggi.",
+        "Giornata conclusa con successo! Riposati, te lo sei meritato.",
+        "Tutto fatto! La tua costanza quotidiana ti portera' lontano.",
         "Fantastico! Hai terminato ogni singola task odierna.",
-        "Obiettivo raggiunto con successo! Rilassati e stacca la mente.",
+        "Quota giornaliera raggiunta! Rilassati e stacca la mente.",
         "Perfetto! Un'altra giornata di studio portata a termine alla grande.",
-        "Campione! Hai completato tutto ciÃ² che c'era da fare oggi."
+        "Tutte le attivita' completate: il tuo piano di studi e' in perfetto orario."
     ];
 
     function customConfirm(options) {
@@ -849,24 +849,31 @@
         }
     }
 
+    function stripNotificationEmojis(text) {
+        if (!text) return '';
+        return text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '').trim();
+    }
+
     function sendLocalNotification(title, body) {
+        const cleanTitle = stripNotificationEmojis(title);
+        const cleanBody = stripNotificationEmojis(body);
         if (window.AndroidNative && window.AndroidNative.showNotification) {
-            window.AndroidNative.showNotification(title, body);
+            window.AndroidNative.showNotification(cleanTitle, cleanBody);
             return;
         }
 
         if (!("Notification" in window) || Notification.permission !== "granted") return;
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.ready.then(registration => {
-                registration.showNotification(title, {
-                    body: body,
+                registration.showNotification(cleanTitle, {
+                    body: cleanBody,
                     icon: '1790418729575_cutout.png',
                     badge: '1790418729575_cutout.png',
                     vibrate: [200, 100, 200]
                 });
             });
         } else {
-            new Notification(title, { body: body, icon: '1790418729575_cutout.png' });
+            new Notification(cleanTitle, { body: cleanBody, icon: '1790418729575_cutout.png' });
         }
     }
 
@@ -1498,14 +1505,18 @@
                 let totalPages = exam.pages || 1;
                 let daysCount = validPreDates.length;
 
-                let reviewDays = daysCount >= 10 ? 3 : (daysCount >= 6 ? 2 : (daysCount >= 4 ? 1 : 0));
-                let studyDaysCount = Math.max(1, daysCount - reviewDays);
+                // Principio di Sicurezza 80% prima della prima data di interrogazione
+                let studyDaysCount = daysCount <= 1 ? 1 : Math.max(1, Math.round(daysCount * 0.80));
 
                 let targetIdx = validPreDates.indexOf(targetDateStr);
                 if (targetIdx === -1) return null;
 
                 if (targetIdx >= studyDaysCount) {
-                    return { type: 'FINAL_REVIEW', title: `RIPASSO FINALE`, desc: `Ripassa tutto il programma in vista dell'interrogazione del ${formatDateShort(firstDateStr)}` };
+                    return { 
+                        type: 'FINAL_REVIEW', 
+                        title: `RIPASSO CONSOLIDATO`, 
+                        desc: `Margine di sicurezza 80%: consolidamento programma per l'interrogazione del ${formatDateShort(firstDateStr)}` 
+                    };
                 }
 
                 let basePagesPerDay = Math.floor(totalPages / studyDaysCount);
@@ -1513,7 +1524,12 @@
                 let daily = basePagesPerDay + (targetIdx < remainder ? 1 : 0);
                 if (daily < 1) daily = 1;
 
-                return { type: 'STUDY', title: `Studio (in vista di ${formatDateShort(firstDateStr)})`, pages: daily };
+                return { 
+                    type: 'STUDY', 
+                    title: `Studio (in vista di ${formatDateShort(firstDateStr)})`, 
+                    pages: daily, 
+                    desc: `Quota di oggi: ${daily} pag. (Parametro di sicurezza 80%)` 
+                };
             } 
             else {
                 let nextExamDateStr = intDates.find(d => new Date(d).getTime() > tDate.getTime());
@@ -1558,26 +1574,72 @@
         if (targetIndex === -1) return null; 
 
         let N = validDates.length;
-        let finalReviewCount = N >= 10 ? 3 : (N >= 6 ? 2 : (N >= 4 ? 1 : 0));
-        let phase1Count = Math.max(1, N - finalReviewCount);
+        if (N === 0) return null;
 
-        if (targetIndex >= phase1Count) { 
-            return { type: 'FINAL_REVIEW', title: `RIPASSO FINALE`, desc: `Ripassa tutto il programma in vista della prova` }; 
+        // 1. IL PRINCIPIO DI SICUREZZA (Il parametro dell'80%)
+        // Se l'esame e' tra 10 giorni, il denominatore della divisione e' 8 (80% dei giorni disponibili).
+        // Il 20% rimanente viene riservato come margine di sicurezza/buffer per il ripasso consolidato.
+        let studyDaysCount = N <= 1 ? 1 : Math.max(1, Math.round(N * 0.80));
+
+        if (targetIndex >= studyDaysCount) { 
+            return { 
+                type: 'FINAL_REVIEW', 
+                title: `RIPASSO CONSOLIDATO`, 
+                desc: `Margine di sicurezza 80%: consolidamento programma senza ansia da imprevisti` 
+            }; 
         }
 
         let totalPages = exam.pages || 1;
-        let basePerDay = Math.floor(totalPages / phase1Count);
-        let rem = totalPages % phase1Count;
+        let basePerDay = Math.floor(totalPages / studyDaysCount);
+        let rem = totalPages % studyDaysCount;
         let dailyPace = basePerDay + (targetIndex < rem ? 1 : 0);
         if (dailyPace < 1) dailyPace = 1;
 
-        return { type: 'STUDY', title: `STUDIO`, pages: dailyPace };
+        return { 
+            type: 'STUDY', 
+            title: `Studio`, 
+            pages: dailyPace, 
+            desc: `Quota di oggi: ${dailyPace} pag. (Parametro di sicurezza 80%)` 
+        };
     }
 
     function formatDateShort(dStr) {
         if (!dStr) return "";
         const parts = dStr.split('-');
         return `${parts[2]}/${parts[1]}`;
+    }
+
+    // 2. L'INTERFERENZA CONTESTUALE (Lo switch cognitivo)
+    // Evita la 'massed practice' su una singola materia forzando l'alternanza tra materie diverse
+    function interleaveTasksBySubject(tasks) {
+        if (!tasks || tasks.length <= 1) return tasks;
+        const groups = {};
+        tasks.forEach(t => {
+            const sub = (t.subject || 'Generale').trim().toLowerCase();
+            if (!groups[sub]) groups[sub] = [];
+            groups[sub].push(t);
+        });
+
+        const subjectKeys = Object.keys(groups);
+        if (subjectKeys.length <= 1) return tasks;
+
+        const interleaved = [];
+        let hasRemaining = true;
+        let index = 0;
+        while (hasRemaining) {
+            hasRemaining = false;
+            for (let i = 0; i < subjectKeys.length; i++) {
+                const list = groups[subjectKeys[i]];
+                if (index < list.length) {
+                    interleaved.push(list[index]);
+                    if (index + 1 < list.length) {
+                        hasRemaining = true;
+                    }
+                }
+            }
+            index++;
+        }
+        return interleaved;
     }
 
     function getTasksForDate(dateStr) {
@@ -1609,27 +1671,29 @@
             let info = getExamDayInfo(exam, dateStr);
             if (!info) return;
 
-            let isDoneToday = exam.progress[dateStr] !== undefined;
+            const setKey = `${dateStr}_${exam.id}`;
+            let isDoneToday = (exam.progress[dateStr] !== undefined) || !!completedTasks[setKey];
             let loggedToday = exam.progress[dateStr] || 0;
 
             if (info.type === 'EXAM') { 
                 dailyTasks.push({ _id: exam.id, isExamDay: true, title: info.title, subject: exam.subject, priority: 3, isExamRelated: true }); 
             } 
             else if (info.type === 'FINAL_REVIEW' || info.type === 'INTER_REVIEW') { 
-                dailyTasks.push({ _id: exam.id, isExamReview: true, title: info.title, subject: exam.subject, desc: info.desc || '', priority: 3, isExamRelated: true, isExamStudyObj: true }); 
+                dailyTasks.push({ _id: exam.id, isExamReview: true, title: info.title, subject: exam.subject, desc: info.desc || '', priority: 3, isExamRelated: true, isExamStudyObj: true, isDone: isDoneToday }); 
             } 
             else if (info.type === 'STUDY') { 
-                dailyTasks.push({ _id: exam.id, isExamStudy: true, title: info.title, subject: exam.subject, priority: 3, desc: isDoneToday ? `Fatto: ${loggedToday} pag.` : `Obiettivo di oggi: ${info.pages} pag.`, pagesSuggested: info.pages, isDone: isDoneToday, loggedPages: loggedToday, isExamRelated: true, isExamStudyObj: true }); 
+                dailyTasks.push({ _id: exam.id, isExamStudy: true, title: info.title, subject: exam.subject, priority: 3, desc: isDoneToday ? `Fatto: ${loggedToday || info.pages} pag.` : `Obiettivo di oggi: ${info.pages} pag.`, pagesSuggested: info.pages, isDone: isDoneToday, loggedPages: loggedToday || info.pages, isExamRelated: true, isExamStudyObj: true }); 
             }
             else if (info.type === 'PRACTICE') { 
-                dailyTasks.push({ _id: exam.id, isExamStudy: true, title: info.title, subject: exam.subject, priority: 3, desc: isDoneToday ? `Fatto: ${loggedToday} es.` : `Obiettivo fisso: ${info.amount} es.`, pagesSuggested: info.amount, isDone: isDoneToday, loggedPages: loggedToday, isPractice: true, isExamRelated: true, isExamStudyObj: true }); 
+                dailyTasks.push({ _id: exam.id, isExamStudy: true, title: info.title, subject: exam.subject, priority: 3, desc: isDoneToday ? `Fatto: ${loggedToday || info.amount} es.` : `Obiettivo fisso: ${info.amount} es.`, pagesSuggested: info.amount, isDone: isDoneToday, loggedPages: loggedToday || info.amount, isPractice: true, isExamRelated: true, isExamStudyObj: true }); 
             }
             else if (info.type === 'VERSION') {
-                dailyTasks.push({ _id: exam.id, isExamStudy: true, isVersion: true, title: info.title, subject: exam.subject, priority: 3, desc: isDoneToday ? `Completata: ${loggedToday} versione` : `Oggi: svolgi 1 versione di prova`, pagesSuggested: 1, isDone: isDoneToday, loggedPages: loggedToday, isExamRelated: true, isExamStudyObj: true });
+                dailyTasks.push({ _id: exam.id, isExamStudy: true, isVersion: true, title: info.title, subject: exam.subject, priority: 3, desc: isDoneToday ? `Completata: 1 versione` : `Oggi: svolgi 1 versione di prova`, pagesSuggested: 1, isDone: isDoneToday, loggedPages: loggedToday || 1, isExamRelated: true, isExamStudyObj: true });
             }
         });
         
-        dailyTasks.sort((a, b) => b.priority - a.priority); return dailyTasks;
+        dailyTasks.sort((a, b) => (b.priority || 1) - (a.priority || 1));
+        return interleaveTasksBySubject(dailyTasks);
     }
 
     function generateTasksForDate(dateStr) {
@@ -1700,9 +1764,16 @@
             
             if(task.isExamStudy) {
                 if (task.isDone) {
-                    html += `<div class="ex-action" style="color:var(--theme-strong); font-weight:700; text-align:center; font-size: 0.8rem;"><i class="fa-solid fa-check-square" style="font-size:1.2rem; margin-bottom:4px;"></i><br>Completato (${task.loggedPages})</div></div>`;
+                    html += `<div class="ex-action" style="cursor:pointer;" onclick="undoExamProgress('${task._id}', '${dateStr}')" title="Clicca per annullare il completamento">
+                                <div style="color:var(--theme-strong); font-weight:700; text-align:center; font-size: 0.8rem;">
+                                    <i class="fa-solid fa-square-check" style="font-size:1.3rem; margin-bottom:2px;"></i><br>Compiuto (${task.loggedPages})
+                                </div>
+                             </div></div>`;
                 } else {
-                    html += `<div class="ex-action" style="flex-direction:row; gap:6px;"><input type="number" id="pages_${task._id}" value="${task.pagesSuggested}" style="width: 55px; padding: 6px 4px; border: 2px solid var(--border-color); background:var(--surface-color); color:var(--text-main); border-radius: 8px; text-align: center; font-weight: 700; font-family: 'Poppins';"><button onclick="logExamProgress('${task._id}', '${dateStr}')" style="background:var(--theme-strong); color:var(--surface-color); border:none; padding:6px 14px; border-radius:8px; font-weight:bold; cursor:pointer; font-family: 'Poppins';">OK</button></div></div>`;
+                    html += `<div class="ex-action" style="flex-direction:row; gap:6px;">
+                                <input type="number" id="pages_${task._id}" value="${task.pagesSuggested}" style="width: 55px; padding: 6px 4px; border: 2px solid var(--border-color); background:var(--surface-color); color:var(--text-main); border-radius: 8px; text-align: center; font-weight: 700; font-family: 'Poppins';">
+                                <button onclick="logExamProgress('${task._id}', '${dateStr}')" style="background:var(--theme-strong); color:var(--surface-color); border:none; padding:6px 14px; border-radius:8px; font-weight:bold; cursor:pointer; font-family: 'Poppins';">Compi</button>
+                             </div></div>`;
                 }
             } else if (!task.isExamDay) {
                 html += `<div class="ex-action"><div class="set-circle ${isDoneClass}" id="${setKey}" onclick="tickTask('${setKey}', this)"></div></div></div>`;
@@ -1742,6 +1813,33 @@
         renderRankedView(); updateDashboard(); renderSheetData(); if(amount !== 0) showToast(amount > 0 ? `+${amount} XP` : `${amount} XP`, amount < 0);
     }
 
+    window.undoExamProgress = function(examId, dateStr) {
+        let exam = myExams.find(e => e.id === examId);
+        let pagesDone = 0;
+        if (exam && exam.progress && exam.progress[dateStr] !== undefined) {
+            pagesDone = exam.progress[dateStr];
+            delete exam.progress[dateStr];
+            localStorage.setItem('studylog_exams', JSON.stringify(myExams));
+            const earnedXP = Math.max(15, pagesDone * 3);
+            addXP(-earnedXP);
+        }
+        const setKey = `${dateStr}_${examId}`;
+        if (completedTasks[setKey]) {
+            delete completedTasks[setKey];
+            localStorage.setItem('studylog_completed', JSON.stringify(completedTasks));
+        }
+        calculateStreak();
+        updateDashboard();
+        updateAllDots();
+        updateWeekSliderVisuals(selectedDateStr);
+        generateTasksForDate(selectedDateStr);
+        renderStreakCalendar();
+        renderMonthCalendar();
+        checkAndSendSmartNotification();
+        syncAndroidWidget();
+        showToast("Progresso annullato");
+    };
+
     window.logExamProgress = function(examId, dateStr) {
         let keyDateObj = new Date(dateStr.split('-')[0], dateStr.split('-')[1]-1, dateStr.split('-')[2]);
         let todayDateObj = new Date(todayDateStr.split('-')[0], todayDateStr.split('-')[1]-1, todayDateStr.split('-')[2]);
@@ -1766,6 +1864,10 @@
         exam.progress[dateStr] = pagesDone;
         localStorage.setItem('studylog_exams', JSON.stringify(myExams));
 
+        const setKey = `${dateStr}_${examId}`;
+        completedTasks[setKey] = true;
+        localStorage.setItem('studylog_completed', JSON.stringify(completedTasks));
+
         const earnedXP = Math.max(15, pagesDone * 3);
 
         playTone();
@@ -1778,8 +1880,9 @@
         renderStreakCalendar();
         renderMonthCalendar();
         checkAndSendSmartNotification();
+        syncAndroidWidget();
         showToast(`Completato! +${earnedXP} XP`);
-    }
+    };
 
     window.tickTask = function(setKey, el) {
         const parts = setKey.split('_'); const keyDate = parts[0];
@@ -1861,18 +1964,46 @@
         try {
             const nativeCompleted = typeof completedJsonStr === 'string' ? JSON.parse(completedJsonStr) : completedJsonStr;
             let changed = false;
+            let examsModified = false;
+
             for (const [key, val] of Object.entries(nativeCompleted)) {
+                const parts = key.split('_');
+                const taskDate = parts[0];
+                const taskId = parts[1];
+                const exam = myExams.find(e => e.id === taskId);
+
                 if (completedTasks[key] !== val) {
                     if (val) {
                         completedTasks[key] = true;
+                        if (exam) {
+                            if (!exam.progress) exam.progress = {};
+                            if (exam.progress[taskDate] === undefined) {
+                                const info = getExamDayInfo(exam, taskDate);
+                                const pagesDone = (info && (info.pages || info.amount)) ? (info.pages || info.amount) : 1;
+                                exam.progress[taskDate] = pagesDone;
+                                examsModified = true;
+                                const earnedXP = Math.max(15, pagesDone * 3);
+                                addXP(earnedXP);
+                            }
+                        }
                     } else {
                         delete completedTasks[key];
+                        if (exam && exam.progress && exam.progress[taskDate] !== undefined) {
+                            const pagesDone = exam.progress[taskDate];
+                            delete exam.progress[taskDate];
+                            examsModified = true;
+                            const earnedXP = Math.max(15, pagesDone * 3);
+                            addXP(-earnedXP);
+                        }
                     }
                     changed = true;
                 }
             }
             if (changed) {
                 localStorage.setItem('studylog_completed', JSON.stringify(completedTasks));
+                if (examsModified) {
+                    localStorage.setItem('studylog_exams', JSON.stringify(myExams));
+                }
                 calculateStreak();
                 updateDashboard();
                 updateAllDots();
@@ -1893,16 +2024,54 @@
                 const widgetTasks = todayTasks.map(t => {
                     const setKey = `${todayDateStr}_${t._id}`;
                     const cleanSub = t.subject ? cleanSubjectName(t.subject) : '';
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = t.title || '';
-                    const cleanTitle = tempDiv.textContent || tempDiv.innerText || t.title;
+                    const isDone = !!(completedTasks[setKey] || t.isDone);
+
+                    let title = t.title || '';
+                    let subtitle = '';
+
+                    if (t.isNormalTodo) {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = t.title || '';
+                        title = tempDiv.textContent || tempDiv.innerText || t.title;
+
+                        const details = [];
+                        if (t.difficulty) {
+                            const diffLabels = ['', 'Carico leggero', 'Carico medio', 'Carico alto'];
+                            details.push(diffLabels[t.difficulty] || '');
+                        }
+                        if (t.priority && t.priority > 1) {
+                            details.push(t.priority === 3 ? 'Priorita alta' : 'Priorita media');
+                        }
+                        if (t.isRepeat) {
+                            details.push('Ricorrente');
+                        }
+                        subtitle = details.filter(Boolean).join(' • ');
+                        if (isDone) {
+                            subtitle = subtitle ? `Completato • ${subtitle}` : 'Completato';
+                        }
+                    } else if (t.isExamStudy) {
+                        if (t.isPractice) {
+                            title = `Esercizi: ${t.pagesSuggested || 1} es.`;
+                            subtitle = isDone ? `Fatti ${t.loggedPages || t.pagesSuggested} esercizi` : `Obiettivo: ${t.pagesSuggested || 1} esercizi`;
+                        } else if (t.isVersion) {
+                            title = `Versione di prova`;
+                            subtitle = isDone ? `Completata 1 versione` : `Svolgi 1 versione per la prova`;
+                        } else {
+                            title = `Studio: ${t.pagesSuggested || 1} pagine`;
+                            subtitle = isDone ? `Completate ${t.loggedPages || t.pagesSuggested} pagine` : `Quota 80% sicurezza: ${t.pagesSuggested || 1} pag. oggi`;
+                        }
+                    } else if (t.isExamReview) {
+                        title = `Ripasso Consolidato`;
+                        subtitle = isDone ? `Ripasso completato` : (t.desc || `Margine di sicurezza 80%: consolidamento`);
+                    }
 
                     return {
                         id: t._id,
                         setKey: setKey,
-                        title: cleanTitle,
+                        title: title,
+                        subtitle: subtitle,
                         subject: cleanSub,
-                        isDone: !!(completedTasks[setKey] || t.isDone)
+                        isDone: isDone
                     };
                 });
 
@@ -1914,12 +2083,12 @@
                     const pendingTasks = todayTasks.filter(t => !t.isDone && !completedTasks[`${todayDateStr}_${t._id}`]);
                     let summaryText = "";
                     if (todayTasks.length === 0) {
-                        summaryText = "Nessuna task per oggi!";
+                        summaryText = "Nessuna task per oggi";
                     } else if (pendingTasks.length === 0) {
                         summaryText = "Tutte le task completate!";
                     } else {
                         const firstSub = pendingTasks[0].subject || "Studio";
-                        summaryText = `${pendingTasks.length} task da completare (${firstSub})`;
+                        summaryText = `${pendingTasks.length} da completare (${cleanSubjectName(firstSub)})`;
                     }
                     window.AndroidNative.updateWidgetData(currentStreak || 0, summaryText);
                 }

@@ -17,16 +17,34 @@
         android:src="@drawable/ic_widget_check_empty"
         android:contentDescription="Stato compito" />
 
-    <!-- Task text: Subject badge + title -->
-    <TextView
-        android:id="@+id/widget_item_title"
+    <!-- Task text: Subject badge + title + subtitle -->
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:layout_marginStart="10dp"
-        android:textColor="#FFFFFF"
-        android:textSize="13.5sp"
-        android:ellipsize="end"
-        android:maxLines="2" />
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/widget_item_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="13.5sp"
+            android:textStyle="bold"
+            android:ellipsize="end"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/widget_item_subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#A0A0A5"
+            android:textSize="11.5sp"
+            android:layout_marginTop="1dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:visibility="gone" />
+    </LinearLayout>
 
 </LinearLayout>

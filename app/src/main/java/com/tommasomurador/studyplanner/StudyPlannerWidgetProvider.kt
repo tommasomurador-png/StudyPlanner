@@ -37,6 +37,24 @@ class StudyPlannerWidgetProvider : AppWidgetProvider() {
                 val isDone = intent.getBooleanExtra(EXTRA_IS_DONE, false)
 
                 if (!taskKey.isNullOrEmpty()) {
+                    try {
+                        val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                            val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? android.os.VibratorManager
+                            vm?.defaultVibrator
+                        } else {
+                            @Suppress("DEPRECATION")
+                            context.getSystemService(Context.VIBRATOR_SERVICE) as? android.os.Vibrator
+                        }
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                            vibrator?.vibrate(android.os.VibrationEffect.createOneShot(35, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+                        } else {
+                            @Suppress("DEPRECATION")
+                            vibrator?.vibrate(35)
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+
                     val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                     val rawCompleted = prefs.getString(KEY_COMPLETED_JSON, "{}") ?: "{}"
                     try {

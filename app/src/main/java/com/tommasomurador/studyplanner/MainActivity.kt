@@ -206,9 +206,17 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        private fun stripEmojis(input: String): String {
+            val emojiPattern = java.util.regex.Pattern.compile("[\\p{So}\\p{Cn}\\p{Cs}\\p{Extended_Pictographic}]|[\\uD83C-\\uDBFF\\uDC00-\\uDFFF]|[\\u2600-\\u27BF]")
+            return emojiPattern.matcher(input).replaceAll("").trim()
+        }
+
         @JavascriptInterface
         fun showNotification(title: String, body: String) {
             try {
+                val cleanTitle = stripEmojis(title)
+                val cleanBody = stripEmojis(body)
+
                 val intent = Intent(context, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }
@@ -221,9 +229,9 @@ class MainActivity : AppCompatActivity() {
 
                 val builder = NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_notification)
-                    .setContentTitle(title)
-                    .setContentText(body)
-                    .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                    .setContentTitle(cleanTitle)
+                    .setContentText(cleanBody)
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(cleanBody))
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setAutoCancel(true)
                     .setContentIntent(pendingIntent)
