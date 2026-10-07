@@ -262,6 +262,25 @@
                         <span id="gemini-key-status" style="color: var(--text-muted); font-weight: 600;">Non impostata</span>
                     </div>
                 </div>
+
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <span class="settings-card-title"><i class="fa-solid fa-user-graduate"></i> Profilo Studente</span>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label style="font-size: 0.78rem;">Nome</label>
+                        <input type="text" id="settings-user-name" class="form-control" placeholder="Il tuo nome">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label style="font-size: 0.78rem;">Età</label>
+                        <input type="number" id="settings-user-age" class="form-control" placeholder="Es. 17" min="6" max="99">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="font-size: 0.78rem;">Cosa ti distrae dallo studio?</label>
+                        <input type="text" id="settings-user-distraction" class="form-control" placeholder="Es. Notifiche smartphone, videogiochi...">
+                    </div>
+                    <button type="button" class="btn-submit" style="width: 100%; padding: 11px;" onclick="saveUserProfileFromSettings()">Aggiorna profilo</button>
+                </div>
             </div>
         </div>
     </div>
@@ -317,10 +336,10 @@
     <div class="fullscreen-modal" id="ai-plan-modal">
         <div class="glass-panel" style="max-height: 90vh; display: flex; flex-direction: column;">
             <button class="btn-close-modal-top" onclick="closeAiPlanModal()"><i class="fa-solid fa-xmark"></i></button>
-            <h3 style="margin-bottom: 18px; font-weight: 700; text-transform: uppercase; color: var(--theme-strong);">Pianifica AI</h3>
+            <h3 style="margin-bottom: 18px; font-weight: 700; text-transform: uppercase; color: var(--theme-strong);">Pianifica con AI</h3>
             
             <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;">
-                Descrivi o detta i compiti e le verifiche da preparare. Gemini organizzerà automaticamente le quote e le date.
+                Scrivi o detta cosa deve accadere e cosa devi fare: l'AI capirà il contesto e pianificherà la To-Do list distribuendola fino alla data di scadenza.
             </div>
 
             <div class="ai-input-container">
@@ -588,9 +607,48 @@
         </div>
     </div>
 
+    <!-- MODAL DI BENVENUTO E ONBOARDING PRIMO AVVIO -->
+    <div class="fullscreen-modal" id="onboarding-modal">
+        <div class="glass-panel" style="max-height: 90vh; display: flex; flex-direction: column;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="width: 65px; height: 65px; border-radius: 20px; background: var(--theme-empty); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px; border: 1px solid var(--border-color);">
+                    <i class="fa-solid fa-graduation-cap" style="font-size: 2rem; color: var(--theme-strong);"></i>
+                </div>
+                <h3 style="font-weight: 700; color: var(--theme-strong); margin-bottom: 6px;">Benvenuto su Study Planner</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin: 0;">
+                    Il tuo alleato quotidiano per costruire disciplina e completare ogni obiettivo.
+                </p>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px;">
+                <label>Come ti chiami?</label>
+                <input type="text" id="onboarding-name" class="form-control" placeholder="Il tuo nome">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px;">
+                <label>Quanti anni hai?</label>
+                <input type="number" id="onboarding-age" class="form-control" placeholder="La tua età" min="6" max="99">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label>Cosa ti distrae dallo studio?</label>
+                <input type="text" id="onboarding-distraction" class="form-control" placeholder="Es. Notifiche telefono, social, procrastinare...">
+            </div>
+
+            <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px 16px; margin-bottom: 18px; font-size: 0.82rem; color: var(--text-muted); line-height: 1.45;">
+                <strong style="color: var(--text-main); display: block; margin-bottom: 4px;">Determinazione e Disciplina</strong>
+                Questa app ti aiuterà a migliorarti giorno dopo giorno nel completare tutte le task entro il tempo limite, proteggendo la tua serie di studio e battendo ogni distrazione.
+            </div>
+
+            <button type="button" class="btn-submit" style="width: 100%; padding: 14px; font-size: 1rem;" onclick="finishOnboarding()">
+                Inizia ora
+            </button>
+        </div>
+    </div>
+
 </div>
 
-    <script src="js/app.js?v=2.1.6" defer></script>
+    <script src="js/app.js?v=2.1.7" defer></script>
 
 </body>
 </html>

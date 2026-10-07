@@ -70,6 +70,9 @@ class MainActivity : AppCompatActivity() {
         setupWebViewSettings()
         setupBackNavigation()
 
+        // Schedula gli allarmi giornalieri per le notifiche anche ad app chiusa
+        StudyPlannerAlarmReceiver.scheduleDailyAlarms(this)
+
         // Load the local app bundle
         webView.loadUrl("file:///android_asset/index.html")
     }
@@ -459,6 +462,21 @@ class MainActivity : AppCompatActivity() {
                     .apply()
                 StudyPlannerWidgetProvider.updateAllWidgets(context)
                 MascotWidgetProvider.updateAllWidgets(context)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        @JavascriptInterface
+        fun setUserProfile(name: String, age: Int, distraction: String) {
+            try {
+                val prefs = context.getSharedPreferences(StudyPlannerWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
+                prefs.edit()
+                    .putString("user_name", name)
+                    .putInt("user_age", age)
+                    .putString("user_distraction", distraction)
+                    .apply()
+                StudyPlannerAlarmReceiver.scheduleDailyAlarms(context)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

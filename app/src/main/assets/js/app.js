@@ -8,30 +8,97 @@
     let tomorrowStr = formatDateStr(globalTomorrow);
     let selectedDateStr = todayDateStr;
 
-    const motivationalPhrases = [
-        "Inizia a studiare, prima inizi prima finisci!",
-        "Il successo e' la somma di piccoli sforzi ripetuti giorno dopo giorno.",
-        "Non rimandare a domani quello che puoi studiare oggi!",
-        "Ogni pagina studiata e' un passo in piu' verso i tuoi traguardi.",
-        "Mettiti comodo, apri il libro e fai il vuoto intorno a te.",
-        "La costanza di oggi e' il risultato di domani. Coraggio!",
-        "Concentrazione al massimo: il tuo obiettivo ti aspetta.",
-        "Anche una singola pagina completata fa la differenza.",
-        "Spegni le distrazioni e completa la tua quota di oggi!",
-        "Sei piu' vicino al tuo traguardo rispetto a ieri. Continua cosi'!"
+    const notifCompletedPhrases = [
+        "See you tomorrow!",
+        "Till next time!",
+        "See you again?",
+        "See you later!",
+        "Miss me yet?",
+        "Way to go!",
+        "Miss you already!",
+        "Come back soon!",
+        "Don't forget me!"
     ];
 
-    const completedPhrases = [
-        "Ottimo lavoro! Hai completato tutte le quote di studio di oggi.",
-        "Obiettivo raggiunto! Hai chiuso la giornata con zero debiti di studio.",
-        "Missione compiuta! Goditi il tuo meritato riposo.",
-        "Hai completato tutto il programma pianificato per oggi.",
-        "Giornata conclusa con successo! Riposati, te lo sei meritato.",
-        "Tutto fatto! La tua costanza quotidiana ti portera' lontano.",
-        "Fantastico! Hai terminato ogni singola task odierna.",
-        "Quota giornaliera raggiunta! Rilassati e stacca la mente.",
-        "Perfetto! Un'altra giornata di studio portata a termine alla grande.",
-        "Tutte le attivita' completate: il tuo piano di studi e' in perfetto orario."
+    const notifNightPhrases = [
+        "Late night lesson?",
+        "Since you're up...",
+        "Learn from bed?",
+        "Can't sleep, [Username]?",
+        "Start early, [Username]!"
+    ];
+
+    const notifMorningPhrases = [
+        "Morning, [Username]!",
+        "[Username]! You're up!",
+        "Coffee + [Course]?",
+        "Get started early!",
+        "Early lesson?",
+        "Gooooood morning!"
+    ];
+
+    const notifAfternoonPhrases = [
+        "Time to practice!",
+        "Time to learn [Course]",
+        "[Username]! Practice?",
+        "Practice time!",
+        "[Course] lesson?",
+        "Pleasseeeeee?",
+        "Lesson, [Username]?",
+        "Start a lesson!",
+        "Got 3 minutes?",
+        "Let's practice!",
+        "Hey, [Username]."
+    ];
+
+    const notifEveningPhrases = [
+        "Seriously, [Username].",
+        "Please practice!",
+        "Duo's waiting!",
+        "[Username]?",
+        "Ready??????",
+        "[Username]! It's late!",
+        "I'm waitingggg!",
+        "Extend your streak!",
+        "It's getting late!",
+        "You ready, [Username]?"
+    ];
+
+    const notifNightUrgentPhrases = [
+        "[Username]...",
+        "Last chance, [Username]!",
+        "[Username]????",
+        "It's late!",
+        "Time's up [Username]!",
+        "Don't let it break!",
+        "Time's almost up!",
+        "Where ARE you?",
+        "Do! Your! [Course]!",
+        "Protect your streak!",
+        "Duo's worried!",
+        "Save your streak!",
+        "Last chance!",
+        "Run or Rest?",
+        "Save your streak"
+    ];
+
+    const notifLateNightCriticalPhrases = [
+        "[Username].",
+        "[USERNAME], PLEASE??",
+        "Last chance!",
+        "Now or never!",
+        "Don't forget me!",
+        "Save your streak!",
+        "Duo's not happy...",
+        "Duo is watching...",
+        "It's VERY late!",
+        "Bye-bye, streak??",
+        "Practice now!",
+        "Almost midnight!",
+        "LESSON NOW, [USERNAME]",
+        "ALMOST TOO LATE, [USERNAME]",
+        "*screams internally*",
+        "*PANIC NOISES*"
     ];
 
     function customConfirm(options) {
@@ -882,6 +949,10 @@
         return arr[Math.floor(Math.random() * arr.length)];
     }
 
+    function getStudentName() {
+        return (localStorage.getItem('studylog_user_name') || '').trim() || 'Campione';
+    }
+
     function checkAndSendSmartNotification() {
         const isAndroid = window.AndroidNative && window.AndroidNative.isNativeAndroid();
         if (!isAndroid && (!("Notification" in window) || Notification.permission !== "granted")) return;
@@ -890,12 +961,19 @@
         if (actionableTasks.length === 0) return; 
 
         let completedCount = 0;
+        let firstCourse = "Studio";
         actionableTasks.forEach(t => {
             let setKey = `${todayDateStr}_${t._id}`;
+            let isDone = false;
             if (t.isNormalTodo || t.isExamReview) {
-                if (completedTasks[setKey]) completedCount++;
+                if (completedTasks[setKey]) isDone = true;
             } else if (t.isExamStudy || t.isPractice || t.isVersion) {
-                if (t.isDone) completedCount++;
+                if (t.isDone) isDone = true;
+            }
+            if (isDone) {
+                completedCount++;
+            } else if (firstCourse === "Studio" && t.subject) {
+                firstCourse = cleanSubjectName(t.subject);
             }
         });
 
@@ -903,20 +981,42 @@
         let todayHistory = notifHistory[todayDateStr] || { completedSent: false, lastMsgTime: 0 };
 
         const nowTime = Date.now();
-        const threeHoursMs = 3 * 60 * 60 * 1000;
+        const twoHoursMs = 2 * 60 * 60 * 1000;
+        const currentHour = new Date().getHours();
+        const userName = getStudentName();
 
         if (completedCount === actionableTasks.length) {
             if (!todayHistory.completedSent) {
-                let randomPraise = getRandomItem(completedPhrases);
+                let randomPraise = getRandomItem(notifCompletedPhrases);
                 sendLocalNotification("Study Planner", randomPraise);
                 todayHistory.completedSent = true;
                 notifHistory[todayDateStr] = todayHistory;
                 localStorage.setItem('studylog_notif_history', JSON.stringify(notifHistory));
             }
         } else {
-            if (nowTime - (todayHistory.lastMsgTime || 0) >= threeHoursMs) {
-                let randomMotivation = getRandomItem(motivationalPhrases);
-                sendLocalNotification("Study Planner", randomMotivation);
+            if (nowTime - (todayHistory.lastMsgTime || 0) >= twoHoursMs) {
+                let phrasesPool = notifAfternoonPhrases;
+                if (currentHour >= 0 && currentHour < 4) {
+                    phrasesPool = notifNightPhrases;
+                } else if (currentHour >= 4 && currentHour < 12) {
+                    phrasesPool = notifMorningPhrases;
+                } else if (currentHour >= 12 && currentHour < 16) {
+                    phrasesPool = notifAfternoonPhrases;
+                } else if (currentHour >= 16 && currentHour < 20) {
+                    phrasesPool = notifEveningPhrases;
+                } else if (currentHour >= 20 && currentHour < 22) {
+                    phrasesPool = notifNightUrgentPhrases;
+                } else {
+                    phrasesPool = notifLateNightCriticalPhrases;
+                }
+
+                let template = getRandomItem(phrasesPool);
+                let message = template
+                    .replace(/\[Username\]/g, userName)
+                    .replace(/\[USERNAME\]/g, userName.toUpperCase())
+                    .replace(/\[Course\]/g, firstCourse);
+
+                sendLocalNotification("Study Planner", message);
                 todayHistory.lastMsgTime = nowTime;
                 notifHistory[todayDateStr] = todayHistory;
                 localStorage.setItem('studylog_notif_history', JSON.stringify(notifHistory));
@@ -2328,6 +2428,7 @@
         initBottomSheetDrag();
         initTaskSwipeNavigation();
         syncAndroidWidget();
+        checkOnboarding();
         
         setInterval(() => {
             checkAndSendSmartNotification();
@@ -2337,6 +2438,83 @@
             checkAndSendSmartNotification();
         }, 1500);
     }
+
+    function checkOnboarding() {
+        const hasCompleted = localStorage.getItem('studylog_onboarding_done');
+        const nameInput = document.getElementById('settings-user-name');
+        const ageInput = document.getElementById('settings-user-age');
+        const distractionInput = document.getElementById('settings-user-distraction');
+
+        const savedName = localStorage.getItem('studylog_user_name') || '';
+        const savedAge = localStorage.getItem('studylog_user_age') || '';
+        const savedDistraction = localStorage.getItem('studylog_user_distraction') || '';
+
+        if (nameInput) nameInput.value = savedName;
+        if (ageInput) ageInput.value = savedAge;
+        if (distractionInput) distractionInput.value = savedDistraction;
+
+        if (!hasCompleted && !savedName) {
+            setTimeout(() => {
+                const modal = document.getElementById('onboarding-modal');
+                if (modal) modal.classList.add('active');
+            }, 600);
+        }
+    }
+
+    window.finishOnboarding = function() {
+        const name = (document.getElementById('onboarding-name')?.value || '').trim();
+        const ageVal = parseInt(document.getElementById('onboarding-age')?.value || '0', 10);
+        const distraction = (document.getElementById('onboarding-distraction')?.value || '').trim();
+
+        if (!name) {
+            customAlert("Inserisci il tuo nome per continuare.", "Nome richiesto");
+            return;
+        }
+
+        localStorage.setItem('studylog_user_name', name);
+        if (ageVal > 0) localStorage.setItem('studylog_user_age', ageVal.toString());
+        if (distraction) localStorage.setItem('studylog_user_distraction', distraction);
+        localStorage.setItem('studylog_onboarding_done', 'true');
+
+        // Sincronizza con native Android se presente
+        if (window.AndroidNative && typeof window.AndroidNative.setUserProfile === 'function') {
+            window.AndroidNative.setUserProfile(name, ageVal || 0, distraction || '');
+        }
+
+        const nameInput = document.getElementById('settings-user-name');
+        const ageInput = document.getElementById('settings-user-age');
+        const distractionInput = document.getElementById('settings-user-distraction');
+        if (nameInput) nameInput.value = name;
+        if (ageInput && ageVal > 0) ageInput.value = ageVal.toString();
+        if (distractionInput) distractionInput.value = distraction;
+
+        const modal = document.getElementById('onboarding-modal');
+        if (modal) modal.classList.remove('active');
+
+        showToast(`Benvenuto, ${name}!`);
+        sendLocalNotification("Study Planner", `Benvenuto ${name}! Pronto a conquistare la tua serie di studio?`);
+    };
+
+    window.saveUserProfileFromSettings = function() {
+        const name = (document.getElementById('settings-user-name')?.value || '').trim();
+        const ageVal = parseInt(document.getElementById('settings-user-age')?.value || '0', 10);
+        const distraction = (document.getElementById('settings-user-distraction')?.value || '').trim();
+
+        if (!name) {
+            customAlert("Il nome non puo' essere vuoto.", "Nome richiesto");
+            return;
+        }
+
+        localStorage.setItem('studylog_user_name', name);
+        if (ageVal > 0) localStorage.setItem('studylog_user_age', ageVal.toString());
+        if (distraction) localStorage.setItem('studylog_user_distraction', distraction);
+
+        if (window.AndroidNative && typeof window.AndroidNative.setUserProfile === 'function') {
+            window.AndroidNative.setUserProfile(name, ageVal || 0, distraction || '');
+        }
+
+        showToast("Profilo aggiornato!");
+    };
 
     function isDayStudied(dStr) {
         if(xpHistory[dStr] && xpHistory[dStr] > 0) return true;
@@ -3109,35 +3287,31 @@
         previewEl.style.display = 'none';
         btnGen.disabled = true;
 
-        const systemInstruction = `Sei l'assistente accademico di StudyPlanner. Il tuo obiettivo e' analizzare la richiesta dello studente e trasformarla in un piano strutturato di impegni.
+        const systemInstruction = `Sei l'assistente accademico intelligente di StudyPlanner.
+Il tuo compito e' comprendere a fondo il testo fornito dallo studente: cosa deve accadere, quali compiti o pagine deve svolgere e per quando.
+In base a questo contesto e alla data di scadenza, devi pianificare la To-Do list o la verifica organizzando correttamente gli impegni.
 Data odierna di riferimento: ${todayDateStr} (Anno-Mese-Giorno).
 Materie registrate dello studente: ${JSON.stringify(userSubjects)}.
 
-REGOLE CRUCIALI SULLE DATE:
-1. Le date devono essere sempre valide nel formato YYYY-MM-DD.
-2. Se lo studente cita un giorno oltre la fine del mese corrente (es. 'per il 32' o 'il 32 ottobre'), interpreta correttamente il giorno nel mese successivo! Esempio: ottobre ha 31 giorni, quindi il '32' significa esattamente il giorno successivo, cioe' 1 Novembre (${todayDateStr.split('-')[0]}-11-01). Se dice 'il 15' ed e' gia' passato rispetto ad oggi (${todayDateStr}), riferisciti al mese successivo. Non inventare mai date inesistenti come 2026-10-32!
-3. Se l'utente dice 'per domani', la data sara' il giorno successivo a ${todayDateStr}.
+COMPRENSIONE DEL CONTESTO E PIANIFICAZIONE:
+1. Comprendi cosa deve accadere: individua la materia, l'argomento, il tipo di lavoro (esercizi, pagine da studiare, ripasso, compito a casa, verifica).
+2. Data di scadenza: calcola la data esatta entro cui completare l'obiettivo. Se lo studente specifica una scadenza (es. 'per lunedì prossimo', 'entro il 20 ottobre', 'per domani'), assegna la scadenza corretta. Se dice un numero oltre i giorni del mese corrente (es. '32'), normalizzalo al giorno successivo nel mese seguente.
+3. Se l'utente chiede una To-Do list o una serie di compiti da preparare fino a una data, distribuisci o crea le task con categoria 'todo' oppure 'exam' in base a se si tratta di una preparazione di una prova formale o di compiti/esercizi per casa.
+4. Per esercizi (es. '4 esercizi al giorno', '10 problemi'): assegna esattamente il numero richiesto nel campo pagesOrExercises.
+5. Per studio su pagine con verifica: applica il Principio di Sicurezza dell'80% del tempo con giorni di margine per il ripasso finale.
+6. VIETATO ASSOLUTAMENTE USARE QUALSIASI EMOJI nei titoli o nei dettagli.
 
-REGOLE SUI CARICHI (PAGINE ED ESERCIZI):
-1. Per verifiche di MATEMATICA o FISICA in cui lo studente specifica quanti esercizi fare al giorno (es. '4 esercizi al giorno', '5 es al giorno'):
-   - 'pagesOrExercises' DEVE essere esattamente quel numero indicato (es. 4), cioe' la quota giornaliera di esercizi! Non mettere valori inventati o default (es. NON mettere 20).
-2. Per verifiche di studio su pagine (storia, scienze, latino, filosofia, letteratura):
-   - 'pagesOrExercises' rappresenta le pagine totali da distribuire fino alla verifica (applicando il Principio di Sicurezza dell'80% del tempo con buffer finale di ripasso).
-3. Se l'utente menziona compiti o esercizi generici per una data specifica senza verifica, assegna categoria 'todo'.
-4. Ogni materia assegnata deve coincidere con una delle materie esistenti o una nuova appropriata senza emoji.
-5. VIETATO USARE QUALSIASI EMOJI nei testi o nei titoli.
-
-Rispondi ESCLUSIVAMENTE con un oggetto JSON valido con il seguente schema:
+Rispondi ESCLUSIVAMENTE con un JSON valido con questo formato:
 {
   "items": [
     {
-      "category": "exam" o "todo",
+      "category": "todo" o "exam",
       "subject": "Nome materia",
-      "title": "Titolo chiaro del compito o della prova",
+      "title": "Descrizione chiara e mirata del compito da fare",
       "date": "YYYY-MM-DD",
-      "type": "Verifica" o "Interrogazione" o "Esercizi" o "Compito",
+      "type": "Compito" o "Esercizi" o "Verifica" o "Interrogazione",
       "pagesOrExercises": 4,
-      "details": "Dettaglio quote giornaliere o descrizione sintetica"
+      "details": "Dettaglio comprensibile sul volume di lavoro"
     }
   ]
 }`;
