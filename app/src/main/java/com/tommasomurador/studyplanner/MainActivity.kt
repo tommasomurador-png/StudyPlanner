@@ -16,10 +16,6 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.view.ViewGroup
-import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
-import android.webkit.PermissionRequest
 import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
@@ -38,12 +34,10 @@ import androidx.core.view.WindowCompat
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
-    private var speechRecognizer: SpeechRecognizer? = null
 
     companion object {
         const val CHANNEL_ID = "studyplanner_notifications"
         const val NOTIF_PERMISSION_CODE = 101
-        const val AUDIO_PERMISSION_CODE = 102
         var activeInstance: MainActivity? = null
     }
 
@@ -143,28 +137,7 @@ class MainActivity : AppCompatActivity() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
                 return super.onConsoleMessage(consoleMessage)
             }
-
-            override fun onPermissionRequest(request: PermissionRequest?) {
-                request?.let {
-                    val requestedResources = it.resources
-                    for (r in requestedResources) {
-                        if (r == PermissionRequest.RESOURCE_AUDIO_CAPTURE) {
-                            it.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE))
-                            return
-                        }
-                    }
-                    it.grant(it.resources)
-                }
-            }
         }
-    }
-
-    private fun checkAndRequestAudioPermission(): Boolean {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), AUDIO_PERMISSION_CODE)
-            return false
-        }
-        return true
     }
 
     private fun setupBackNavigation() {
@@ -199,12 +172,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         if (activeInstance == this) activeInstance = null
-        try {
-            speechRecognizer?.destroy()
-            speechRecognizer = null
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
         webView.destroy()
         super.onDestroy()
     }
@@ -225,144 +192,6 @@ class MainActivity : AppCompatActivity() {
     inner class WebAppInterface(private val context: Context) {
         @JavascriptInterface
         fun isNativeAndroid(): Boolean = true
-
-        @JavascriptInterface
-        fun hasAudioPermission(): Boolean {
-            return ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-        }
-
-        @JavascriptInterface
-        fun requestAudioPermission() {
-            runOnUiThread {
-                checkAndRequestAudioPermission()
-            }
-        }
-
-        @JavascriptInterface
-        fun startSpeechRecognition() {
-            runOnUiThread {
-                try {
-                    if (!checkAndRequestAudioPermission()) {
-                        webView.evaluateJavascript("window.onNativeSpeechError ? window.onNativeSpeechError('Permesso microfono non concesso') : null", null)
-                        return@runOnUiThread
-                    }
-
-                    if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-                        webView.evaluateJavascript("window.onNativeSpeechError ? window.onNativeSpeechError('Servizio vocale non disponibile sul dispositivo') : null", null)
-                        return@runOnUiThread
-                    }
-
-                    speechRecognizer?.destroy()
-                    var isExplicitlyStopped = false
-
-                    speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
-                        setRecognitionListener(object : RecognitionListener {
-                            override fun onReadyForSpeech(params: Bundle?) {
-                                webView.post {
-                                    webView.evaluateJavascript("window.onNativeSpeechReady ? window.onNativeSpeechReady() : null", null)
-                                }
-                            }
-                            override fun onBeginningOfSpeech() {}
-                            override fun onRmsChanged(rmsdB: Float) {
-                                // rmsdB varia generalmente tra -2 e 10
-                                val normalizedVolume = Math.max(0.0f, Math.min(1.0f, (rmsdB + 2.0f) / 12.0f))
-                                webView.post {
-                                    webView.evaluateJavascript("window.onNativeSpeechVolume ? window.onNativeSpeechVolume($normalizedVolume) : null", null)
-                                }
-                            }
-                            override fun onBufferReceived(buffer: ByteArray?) {}
-                            override fun onEndOfSpeech() {}
-                            override fun onError(error: Int) {
-                                if (isExplicitlyStopped) return
-                                // Se c'e' una pausa nel parlato o no-match, riavvia l'ascolto per non chiuderlo finche' l'utente non preme stop
-                                if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-                                    try {
-                                        val restartIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                                            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
-                                            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-                                        }
-                                        speechRecognizer?.startListening(restartIntent)
-                                        return
-                                    } catch (e: Exception) {}
-                                }
-
-                                val msg = when (error) {
-                                    SpeechRecognizer.ERROR_AUDIO -> "Errore audio"
-                                    SpeechRecognizer.ERROR_CLIENT -> "Errore client vocale"
-                                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Permesso microfono mancante"
-                                    SpeechRecognizer.ERROR_NETWORK -> "Errore di connessione"
-                                    SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Timeout di rete"
-                                    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Riconoscitore occupato"
-                                    SpeechRecognizer.ERROR_SERVER -> "Errore server vocale"
-                                    else -> "Errore microfono"
-                                }
-                                webView.post {
-                                    webView.evaluateJavascript("window.onNativeSpeechError ? window.onNativeSpeechError('$msg') : null", null)
-                                }
-                            }
-                            override fun onResults(results: Bundle?) {
-                                val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                                val text = if (!matches.isNullOrEmpty()) matches[0] else ""
-                                val escaped = text.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ")
-                                webView.post {
-                                    webView.evaluateJavascript("window.onNativeSpeechResult ? window.onNativeSpeechResult('$escaped', true) : null", null)
-                                }
-                                // Se l'utente non ha premuto Stop, continua ad ascoltare per la frase successiva
-                                if (!isExplicitlyStopped) {
-                                    try {
-                                        val restartIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                                            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
-                                            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-                                        }
-                                        speechRecognizer?.startListening(restartIntent)
-                                    } catch (e: Exception) {}
-                                }
-                            }
-                            override fun onPartialResults(partialResults: Bundle?) {
-                                val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                                if (!matches.isNullOrEmpty()) {
-                                    val text = matches[0]
-                                    val escaped = text.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ")
-                                    webView.post {
-                                        webView.evaluateJavascript("window.onNativeSpeechResult ? window.onNativeSpeechResult('$escaped', false) : null", null)
-                                    }
-                                }
-                            }
-                            override fun onEvent(eventType: Int, params: Bundle?) {}
-                        })
-                    }
-
-                    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                        putExtra(RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
-                        putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "it-IT")
-                        putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, "it-IT")
-                        putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-                        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-                    }
-                    speechRecognizer?.startListening(intent)
-                } catch (e: Exception) {
-                    val err = (e.message ?: "Errore avvio microfono").replace("'", "\\'")
-                    webView.evaluateJavascript("window.onNativeSpeechError ? window.onNativeSpeechError('$err') : null", null)
-                }
-            }
-        }
-
-        @JavascriptInterface
-        fun stopSpeechRecognition() {
-            runOnUiThread {
-                try {
-                    speechRecognizer?.stopListening()
-                    speechRecognizer?.destroy()
-                    speechRecognizer = null
-                    webView.evaluateJavascript("window.onNativeSpeechEnd ? window.onNativeSpeechEnd() : null", null)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-        }
 
         @JavascriptInterface
         fun hasNotificationPermission(): Boolean {
