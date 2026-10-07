@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Study Planner - Dotted Journal</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
@@ -39,8 +39,9 @@
 
 <script>
     let savedTheme = localStorage.getItem('studylog_theme') || 'light';
-    let savedBg = localStorage.getItem('studylog_bg') || 'dots';
+    let savedStyle = localStorage.getItem('studylog_style') || 'classic';
     document.documentElement.setAttribute('data-theme', savedTheme);
+    document.documentElement.setAttribute('data-style', savedStyle);
 </script>
 
 <div id="app-container">
@@ -92,6 +93,7 @@
             </div>
             
             <div class="section-title" id="today-title">Oggi</div>
+            <div id="goal-gradient-box" style="display: none;"></div>
             <div class="exercises-list" id="exercises-container"></div>
         </div>
 
@@ -204,20 +206,26 @@
                     <div class="settings-card-header">
                         <span class="settings-card-title"><i class="fa-solid fa-palette"></i> Aspetto</span>
                     </div>
-                    <div class="settings-row">
-                        <span class="settings-row-label">Tema</span>
-                        <button class="choice-btn compact" id="theme-toggler-btn" onclick="toggleAppTheme(event)">
-                            <i class="fa-solid fa-sun" id="theme-toggler-icon"></i>
-                            <span id="theme-toggler-text">Chiaro</span>
-                        </button>
-                    </div>
                     <div class="settings-row-col">
-                        <span class="settings-row-label">Sfondo</span>
-                        <div class="settings-grid">
-                            <button class="choice-btn compact" id="btn-bg-dots" onclick="setAppBg('dots')">Pallini</button>
-                            <button class="choice-btn compact" id="btn-bg-lines" onclick="setAppBg('lines')">Righe</button>
-                            <button class="choice-btn compact" id="btn-bg-grid" onclick="setAppBg('grid')">Quadretti</button>
-                            <button class="choice-btn compact" id="btn-bg-blank" onclick="setAppBg('blank')">Vuoto</button>
+                        <span class="settings-row-label">Stile Grafico</span>
+                        <div class="settings-grid" style="grid-template-columns: 1fr 1fr;">
+                            <button class="choice-btn compact" id="btn-style-classic" onclick="setAppStyle('classic')">
+                                <i class="fa-solid fa-feather"></i> Classic
+                            </button>
+                            <button class="choice-btn compact" id="btn-style-pixel" onclick="setAppStyle('pixel')">
+                                <i class="fa-solid fa-cube"></i> Pixel (ISO-CORE)
+                            </button>
+                        </div>
+                    </div>
+                    <div class="settings-row-col" style="margin-top: 14px;">
+                        <span class="settings-row-label">Modalita'</span>
+                        <div class="settings-grid" style="grid-template-columns: 1fr 1fr;">
+                            <button class="choice-btn compact" id="btn-theme-light" onclick="setAppTheme('light')">
+                                <i class="fa-solid fa-sun"></i> Chiaro
+                            </button>
+                            <button class="choice-btn compact" id="btn-theme-dark" onclick="setAppTheme('dark')">
+                                <i class="fa-solid fa-moon"></i> Scuro
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -267,19 +275,11 @@
                     <div class="settings-card-header">
                         <span class="settings-card-title"><i class="fa-solid fa-user-graduate"></i> Profilo Studente</span>
                     </div>
-                    <div class="form-group" style="margin-bottom: 10px;">
+                    <div class="form-group" style="margin-bottom: 12px;">
                         <label style="font-size: 0.78rem;">Nome</label>
                         <input type="text" id="settings-user-name" class="form-control" placeholder="Il tuo nome">
                     </div>
-                    <div class="form-group" style="margin-bottom: 10px;">
-                        <label style="font-size: 0.78rem;">Età</label>
-                        <input type="number" id="settings-user-age" class="form-control" placeholder="Es. 17" min="6" max="99">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label style="font-size: 0.78rem;">Cosa ti distrae dallo studio?</label>
-                        <input type="text" id="settings-user-distraction" class="form-control" placeholder="Es. Notifiche smartphone, videogiochi...">
-                    </div>
-                    <button type="button" class="btn-submit" style="width: 100%; padding: 11px;" onclick="saveUserProfileFromSettings()">Aggiorna profilo</button>
+                    <button type="button" class="btn-submit" style="width: 100%; padding: 11px;" onclick="saveUserProfileFromSettings()">Aggiorna nome</button>
                 </div>
             </div>
         </div>
@@ -609,35 +609,20 @@
 
     <!-- MODAL DI BENVENUTO E ONBOARDING PRIMO AVVIO -->
     <div class="fullscreen-modal" id="onboarding-modal">
-        <div class="glass-panel" style="max-height: 90vh; display: flex; flex-direction: column;">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <div style="width: 65px; height: 65px; border-radius: 20px; background: var(--theme-empty); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px; border: 1px solid var(--border-color);">
+        <div class="glass-panel" style="max-height: 90vh; display: flex; flex-direction: column; text-align: center;">
+            <div style="margin-bottom: 24px;">
+                <div style="width: 65px; height: 65px; border-radius: 20px; background: var(--theme-empty); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px; border: 1px solid var(--border-color);">
                     <i class="fa-solid fa-graduation-cap" style="font-size: 2rem; color: var(--theme-strong);"></i>
                 </div>
                 <h3 style="font-weight: 700; color: var(--theme-strong); margin-bottom: 6px;">Benvenuto su Study Planner</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin: 0;">
-                    Il tuo alleato quotidiano per costruire disciplina e completare ogni obiettivo.
+                <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.4; margin: 0;">
+                    Il tuo diario di studio per organizzare verifiche, compiti e proteggere la tua serie quotidiana.
                 </p>
             </div>
 
-            <div class="form-group" style="margin-bottom: 14px;">
+            <div class="form-group" style="margin-bottom: 22px; text-align: left;">
                 <label>Come ti chiami?</label>
                 <input type="text" id="onboarding-name" class="form-control" placeholder="Il tuo nome">
-            </div>
-
-            <div class="form-group" style="margin-bottom: 14px;">
-                <label>Quanti anni hai?</label>
-                <input type="number" id="onboarding-age" class="form-control" placeholder="La tua età" min="6" max="99">
-            </div>
-
-            <div class="form-group" style="margin-bottom: 16px;">
-                <label>Cosa ti distrae dallo studio?</label>
-                <input type="text" id="onboarding-distraction" class="form-control" placeholder="Es. Notifiche telefono, social, procrastinare...">
-            </div>
-
-            <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px 16px; margin-bottom: 18px; font-size: 0.82rem; color: var(--text-muted); line-height: 1.45;">
-                <strong style="color: var(--text-main); display: block; margin-bottom: 4px;">Determinazione e Disciplina</strong>
-                Questa app ti aiuterà a migliorarti giorno dopo giorno nel completare tutte le task entro il tempo limite, proteggendo la tua serie di studio e battendo ogni distrazione.
             </div>
 
             <button type="button" class="btn-submit" style="width: 100%; padding: 14px; font-size: 1rem;" onclick="finishOnboarding()">
@@ -648,7 +633,8 @@
 
 </div>
 
-    <script src="js/app.js?v=2.1.7" defer></script>
+    <canvas id="celebration-canvas"></canvas>
+    <script src="js/app.js?v=2.1.8" defer></script>
 
 </body>
 </html>

@@ -1,12 +1,14 @@
-        /* Variabili Tema Chiaro (B/N Minimal Dotted Journal) */
-        :root {
+        /* Tema Classic Chiaro (B/N Minimal Dotted Journal) */
+        :root,
+        [data-style="classic"][data-theme="light"],
+        [data-theme="light"]:not([data-style="pixel"]) {
             color-scheme: light;
             accent-color: #2C2C2C;
 
             --bg-color: #F9F7F1;
             --surface-color: #FDFBFC;
             --card-color: #FFFFFF;
-            --nav-bg: rgba(253, 251, 252, 0.88);
+            --nav-bg: rgba(253, 251, 252, 0.90);
             
             --theme-empty: #EAEAEA;
             --theme-light: #CCCCCC;
@@ -21,17 +23,22 @@
             
             --danger-color: #D9534F;
             --success-color: #4A4A4A; 
+            --ui-font: 'Poppins', sans-serif;
+            --pixel-border: none;
+            --pixel-shadow: 0 4px 16px rgba(0,0,0,0.03);
+            --pixel-radius: 20px;
         }
 
-        /* Variabili Tema Scuro (B/N Puro Minimal) */
-        [data-theme="dark"] {
+        /* Tema Classic Scuro (B/N Puro Minimal) */
+        [data-theme="dark"]:not([data-style="pixel"]),
+        [data-style="classic"][data-theme="dark"] {
             color-scheme: dark;
             accent-color: #EAEAEA;
 
             --bg-color: #161616;
             --surface-color: #202020;
             --card-color: #282828;
-            --nav-bg: rgba(32, 32, 32, 0.88);
+            --nav-bg: rgba(32, 32, 32, 0.90);
             
             --theme-empty: #333333;
             --theme-light: #555555;
@@ -46,6 +53,68 @@
             
             --danger-color: #EF6C68;
             --success-color: #B0B0B0; 
+            --ui-font: 'Poppins', sans-serif;
+            --pixel-border: none;
+            --pixel-shadow: 0 4px 16px rgba(0,0,0,0.18);
+            --pixel-radius: 20px;
+        }
+
+        /* Tema Pixel ISO-CORE Scuro (Ispirato al videogioco di JohnBrx: biomi, pietre isometriche, neon core) */
+        [data-style="pixel"][data-theme="dark"] {
+            color-scheme: dark;
+            accent-color: #38BDF8;
+
+            --bg-color: #0F172A;
+            --surface-color: #1E293B;
+            --card-color: #192333;
+            --nav-bg: rgba(15, 23, 42, 0.94);
+            
+            --theme-empty: #26354A;
+            --theme-light: #0284C7;
+            --theme-mid: #38BDF8;
+            --theme-strong: #38BDF8; 
+            
+            --text-main: #F8FAFC; 
+            --text-muted: #94A3B8; 
+            --border-color: #334155; 
+            
+            --pattern-color: rgba(56, 189, 248, 0.06);
+            
+            --danger-color: #F43F5E;
+            --success-color: #10B981; 
+            --ui-font: 'Silkscreen', 'Poppins', monospace;
+            --pixel-border: 2px solid #334155;
+            --pixel-shadow: 3px 3px 0px #090D16;
+            --pixel-radius: 6px;
+        }
+
+        /* Tema Pixel ISO-CORE Chiaro (Ispirato alla terra/erba isometrica diurna del devlog di JohnBrx) */
+        [data-style="pixel"][data-theme="light"] {
+            color-scheme: light;
+            accent-color: #0284C7;
+
+            --bg-color: #E2E8F0;
+            --surface-color: #F1F5F9;
+            --card-color: #FFFFFF;
+            --nav-bg: rgba(241, 245, 249, 0.94);
+            
+            --theme-empty: #CBD5E1;
+            --theme-light: #7DD3FC;
+            --theme-mid: #0284C7;
+            --theme-strong: #0369A1; 
+            
+            --text-main: #0F172A; 
+            --text-muted: #475569; 
+            --border-color: #94A3B8; 
+            
+            --pattern-color: rgba(3, 105, 161, 0.07);
+            
+            --danger-color: #E11D48;
+            --success-color: #059669; 
+            --ui-font: 'Silkscreen', 'Poppins', monospace;
+            --pixel-border: 2px solid #94A3B8;
+            --pixel-shadow: 3px 3px 0px #64748B;
+            --pixel-radius: 6px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -56,8 +125,31 @@
             display: flex;
             justify-content: center;
             min-height: 100vh;
-            font-family: 'Poppins', sans-serif; 
-            transition: background-color 0.3s ease, color 0.3s ease;
+            font-family: var(--ui-font); 
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        /* Modificatori specifici per lo stile Pixel ISO-CORE */
+        [data-style="pixel"] .exercise-card,
+        [data-style="pixel"] .dash-widget,
+        [data-style="pixel"] .settings-card,
+        [data-style="pixel"] .glass-panel,
+        [data-style="pixel"] .bottom-sheet-content,
+        [data-style="pixel"] .popover-popup-content,
+        [data-style="pixel"] .ai-preview-card {
+            border-radius: var(--pixel-radius) !important;
+            border: var(--pixel-border) !important;
+            box-shadow: var(--pixel-shadow) !important;
+        }
+
+        [data-style="pixel"] .choice-btn,
+        [data-style="pixel"] .btn-submit,
+        [data-style="pixel"] .fab-btn,
+        [data-style="pixel"] .day-bubble,
+        [data-style="pixel"] .form-control,
+        [data-style="pixel"] .popover-trigger-btn {
+            border-radius: 4px !important;
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.2) !important;
         }
 
         #app-container {
@@ -1005,3 +1097,126 @@
             border: 1px solid var(--border-color);
             color: var(--text-muted);
         }
+
+        /* Psicologia UI/UX: The Goal Gradient Effect */
+        .goal-gradient-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+            transition: all 0.3s ease;
+        }
+        [data-style="pixel"] .goal-gradient-card {
+            border-radius: var(--pixel-radius) !important;
+            border: var(--pixel-border) !important;
+            box-shadow: var(--pixel-shadow) !important;
+        }
+        .goal-gradient-card.completed {
+            border-color: var(--success-color);
+            background: linear-gradient(135deg, var(--surface-color) 70%, var(--theme-empty));
+        }
+        .goal-gradient-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .goal-gradient-title {
+            font-size: 0.84rem;
+            font-weight: 700;
+            color: var(--theme-strong);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .goal-gradient-percent {
+            font-size: 0.84rem;
+            font-weight: 700;
+            color: var(--theme-strong);
+        }
+        .goal-gradient-track {
+            width: 100%;
+            height: 8px;
+            background: var(--theme-empty);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        [data-style="pixel"] .goal-gradient-track {
+            border-radius: 0 !important;
+        }
+        .goal-gradient-bar {
+            height: 100%;
+            background: var(--theme-strong);
+            border-radius: 4px;
+            transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .goal-gradient-card.completed .goal-gradient-bar {
+            background: var(--success-color);
+        }
+        .goal-gradient-caption {
+            font-size: 0.76rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-top: 6px;
+        }
+
+        /* Psicologia UI/UX: The Labor Illusion */
+        .labor-steps-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            margin-top: 14px;
+            text-align: left;
+        }
+        .labor-step-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: color 0.3s ease;
+        }
+        .labor-step-item.active {
+            color: var(--theme-strong);
+        }
+        .labor-step-item.done {
+            color: var(--theme-strong);
+        }
+        .labor-step-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--theme-empty);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: var(--theme-strong);
+            flex-shrink: 0;
+        }
+        .labor-step-item.active .labor-step-icon {
+            background: var(--theme-strong);
+            color: var(--surface-color);
+            animation: pulse 1s infinite;
+        }
+        .labor-step-item.done .labor-step-icon {
+            background: var(--theme-strong);
+            color: var(--surface-color);
+        }
+
+        /* Psicologia UI/UX: The Peak-End Rule (Celebration Canvas) */
+        #celebration-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 99999;
+        }
+

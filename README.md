@@ -7,8 +7,6 @@
 Il taccuino digitale per la gestione intelligente dello studio, delle verifiche, del focus profondo e della memorizzazione a lungo termine.
 
 [![Status](https://img.shields.io/badge/Status-Online-success?style=for-the-badge&logo=github)](https://tommasomurador-png.github.io/StudyPlanner/)
-[![Download APK](https://img.shields.io/badge/Download-APK-success?style=for-the-badge&logo=android)](https://github.com/tommasomurador-png/StudyPlanner/releases/latest)
-[![Build Android APK](https://img.shields.io/github/actions/workflow/status/tommasomurador-png/StudyPlanner/build-apk.yml?branch=main&style=for-the-badge&logo=github-actions&label=BUILD)](https://github.com/tommasomurador-png/StudyPlanner/actions/workflows/build-apk.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
 <p align="center">
@@ -39,25 +37,14 @@ A differenza delle tradizionali applicazioni per to-do list, Study Planner e' pr
 - **Ripartizione dinamica del carico di lavoro:** Calcola il ritmo ottimale di pagine ed esercizi giorno per giorno fino alla data della prova. Se un giorno studi meno del previsto, l'algoritmo distribuisce automaticamente il carico residuo sulle giornate rimanenti.
 - **Gamification e Gradi Accademici:** Punti Conoscenza (XP), Serie di Fuoco continuativa e avanzamento di livello da Matricola fino a Einstein per mantenere alta la motivazione giorno dopo giorno.
 - **Statistiche e Analisi Visiva:** Calendario planning con indicatori mensili, grafico a torta Donut con distribuzione per materia e mappa di impegno storico a 90 giorni.
-- **Widget nativo per Android:** Widget integrabile sulla schermata home dello smartphone per consultare lo stato della serie di giorni e le task odierne a colpo d'occhio.
 
 ### Piattaforme supportate
 
-- **Android:** Applicazione nativa con Widget per la schermata Home, integrazione del tasto Indietro hardware, vibrazione aptica e canali di notifica locali.
 - **Web e Progressive Web App (PWA):** Accessibile da qualsiasi browser moderno su computer, tablet e smartphone, installabile sulla schermata iniziale e fruibile senza connessione a Internet.
 
 ---
 
-## Come installare
-
-### 1. Applicazione Android nativa (APK)
-
-1. Apri la sezione **[Releases](https://github.com/tommasomurador-png/StudyPlanner/releases/latest)** del repository GitHub.
-2. Scarica il pacchetto `StudyPlanner.apk` compilato tramite il sistema di Continuous Integration.
-3. Apri il file scaricato sul dispositivo Android e conferma l'installazione.
-4. Tieni premuto uno spazio vuoto della schermata iniziale per aggiungere il widget Study Planner.
-
-### 2. Installazione Web App (PWA)
+## Come installare (Web App / PWA)
 
 1. Visita la pagina ufficiale: **[tommasomurador-png.github.io/StudyPlanner](https://tommasomurador-png.github.io/StudyPlanner/)**.
 2. Apri il menu del browser (o il pulsante Condividi su iOS / Safari).
@@ -98,8 +85,6 @@ A differenza delle tradizionali applicazioni per to-do list, Study Planner e' pr
 
 ```text
 StudyPlanner/
-|-- .github/workflows/
-|   `-- build-apk.yml               Compilazione automatica APK e pubblicazione release
 |-- app/
 |   |-- src/main/
 |   |   |-- assets/                 File sorgente web inclusi nell'applicazione nativa

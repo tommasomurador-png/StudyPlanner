@@ -810,38 +810,59 @@
     let recordStreak = parseInt(localStorage.getItem('studylog_record_streak') || '0');
     let navDate = new Date(); let streakNavDate = new Date();
 
-    function applySettingsUI() {
-        let bgBtn = document.getElementById('btn-bg-' + savedBg); 
-        document.querySelectorAll('.settings-grid .choice-btn').forEach(btn => {
-            if(btn.id.startsWith('btn-bg-')) btn.classList.remove('active-setting');
-        });
-        if (bgBtn) bgBtn.classList.add('active-setting');
-        document.getElementById('app-container').setAttribute('data-bg', savedBg);
+    let savedTheme = localStorage.getItem('studylog_theme') || 'light';
+    let savedStyle = localStorage.getItem('studylog_style') || 'classic';
 
-        const iconEl = document.getElementById('theme-toggler-icon');
-        const textEl = document.getElementById('theme-toggler-text');
-        if (iconEl && textEl) {
-            if (savedTheme === 'dark') {
-                iconEl.className = "fa-solid fa-moon";
-                textEl.innerText = "Scuro";
-            } else {
-                iconEl.className = "fa-solid fa-sun";
-                textEl.innerText = "Chiaro";
-            }
+    function applySettingsUI() {
+        const btnStyleClassic = document.getElementById('btn-style-classic');
+        const btnStylePixel = document.getElementById('btn-style-pixel');
+        if (btnStyleClassic && btnStylePixel) {
+            btnStyleClassic.classList.toggle('active-setting', savedStyle === 'classic');
+            btnStylePixel.classList.toggle('active-setting', savedStyle === 'pixel');
         }
+
+        const btnThemeLight = document.getElementById('btn-theme-light');
+        const btnThemeDark = document.getElementById('btn-theme-dark');
+        if (btnThemeLight && btnThemeDark) {
+            btnThemeLight.classList.toggle('active-setting', savedTheme === 'light');
+            btnThemeDark.classList.toggle('active-setting', savedTheme === 'dark');
+        }
+
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.documentElement.setAttribute('data-style', savedStyle);
+
         updateNotificationBellUI();
         renderSettingsSubjectTags();
         if (typeof updateWidgetSettingsUI === 'function') updateWidgetSettingsUI();
         if (typeof updateGeminiKeySettingsUI === 'function') updateGeminiKeySettingsUI();
     }
 
-    window.toggleAppTheme = function() {
-        savedTheme = savedTheme === 'light' ? 'dark' : 'light';
-        localStorage.setItem('studylog_theme', savedTheme);
-        document.documentElement.setAttribute('data-theme', savedTheme);
+    window.setAppStyle = function(style) {
+        savedStyle = style;
+        localStorage.setItem('studylog_style', style);
+        document.documentElement.setAttribute('data-style', style);
+        applySettingsUI();
+        showToast(`Stile: ${style === 'pixel' ? 'Pixel (ISO-CORE)' : 'Classic'}`);
+    };
+
+    window.setAppTheme = function(theme) {
+        savedTheme = theme;
+        localStorage.setItem('studylog_theme', theme);
+        document.documentElement.setAttribute('data-theme', theme);
         applySettingsUI();
         if (typeof renderSubjectDonutChart === 'function') renderSubjectDonutChart();
-    }
+        showToast(`Tema: ${theme === 'dark' ? 'Scuro' : 'Chiaro'}`);
+    };
+
+    window.toggleAppTheme = function() {
+        const nextTheme = savedTheme === 'light' ? 'dark' : 'light';
+        window.setAppTheme(nextTheme);
+    };
+
+    window.setAppBg = function(bg) {
+        // Compatibilita' retroattiva
+        applySettingsUI();
+    };
 
     function updateNotificationBellUI() {
         const label = document.getElementById('notif-status-label');
@@ -1024,7 +1045,8 @@
         }
     }
 
-    window.setAppBg = function(bg) { savedBg = bg; localStorage.setItem('studylog_bg', bg); document.getElementById('app-container').setAttribute('data-bg', bg); applySettingsUI(); }
+    // Retrocompatibilita' setAppBg
+    window.setAppBg = function(bg) { applySettingsUI(); };
 
     let currentPriority = 1;
     document.querySelectorAll('#todo-priority i').forEach(star => { star.addEventListener('click', function() { currentPriority = parseInt(this.getAttribute('data-val')); document.querySelectorAll('#todo-priority i').forEach(s => { s.classList.toggle('active', parseInt(s.getAttribute('data-val')) <= currentPriority); }); }); });
@@ -1818,6 +1840,169 @@
         return interleaveTasksBySubject(dailyTasks);
     }
 
+    function renderGoalGradient(dateStr, dailyTasks) {
+        const goalBox = document.getElementById('goal-gradient-box');
+        if (!goalBox) return;
+
+        let totalActionable = 0;
+        let doneCount = 0;
+
+        dailyTasks.forEach(task => {
+            if (task.isExamDay) return;
+            totalActionable++;
+            const setKey = `${dateStr}_${task._id}`;
+            const isDone = ((task.isNormalTodo || task.isExamReview) && completedTasks[setKey]) || (task.isExamStudy && task.isDone);
+            if (isDone) doneCount++;
+        });
+
+        if (totalActionable === 0) {
+            goalBox.style.display = 'none';
+            goalBox.innerHTML = '';
+            return;
+        }
+
+        goalBox.style.display = 'block';
+        const percent = Math.round((doneCount / totalActionable) * 100);
+        const remaining = totalActionable - doneCount;
+        const isAllDone = doneCount === totalActionable;
+
+        let captionText = '';
+        if (isAllDone) {
+            captionText = "Tutti i compiti completati! Ottimo lavoro, serie protetta!";
+        } else if (remaining === 1) {
+            captionText = "Manca solo 1 compito per completare la giornata!";
+        } else {
+            captionText = `Mancano ${remaining} compiti per completare la giornata.`;
+        }
+
+        goalBox.innerHTML = `
+            <div class="goal-gradient-card ${isAllDone ? 'completed' : ''}">
+                <div class="goal-gradient-top">
+                    <span class="goal-gradient-title">
+                        <i class="fa-solid ${isAllDone ? 'fa-circle-check' : 'fa-list-check'}"></i>
+                        Progresso: ${doneCount} di ${totalActionable}
+                    </span>
+                    <span class="goal-gradient-percent">${percent}%</span>
+                </div>
+                <div class="goal-gradient-track">
+                    <div class="goal-gradient-bar" style="width: ${percent}%;"></div>
+                </div>
+                <div class="goal-gradient-caption">${captionText}</div>
+            </div>
+        `;
+    }
+
+    let confettiActive = false;
+    function launchConfetti() {
+        const canvas = document.getElementById('celebration-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const colors = savedStyle === 'pixel' 
+            ? ['#38BDF8', '#0284C7', '#F43F5E', '#F59E0B', '#10B981']
+            : ['#222222', '#777777', '#CCCCCC', '#EAEAEA', '#555555'];
+
+        const particles = [];
+        for (let i = 0; i < 70; i++) {
+            particles.push({
+                x: canvas.width * 0.5 + (Math.random() - 0.5) * 120,
+                y: canvas.height * 0.35 + (Math.random() - 0.5) * 60,
+                vx: (Math.random() - 0.5) * 12,
+                vy: (Math.random() * -10) - 4,
+                size: Math.random() * 8 + 4,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                rotation: Math.random() * 360,
+                rotationSpeed: (Math.random() - 0.5) * 10,
+                opacity: 1
+            });
+        }
+
+        confettiActive = true;
+        const startTime = Date.now();
+        function animate() {
+            if (!confettiActive) return;
+            const elapsed = Date.now() - startTime;
+            if (elapsed > 2500) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                confettiActive = false;
+                return;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.35;
+                p.rotation += p.rotationSpeed;
+                p.opacity = Math.max(0, 1 - (elapsed / 2500));
+
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate((p.rotation * Math.PI) / 180);
+                ctx.globalAlpha = p.opacity;
+                ctx.fillStyle = p.color;
+                if (savedStyle === 'pixel') {
+                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                } else {
+                    ctx.fillRect(-p.size / 2, -p.size / 3, p.size, p.size * 0.6);
+                }
+                ctx.restore();
+            });
+
+            requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+    }
+
+    function playCelebrationFanfare() {
+        try {
+            initAudio();
+            const notes = [261.63, 329.63, 392.00, 523.25];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = savedStyle === 'pixel' ? 'square' : 'triangle';
+                const startTime = audioCtx.currentTime + (idx * 0.08);
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0.25, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+                osc.start(startTime);
+                osc.stop(startTime + 0.3);
+            });
+        } catch(e) {}
+    }
+
+    function triggerPeakEndCelebration() {
+        playCelebrationFanfare();
+        if (navigator.vibrate) {
+            try { navigator.vibrate([100, 50, 150, 50, 200]); } catch(e) {}
+        }
+        showToast("Tutti i compiti completati! Ottimo lavoro!");
+        launchConfetti();
+    }
+
+    function checkDayCompletionCelebration(dateStr) {
+        if (dateStr !== todayDateStr) return;
+        const dailyTasks = getTasksForDate(dateStr);
+        let totalActionable = 0;
+        let doneCount = 0;
+        dailyTasks.forEach(task => {
+            if (task.isExamDay) return;
+            totalActionable++;
+            const setKey = `${dateStr}_${task._id}`;
+            const isDone = ((task.isNormalTodo || task.isExamReview) && completedTasks[setKey]) || (task.isExamStudy && task.isDone);
+            if (isDone) doneCount++;
+        });
+
+        if (totalActionable > 0 && doneCount === totalActionable) {
+            triggerPeakEndCelebration();
+        }
+    }
+
     function generateTasksForDate(dateStr) {
         const container = document.getElementById('exercises-container'); 
         document.getElementById('today-title').innerHTML = (dateStr === todayDateStr) ? "Oggi" : formatDateShort(dateStr);
@@ -1827,9 +2012,12 @@
             syncAndroidWidget();
         }
         if (dailyTasks.length === 0) { 
+            renderGoalGradient(dateStr, []);
             container.innerHTML = `<div style="text-align:center; padding: 40px 0;"><h3 style="color:var(--text-muted); font-weight:500;">Nessuna task</h3></div>`; 
             return; 
         }
+
+        renderGoalGradient(dateStr, dailyTasks);
 
         dailyTasks.forEach(task => {
             const card = document.createElement('div'); card.className = `exercise-card`;
@@ -2009,6 +2197,7 @@
         checkAndSendSmartNotification();
         syncAndroidWidget();
         showToast(`Completato! +${earnedXP} XP`);
+        checkDayCompletionCelebration(selectedDateStr);
     };
 
     window.tickTask = function(setKey, el) {
@@ -2038,6 +2227,7 @@
         playTone(); addXP(15); calculateStreak(); updateDashboard(); updateAllDots(); updateWeekSliderVisuals(selectedDateStr); generateTasksForDate(selectedDateStr); renderStreakCalendar(); renderMonthCalendar();
         checkAndSendSmartNotification();
         syncAndroidWidget();
+        checkDayCompletionCelebration(selectedDateStr);
     }
 
     let currentWidgetTheme = localStorage.getItem('studylog_widget_theme') || 'dark';
@@ -2442,16 +2632,9 @@
     function checkOnboarding() {
         const hasCompleted = localStorage.getItem('studylog_onboarding_done');
         const nameInput = document.getElementById('settings-user-name');
-        const ageInput = document.getElementById('settings-user-age');
-        const distractionInput = document.getElementById('settings-user-distraction');
-
         const savedName = localStorage.getItem('studylog_user_name') || '';
-        const savedAge = localStorage.getItem('studylog_user_age') || '';
-        const savedDistraction = localStorage.getItem('studylog_user_distraction') || '';
 
         if (nameInput) nameInput.value = savedName;
-        if (ageInput) ageInput.value = savedAge;
-        if (distractionInput) distractionInput.value = savedDistraction;
 
         if (!hasCompleted && !savedName) {
             setTimeout(() => {
@@ -2463,8 +2646,6 @@
 
     window.finishOnboarding = function() {
         const name = (document.getElementById('onboarding-name')?.value || '').trim();
-        const ageVal = parseInt(document.getElementById('onboarding-age')?.value || '0', 10);
-        const distraction = (document.getElementById('onboarding-distraction')?.value || '').trim();
 
         if (!name) {
             customAlert("Inserisci il tuo nome per continuare.", "Nome richiesto");
@@ -2472,21 +2653,14 @@
         }
 
         localStorage.setItem('studylog_user_name', name);
-        if (ageVal > 0) localStorage.setItem('studylog_user_age', ageVal.toString());
-        if (distraction) localStorage.setItem('studylog_user_distraction', distraction);
         localStorage.setItem('studylog_onboarding_done', 'true');
 
-        // Sincronizza con native Android se presente
         if (window.AndroidNative && typeof window.AndroidNative.setUserProfile === 'function') {
-            window.AndroidNative.setUserProfile(name, ageVal || 0, distraction || '');
+            window.AndroidNative.setUserProfile(name, 0, '');
         }
 
         const nameInput = document.getElementById('settings-user-name');
-        const ageInput = document.getElementById('settings-user-age');
-        const distractionInput = document.getElementById('settings-user-distraction');
         if (nameInput) nameInput.value = name;
-        if (ageInput && ageVal > 0) ageInput.value = ageVal.toString();
-        if (distractionInput) distractionInput.value = distraction;
 
         const modal = document.getElementById('onboarding-modal');
         if (modal) modal.classList.remove('active');
@@ -2497,8 +2671,6 @@
 
     window.saveUserProfileFromSettings = function() {
         const name = (document.getElementById('settings-user-name')?.value || '').trim();
-        const ageVal = parseInt(document.getElementById('settings-user-age')?.value || '0', 10);
-        const distraction = (document.getElementById('settings-user-distraction')?.value || '').trim();
 
         if (!name) {
             customAlert("Il nome non puo' essere vuoto.", "Nome richiesto");
@@ -2506,14 +2678,12 @@
         }
 
         localStorage.setItem('studylog_user_name', name);
-        if (ageVal > 0) localStorage.setItem('studylog_user_age', ageVal.toString());
-        if (distraction) localStorage.setItem('studylog_user_distraction', distraction);
 
         if (window.AndroidNative && typeof window.AndroidNative.setUserProfile === 'function') {
-            window.AndroidNative.setUserProfile(name, ageVal || 0, distraction || '');
+            window.AndroidNative.setUserProfile(name, 0, '');
         }
 
-        showToast("Profilo aggiornato!");
+        showToast("Nome aggiornato!");
     };
 
     function isDayStudied(dStr) {
@@ -3280,12 +3450,22 @@
         const loadingEl = document.getElementById('ai-plan-loading');
         const loadingText = document.getElementById('ai-plan-loading-text');
         const previewEl = document.getElementById('ai-plan-preview');
-        const btnGen = document.getElementById('btn-generate-ai');
-
         loadingEl.style.display = 'flex';
-        loadingText.innerText = "Gemini sta analizzando il carico di studio...";
         previewEl.style.display = 'none';
         btnGen.disabled = true;
+
+        const laborSteps = [
+            "Analisi della richiesta e delle materie...",
+            "Calcolo scadenze e carichi di lavoro...",
+            "Ottimizzazione del programma di studio...",
+            "Finalizzazione To-Do list..."
+        ];
+        let laborStepIdx = 0;
+        loadingText.innerText = laborSteps[0];
+        const laborInterval = setInterval(() => {
+            laborStepIdx = (laborStepIdx + 1) % laborSteps.length;
+            if (loadingText) loadingText.innerText = laborSteps[laborStepIdx];
+        }, 750);
 
         const systemInstruction = `Sei l'assistente accademico intelligente di StudyPlanner.
 Il tuo compito e' comprendere a fondo il testo fornito dallo studente: cosa deve accadere, quali compiti o pagine deve svolgere e per quando.
@@ -3394,6 +3574,7 @@ Rispondi ESCLUSIVAMENTE con un JSON valido con questo formato:
             console.error('Gemini error:', err);
             customAlert(`Impossibile elaborare il piano con Gemini: ${err.message}`, "Errore AI", true);
         } finally {
+            if (typeof laborInterval !== 'undefined') clearInterval(laborInterval);
             loadingEl.style.display = 'none';
             btnGen.disabled = false;
         }
