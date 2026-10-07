@@ -16,7 +16,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js?v=2.0.6').then(function(reg) {
+          navigator.serviceWorker.register('sw.js?v=2.1.2').then(function(reg) {
             reg.update();
             reg.onupdatefound = function() {
               const newWorker = reg.installing;
@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.0.6">
+    <link rel="stylesheet" href="css/style.css?v=2.1.2">
 </head>
 <body>
 
@@ -63,8 +63,8 @@
                     <i class="fa-solid fa-fire widget-icon"></i>
                     <div>
                         <div class="widget-value" id="dash-streak-count">0<span>gg</span></div>
-                        <div class="widget-label">Serie di Fuoco</div>
-                        <div class="record-pill"><i class="fa-solid fa-crown"></i> Record: <span id="dash-streak-record">0</span></div>
+                        <div class="widget-label">Serie</div>
+                        <div class="record-pill"><i class="fa-solid fa-crown"></i> <span id="dash-streak-record">0</span></div>
                     </div>
                     <div class="streak-dashes" id="dash-streak-dashes"></div>
                 </div>
@@ -72,7 +72,7 @@
                 <div class="dash-widget" onclick="openBottomSheet('xp-sheet')" style="overflow: hidden;">
                     <div style="position: relative; z-index: 2;">
                         <div class="widget-value" id="dash-xp-count">0</div>
-                        <div class="widget-label">Conoscenza (XP)</div>
+                        <div class="widget-label">XP</div>
                     </div>
                     <i class="fa-solid fa-brain bg-icon-brain"></i>
                 </div>
@@ -80,16 +80,18 @@
                 <div class="dash-widget wide" style="position: relative; overflow: hidden;">
                     <div style="position: relative; z-index: 2;">
                         <div class="widget-value" id="dash-workouts-count">0 <span>v</span></div>
-                        <div class="widget-label">Task completati nel mese</div>
+                        <div class="widget-label">Mese</div>
                     </div>
                     <i class="fa-solid fa-list-check bg-icon-task"></i>
                 </div>
             </div>
 
             <!-- SLIDER SETTIMANALE -->
-            <div class="week-slider" id="week-slider"></div>
+            <div class="week-slider-wrapper">
+                <div class="week-slider" id="week-slider"></div>
+            </div>
             
-            <div class="section-title" id="today-title">Oggi: Da fare</div>
+            <div class="section-title" id="today-title">Oggi</div>
             <div class="exercises-list" id="exercises-container"></div>
         </div>
 
@@ -106,7 +108,7 @@
             
             <div class="xp-gen-widget" onclick="openBottomSheet('andamento-sheet')">
                 <div class="xp-gen-header">
-                    <div class="widget-label" style="font-size: 0.85rem;">Andamento Sett.</div>
+                    <div class="widget-label" style="font-size: 0.85rem;">Settimana</div>
                     <i class="fa-solid fa-bolt" style="color: var(--theme-strong);"></i>
                 </div>
                 <div class="widget-value" id="week-xp-total-widget">0</div>
@@ -114,7 +116,7 @@
 
             <div class="anim-card">
                 <div class="anim-card-header">
-                    <div class="anim-card-title"><i class="fa-regular fa-calendar-days"></i> Calendario Planning</div>
+                    <div class="anim-card-title"><i class="fa-regular fa-calendar-days"></i> Calendario</div>
                 </div>
                 <div class="anim-card-content">
                     <div class="cal-header-bar">
@@ -126,7 +128,7 @@
                     <div class="calendar-grid" id="analytics-calendar-grid"></div>
                     
                     <div class="cal-legend-bar">
-                        <div class="cal-legend-item"><span class="cal-dot"></span> Task attive</div>
+                        <div class="cal-legend-item"><span class="cal-dot"></span> Task</div>
                         <div class="cal-legend-item"><span class="cal-dot exam"></span> Verifiche</div>
                     </div>
                 </div>
@@ -135,7 +137,7 @@
             <!-- GRAFICO A TORTA/DONUT STUDIO PER MATERIA -->
             <div class="anim-card">
                 <div class="anim-card-header">
-                    <div class="anim-card-title"><i class="fa-solid fa-chart-pie"></i> Tempo & Studio per Materia</div>
+                    <div class="anim-card-title"><i class="fa-solid fa-chart-pie"></i> Materie</div>
                 </div>
                 <div class="anim-card-content">
                     <div class="donut-chart-container" id="subject-donut-container">
@@ -156,11 +158,11 @@
 
             <div class="anim-card">
                 <div class="anim-card-header">
-                    <div class="anim-card-title"><i class="fa-solid fa-border-all"></i> Diario e Mappe</div>
+                    <div class="anim-card-title"><i class="fa-solid fa-border-all"></i> Attività</div>
                 </div>
                 <div class="anim-card-content">
                     <div style="margin-top:5px;">
-                        <div class="widget-label" style="margin-bottom: 10px;">Mappa Impegno (90 gg)</div>
+                        <div class="widget-label" style="margin-bottom: 10px;">Ultimi 90 giorni</div>
                         <div class="heatmap-grid" id="heatmap-grid"></div>
                         
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 15px; font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">
@@ -177,13 +179,13 @@
                 </div>
             </div>
             
-            <button class="btn-hard-reset" onclick="promptHardReset()"><i class="fa-solid fa-eraser"></i> Cancella Taccuino (Reset)</button>
+            <button class="btn-hard-reset" onclick="promptHardReset()"><i class="fa-solid fa-eraser"></i> Reset dati</button>
         </div>
     </div>
 
     <div class="bottom-nav-wrapper">
         <nav class="bottom-nav">
-            <div class="nav-item active" onclick="switchView('study', this)" id="nav-study" title="Studio"><i class="fa-solid fa-dumbbell"></i></div>
+            <div class="nav-item active" onclick="switchView('study', this)" id="nav-study" title="Studio"><i class="fa-solid fa-book-open"></i></div>
             <div class="nav-item" onclick="switchView('ranked', this)" id="nav-ranked" title="XP e Gradi"><i class="fa-solid fa-trophy"></i></div>
             <div class="nav-item" onclick="switchView('calendar', this)" id="nav-calendar" title="Statistiche"><i class="fa-solid fa-chart-pie"></i></div>
         </nav>
@@ -193,38 +195,56 @@
     <div class="bottom-sheet-overlay" id="settings-sheet" onclick="closeBottomSheet('settings-sheet')">
         <div class="bottom-sheet-content" onclick="event.stopPropagation()">
             <div class="sheet-handle"></div>
-            <h3 style="margin-bottom: 25px; font-weight: 700; text-transform: uppercase; color: var(--theme-strong); text-align: center;">Impostazioni</h3>
-            
-            <div class="form-group">
-                <label>Tema Applicazione</label>
-                <button class="choice-btn" id="theme-toggler-btn" onclick="toggleAppTheme(event)">
-                    <i class="fa-solid fa-sun" id="theme-toggler-icon"></i>
-                    <span id="theme-toggler-text">Modalità Chiara</span>
-                </button>
+            <div class="sheet-header">
+                <h3 class="sheet-title">Impostazioni</h3>
             </div>
-
-            <!-- BOTTONE NOTIFICHE CON ANIMAZIONE E ATTIVAZIONE REALE -->
-            <div class="form-group" style="margin-top:20px;">
-                <label>Notifiche Motivazionali</label>
-                <div class="notification-bell-btn" id="notif-bell-action-btn" onclick="handleNotificationBellClick(this)">
-                    <span id="notif-status-label" style="font-size: 0.9rem; font-weight: 600; color: var(--text-main);">Attiva Notifiche</span>
-                    <div class="bell-icon-wrapper">
-                        <i class="fa-solid fa-bell"></i>
-                        <span class="bell-badge-count" id="notif-badge-count" style="display: none;">8</span>
+            
+            <div class="settings-sections">
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <span class="settings-card-title"><i class="fa-solid fa-palette"></i> Aspetto</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-row-label">Tema</span>
+                        <button class="choice-btn compact" id="theme-toggler-btn" onclick="toggleAppTheme(event)">
+                            <i class="fa-solid fa-sun" id="theme-toggler-icon"></i>
+                            <span id="theme-toggler-text">Chiaro</span>
+                        </button>
+                    </div>
+                    <div class="settings-row-col">
+                        <span class="settings-row-label">Sfondo</span>
+                        <div class="settings-grid">
+                            <button class="choice-btn compact" id="btn-bg-dots" onclick="setAppBg('dots')">Pallini</button>
+                            <button class="choice-btn compact" id="btn-bg-lines" onclick="setAppBg('lines')">Righe</button>
+                            <button class="choice-btn compact" id="btn-bg-grid" onclick="setAppBg('grid')">Quadretti</button>
+                            <button class="choice-btn compact" id="btn-bg-blank" onclick="setAppBg('blank')">Vuoto</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="form-group" style="margin-top:20px;"><label>Sfondo Taccuino</label><div class="settings-grid"><button class="choice-btn" id="btn-bg-dots" onclick="setAppBg('dots')">Pallini</button><button class="choice-btn" id="btn-bg-lines" onclick="setAppBg('lines')">Righe</button><button class="choice-btn" id="btn-bg-grid" onclick="setAppBg('grid')">Quadretti</button><button class="choice-btn" id="btn-bg-blank" onclick="setAppBg('blank')">Vuoto</button></div></div>
-            
-            
-            <div class="form-group" style="margin-top: 25px; border-top: 1px dashed var(--border-color); padding-top: 20px;">
-                <label>Le tue Materie</label>
-                <div class="input-row">
-                    <input type="text" id="settings-subject-input" class="form-control" placeholder="Es. Filosofia" onkeydown="if(event.key === 'Enter') { addSubjectFromSettings(); event.preventDefault(); }">
-                    <button type="button" class="btn-submit" style="width: auto; padding: 0 18px; margin-top: 0; font-size: 0.9rem;" onclick="addSubjectFromSettings()">Aggiungi</button>
+
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <span class="settings-card-title"><i class="fa-solid fa-bell"></i> Notifiche</span>
+                    </div>
+                    <div class="notification-bell-btn" id="notif-bell-action-btn" onclick="handleNotificationBellClick(this)">
+                        <span id="notif-status-label" style="font-size: 0.9rem; font-weight: 600; color: var(--text-main);">Attive</span>
+                        <div class="bell-icon-wrapper">
+                            <i class="fa-solid fa-bell"></i>
+                            <span class="bell-badge-count" id="notif-badge-count" style="display: none;">8</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="subject-tags-container" id="settings-tags-list"></div>
+
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <span class="settings-card-title"><i class="fa-solid fa-book-bookmark"></i> Materie</span>
+                    </div>
+                    <div class="input-row">
+                        <input type="text" id="settings-subject-input" class="form-control" placeholder="Nuova materia" onkeydown="if(event.key === 'Enter') { addSubjectFromSettings(); event.preventDefault(); }">
+                        <button type="button" class="btn-submit compact" onclick="addSubjectFromSettings()">Aggiungi</button>
+                    </div>
+                    <div class="subject-tags-container" id="settings-tags-list"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -233,7 +253,7 @@
         <div class="bottom-sheet-content" onclick="event.stopPropagation()">
             <div class="sheet-handle"></div>
             <div class="streak-sheet-header">
-                <div class="streak-sheet-title">Serie Attuale</div>
+                <div class="streak-sheet-title">Serie</div>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
                 <button onclick="changeStreakWeek(-1)" style="background:none; border:none; color:var(--theme-strong); font-size:1.2rem; cursor:pointer;"><i class="fa-solid fa-chevron-left"></i></button>
@@ -242,14 +262,14 @@
             </div>
             <div class="streak-circles-row" id="streak-circles-row"></div>
             <div class="streak-big-icon"><i class="fa-solid fa-fire"></i><span id="sheet-big-streak-num">0</span></div>
-            <div class="streak-subtitle" style="text-align: center; font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Giorni consecutivi sul piano</div>
+            <div class="streak-subtitle" style="text-align: center; font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Giorni</div>
         </div>
     </div>
 
     <div class="bottom-sheet-overlay" id="andamento-sheet" onclick="closeBottomSheet('andamento-sheet')">
         <div class="bottom-sheet-content" onclick="event.stopPropagation()">
             <div class="sheet-handle"></div>
-            <div style="display: flex; justify-content: space-between; align-items: center;"><div class="streak-sheet-title" style="margin:0;">XP Generati</div><i class="fa-solid fa-bolt" style="color: var(--theme-strong);"></i></div>
+            <div style="display: flex; justify-content: space-between; align-items: center;"><div class="streak-sheet-title" style="margin:0;">Settimana</div><i class="fa-solid fa-bolt" style="color: var(--theme-strong);"></i></div>
             <div class="widget-value" style="font-size: 3.5rem; margin-top: 10px;" id="sheet-week-xp">0</div>
             <div class="bar-chart-container" id="sheet-bar-chart"></div>
         </div>
@@ -258,11 +278,10 @@
     <div class="bottom-sheet-overlay" id="xp-sheet" onclick="closeBottomSheet('xp-sheet')">
         <div class="bottom-sheet-content" onclick="event.stopPropagation()">
             <div class="sheet-handle"></div>
-            <div class="streak-sheet-title">Dettaglio Conoscenza</div>
+            <div class="streak-sheet-title">XP Totali</div>
             <div style="text-align: center; margin: 20px 0;">
-                <i class="fa-solid fa-brain" style="font-size: 5rem; color: var(--theme-strong); margin-bottom: 20px;"></i>
+                <i class="fa-solid fa-brain" style="font-size: 4.5rem; color: var(--theme-strong); margin-bottom: 16px;"></i>
                 <div class="widget-value" style="justify-content: center;" id="sheet-total-xp">0</div>
-                <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 15px; line-height: 1.5;">L'esperienza totale (XP) riflette il tuo impegno a lungo termine nello studio. Più task completi, più il tuo grado accademico aumenterà.</p>
             </div>
         </div>
     </div>
@@ -271,8 +290,8 @@
         <div class="glass-panel">
             <button class="btn-close-modal-top" onclick="closeModal('choice-modal')"><i class="fa-solid fa-xmark"></i></button>
             <h3 style="margin-bottom: 25px; font-weight: 700; text-transform: uppercase; color: var(--theme-strong); text-align: center;">Aggiungi</h3>
-            <button class="choice-btn" onclick="openTodoModal()"><i class="fa-solid fa-list-check"></i> Nuova Task Studio</button>
-            <button class="choice-btn" onclick="openExamModal()"><i class="fa-solid fa-file-pen"></i> Segna Verifica/Esame</button>
+            <button class="choice-btn" onclick="openTodoModal()"><i class="fa-solid fa-list-check"></i> Task</button>
+            <button class="choice-btn" onclick="openExamModal()"><i class="fa-solid fa-file-pen"></i> Verifica</button>
         </div>
     </div>
 
@@ -288,29 +307,29 @@
             </div>
 
             <div class="form-group">
-                <label>Cosa devi fare?</label>
-                <input type="text" id="todo-title" class="form-control" placeholder="Es. Esercizi capitolo 3">
+                <label>Titolo</label>
+                <input type="text" id="todo-title" class="form-control" placeholder="Titolo">
             </div>
             <div style="display: flex; gap: 20px;">
                 <div class="form-group" style="flex: 1;"><label>Priorità</label><div class="star-rating" id="todo-priority"><i class="fa-solid fa-star active" data-val="1"></i><i class="fa-solid fa-star" data-val="2"></i><i class="fa-solid fa-star" data-val="3"></i></div></div>
                 <div class="form-group" style="flex: 1;"><label>Difficoltà</label><div class="diff-rating-input" id="todo-difficulty"><div class="diff-input-bar active" data-val="1"></div><div class="diff-input-bar" data-val="2"></div><div class="diff-input-bar" data-val="3"></div></div></div>
             </div>
             <div class="form-group">
-                <label>Data di Scadenza</label>
+                <label>Scadenza</label>
                 <div id="todo-date-popover-container"></div>
             </div>
             
             <div class="form-group">
-                <label>Giorni di Pausa Specifici</label>
+                <label>Pause</label>
                 <div style="margin-bottom: 8px;">
                     <div id="todo-pause-popover-container"></div>
                 </div>
-                <button type="button" class="btn-submit" style="width: 100%; padding: 12px; margin-top: 6px; font-size: 0.9rem;" onclick="addPauseDate('todo')">+ Inserisci questa pausa</button>
+                <button type="button" class="btn-submit" style="width: 100%; padding: 12px; margin-top: 6px; font-size: 0.9rem;" onclick="addPauseDate('todo')">+ Pausa</button>
                 <div class="subject-tags-container" id="todo-pause-chips"></div>
-                <span style="font-size:0.7rem; color:var(--text-muted); display:block; margin-top:6px;">Scegli date specifiche (da domani fino alla scadenza).</span>
+                
             </div>
 
-            <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 15px;"><label style="margin: 0;">Ripeti ogni giorno</label><input type="checkbox" id="todo-repeat" style="width: 20px; height: 20px; accent-color: var(--theme-strong);"></div>
+            <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 15px;"><label style="margin: 0;">Ogni giorno</label><input type="checkbox" id="todo-repeat" style="width: 20px; height: 20px; accent-color: var(--theme-strong);"></div>
             <button class="btn-submit" onclick="saveTodo()">Aggiungi</button>
         </div>
     </div>
@@ -328,8 +347,8 @@
             </div>
 
             <div class="form-group">
-                <label>Cosa devi fare?</label>
-                <input type="text" id="edit-todo-title" class="form-control" placeholder="Es. Esercizi capitolo 3">
+                <label>Titolo</label>
+                <input type="text" id="edit-todo-title" class="form-control" placeholder="Titolo">
             </div>
 
             <div style="display: flex; gap: 20px;">
@@ -352,19 +371,19 @@
             </div>
 
             <div class="form-group">
-                <label>Data di Scadenza</label>
+                <label>Scadenza</label>
                 <div id="edit-todo-date-popover-container"></div>
             </div>
 
             <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 15px;">
-                <label style="margin: 0;">Ripeti ogni giorno</label>
+                <label style="margin: 0;">Ogni giorno</label>
                 <input type="checkbox" id="edit-todo-repeat" style="width: 20px; height: 20px; accent-color: var(--theme-strong);">
             </div>
 
-            <button class="btn-submit" onclick="saveUnifiedTodoChanges()" style="margin-top: 15px;">Salva Modifiche</button>
+            <button class="btn-submit" onclick="saveUnifiedTodoChanges()" style="margin-top: 15px;">Salva</button>
             
             <button type="button" class="btn-hard-reset" onclick="deleteTodoFromUnifiedModal()" style="margin-top: 15px; margin-bottom: 0; padding: 12px;">
-                <i class="fa-solid fa-trash-can"></i> Elimina questa Task
+                <i class="fa-solid fa-trash-can"></i> Elimina
             </button>
         </div>
     </div>
@@ -386,33 +405,33 @@
             </div>
 
             <div class="form-group" id="group-interrogazione-days" style="display: none;">
-                <label>Date in cui può interrogare</label>
+                <label>Date possibili</label>
                 <div style="margin-bottom: 8px;">
                     <div id="exam-int-dates-popover-container"></div>
                 </div>
-                <button type="button" class="btn-submit" style="width: 100%; padding: 12px; margin-top: 6px; font-size: 0.9rem;" onclick="addSpecificInterrogazioneDate('create')">+ Inserisci data interrogazione</button>
+                <button type="button" class="btn-submit" style="width: 100%; padding: 12px; margin-top: 6px; font-size: 0.9rem;" onclick="addSpecificInterrogazioneDate('create')">+ Data</button>
                 <div class="subject-tags-container" id="exam-int-dates-chips"></div>
-                <span style="font-size:0.7rem; color:var(--text-muted); display:block; margin-top:6px;">Aggiungi le date (da domani in poi) in cui potrebbe interrogare.</span>
+                
             </div>
 
             <div class="form-group" id="group-exam-date">
-                <label id="exam-date-label">Data della Prova</label>
+                <label id="exam-date-label">Data</label>
                 <div id="exam-date-popover-container"></div>
             </div>
             
             <div class="form-group">
-                <label>Giorni di Pausa Specifici</label>
+                <label>Pause</label>
                 <div style="margin-bottom: 8px;">
                     <div id="exam-pause-popover-container"></div>
                 </div>
-                <button type="button" class="btn-submit" style="width: 100%; padding: 12px; margin-top: 6px; font-size: 0.9rem;" onclick="addPauseDate('exam')">+ Inserisci questa pausa</button>
+                <button type="button" class="btn-submit" style="width: 100%; padding: 12px; margin-top: 6px; font-size: 0.9rem;" onclick="addPauseDate('exam')">+ Pausa</button>
                 <div class="subject-tags-container" id="exam-pause-chips"></div>
-                <span style="font-size:0.7rem; color:var(--text-muted); display:block; margin-top:6px;">Date in cui non puoi/vuoi studiare (da domani in poi).</span>
+                
             </div>
 
             <div class="form-group">
-                <label id="exam-amount-label">Pagine totali da studiare</label>
-                <input type="number" id="exam-pages" class="form-control" placeholder="Es. 30" min="1">
+                <label id="exam-amount-label">Pagine</label>
+                <input type="number" id="exam-pages" class="form-control" placeholder="Pagine" min="1">
             </div>
             <button class="btn-submit" onclick="saveExam()">Aggiungi</button>
         </div>
@@ -426,35 +445,35 @@
             <input type="hidden" id="unified-exam-id">
 
             <div class="form-group" style="border-bottom: 1px dashed var(--border-color); padding-bottom: 16px;">
-                <label id="unified-load-label">Modifica Carico (Pagine/Versioni)</label>
+                <label id="unified-load-label">Carico</label>
                 <div class="input-row">
-                    <input type="number" id="unified-exam-delta" class="form-control" placeholder="Quantità (es. 5)" min="1">
+                    <input type="number" id="unified-exam-delta" class="form-control" placeholder="Pagine" min="1">
                 </div>
                 <div style="display: flex; gap: 8px; margin-top: 8px;">
-                    <button type="button" class="btn-submit" style="background: rgba(217, 83, 79, 0.12); color: var(--danger-color); margin-top:0; padding:10px;" onclick="applyDeltaExamLoad('remove')"><i class="fa-solid fa-minus"></i> Rimuovi</button>
-                    <button type="button" class="btn-submit" style="margin-top:0; padding:10px;" onclick="applyDeltaExamLoad('add')"><i class="fa-solid fa-plus"></i> Aggiungi</button>
+                    <button type="button" class="btn-submit" style="background: rgba(217, 83, 79, 0.12); color: var(--danger-color); margin-top:0; padding:10px;" onclick="applyDeltaExamLoad('remove')"><i class="fa-solid fa-minus"></i></button>
+                    <button type="button" class="btn-submit" style="margin-top:0; padding:10px;" onclick="applyDeltaExamLoad('add')"><i class="fa-solid fa-plus"></i></button>
                 </div>
                 <span id="unified-current-pages" style="font-size:0.75rem; color:var(--text-muted); display:block; margin-top:6px; font-weight:600;"></span>
             </div>
 
             <div class="form-group" id="unified-interrogazione-group" style="display: none; border-bottom: 1px dashed var(--border-color); padding-bottom: 16px;">
-                <label>Date Interrogazione</label>
+                <label>Date</label>
                 <div style="margin-bottom: 8px;">
                     <div id="unified-int-date-picker-container"></div>
                 </div>
-                <button type="button" class="btn-submit" style="width: 100%; padding: 12px; margin-top: 6px; font-size: 0.9rem;" onclick="addSpecificInterrogazioneDate('manage')">+ Inserisci data interrogazione</button>
+                <button type="button" class="btn-submit" style="width: 100%; padding: 12px; margin-top: 6px; font-size: 0.9rem;" onclick="addSpecificInterrogazioneDate('manage')">+ Data</button>
                 <div class="subject-tags-container" id="unified-int-chips"></div>
             </div>
 
             <div class="form-group" id="unified-single-date-group" style="border-bottom: 1px dashed var(--border-color); padding-bottom: 16px;">
-                <label>Data Prova</label>
+                <label>Data</label>
                 <div id="unified-single-date-container"></div>
             </div>
 
-            <button class="btn-submit" onclick="saveUnifiedExamChanges()" style="margin-top: 15px;">Salva Modifiche</button>
+            <button class="btn-submit" onclick="saveUnifiedExamChanges()" style="margin-top: 15px;">Salva</button>
             
             <button type="button" class="btn-hard-reset" onclick="deleteExamFromUnifiedModal()" style="margin-top: 15px; margin-bottom: 0; padding: 12px;">
-                <i class="fa-solid fa-trash-can"></i> Elimina questa Prova
+                <i class="fa-solid fa-trash-can"></i> Elimina
             </button>
         </div>
     </div>
@@ -464,18 +483,17 @@
         <div class="glass-panel">
             <button class="btn-close-modal-top" onclick="closeModal('snooze-modal')"><i class="fa-solid fa-xmark"></i></button>
             <h3 style="margin-bottom: 25px; font-weight: 700; text-transform: uppercase;">Rimanda Task</h3>
-            <button class="choice-btn" onclick="executeAutoSnooze()" style="margin-bottom: 20px;">
-                <i class="fa-solid fa-robot"></i> Riprogramma in Automatico
+            <button class="choice-btn" onclick="executeAutoSnooze()" style="margin-bottom: 16px;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Automatico
             </button>
-            <div style="text-align:center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 20px; font-weight: 600;">OPPURE</div>
             <div class="form-group">
-                <label>Scegli Data Manualmente</label>
+                <label>Scegli data</label>
                 <div id="snooze-date-popover-container"></div>
-                <span style="font-size:0.7rem; color:var(--text-muted); display:block; margin-top:8px;">Da domani fino al giorno prima della scadenza.</span>
+                
             </div>
             <input type="hidden" id="snooze-task-id">
             <input type="hidden" id="snooze-task-type" value="todo">
-            <button class="btn-submit" onclick="executeManualSnooze()">Conferma Data</button>
+            <button class="btn-submit" onclick="executeManualSnooze()">Conferma</button>
         </div>
     </div>
 
@@ -485,7 +503,7 @@
         <div class="glass-panel" style="text-align: center;">
             <i class="fa-solid fa-eraser" style="font-size: 3rem; color: var(--danger-color); margin-bottom: 20px;"></i>
             <h3 style="margin-bottom: 10px; font-weight: 700; text-transform: uppercase; color: var(--danger-color);">Cancella Dati?</h3>
-            <p style="font-size: 0.95rem; color: var(--text-main); margin-bottom: 30px;">Perderai tutto, compresi i record di studio e la serie. Irreversibile.</p>
+            <p style="font-size: 0.95rem; color: var(--text-main); margin-bottom: 25px;">Eliminare tutti i dati?</p>
             <div style="display: flex; gap: 15px;"><button style="flex:1; padding: 14px; border-radius: 16px; border: 1px solid var(--border-color); background: transparent; color: var(--text-main); font-weight: bold; cursor: pointer;" onclick="closeModal('reset-modal')">Annulla</button><button style="flex:1; padding: 14px; border-radius: 16px; border: none; background: var(--danger-color); color: var(--surface-color); font-weight: bold; cursor: pointer;" onclick="executeHardReset()">Cancella</button></div>
         </div>
     </div>
@@ -505,7 +523,7 @@
 
 </div>
 
-    <script src="js/app.js?v=2.0.6" defer></script>
+    <script src="js/app.js?v=2.1.2" defer></script>
 
 </body>
 </html>

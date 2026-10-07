@@ -728,13 +728,13 @@
         const lowerVal = sub ? sub.toLowerCase() : '';
         
         if (type === 'Versione') {
-            label.innerText = 'Numero di versioni da svolgere';
+            label.innerText = 'Versioni totali';
             input.placeholder = 'Es. 6';
         } else if (lowerVal.includes('matematica') || lowerVal.includes('fisica')) {
             label.innerText = 'Esercizi al giorno';
             input.placeholder = 'Es. 10';
         } else {
-            label.innerText = 'Pagine totali da studiare';
+            label.innerText = 'Pagine totali';
             input.placeholder = 'Es. 35';
         }
     }
@@ -756,10 +756,10 @@
         if (iconEl && textEl) {
             if (savedTheme === 'dark') {
                 iconEl.className = "fa-solid fa-moon";
-                textEl.innerText = "Modalità Scura";
+                textEl.innerText = "Scuro";
             } else {
                 iconEl.className = "fa-solid fa-sun";
-                textEl.innerText = "Modalità Chiara";
+                textEl.innerText = "Chiaro";
             }
         }
         updateNotificationBellUI();
@@ -783,10 +783,10 @@
         if (window.AndroidNative && window.AndroidNative.isNativeAndroid()) {
             const hasPerm = window.AndroidNative.hasNotificationPermission ? window.AndroidNative.hasNotificationPermission() : true;
             if (hasPerm) {
-                label.innerText = "Notifiche Attive";
+                label.innerText = "Attive";
                 if(badge) badge.style.display = 'none';
             } else {
-                label.innerText = "Attiva Notifiche";
+                label.innerText = "Disattivate";
                 if(badge) badge.style.display = 'inline-block';
             }
             return;
@@ -798,13 +798,13 @@
         }
 
         if (Notification.permission === "granted") {
-            label.innerText = "Notifiche Attive";
+            label.innerText = "Attive";
             if(badge) badge.style.display = 'none';
         } else if (Notification.permission === "denied") {
-            label.innerText = "Notifiche Bloccate";
+            label.innerText = "Bloccate";
             if(badge) badge.style.display = 'none';
         } else {
-            label.innerText = "Attiva Notifiche";
+            label.innerText = "Disattivate";
             if(badge) badge.style.display = 'inline-block';
         }
     }
@@ -981,15 +981,36 @@
     }
 
     window.openBottomSheet = (id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const content = el.querySelector('.bottom-sheet-content');
+        if (content) {
+            content.style.transform = '';
+            content.style.transition = '';
+        }
+        el.style.opacity = '';
+        el.style.transition = '';
         if (id === 'settings-sheet') {
             renderSettingsSubjectTags();
         } else if (id === 'streak-sheet') {
             streakNavDate = new Date();
             renderStreakCalendar();
         }
-        document.getElementById(id).classList.add('active');
+        el.classList.add('active');
     };
-    window.closeBottomSheet = (id) => document.getElementById(id).classList.remove('active');
+
+    window.closeBottomSheet = (id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('active');
+        const content = el.querySelector('.bottom-sheet-content');
+        if (content) {
+            content.style.transform = '';
+            content.style.transition = '';
+        }
+        el.style.opacity = '';
+        el.style.transition = '';
+    };
 
     function addDays(dateStr, days) { const parts = dateStr.split('-'); let d = new Date(parts[0], parts[1]-1, parts[2]); d.setDate(d.getDate() + days); return formatDateStr(d); }
     
@@ -1213,14 +1234,14 @@
 
         document.getElementById('unified-exam-id').value = id;
         document.getElementById('unified-exam-delta').value = '';
-        document.getElementById('unified-modal-title').innerText = `Gestisci: ${exam.subject} (${exam.type})`;
+        document.getElementById('unified-modal-title').innerText = `${exam.subject} - ${exam.type}`;
         
         let labelUnit = 'pagine';
         if (exam.type === 'Versione') labelUnit = 'versioni';
         else if (exam.subject && (exam.subject.toLowerCase().includes('matematica') || exam.subject.toLowerCase().includes('fisica'))) labelUnit = 'esercizi';
         
-        document.getElementById('unified-current-pages').innerText = `Attualmente impostato a: ${exam.pages} ${labelUnit}`;
-        document.getElementById('unified-load-label').innerText = `Aggiungi o Rimuovi ${labelUnit}`;
+        document.getElementById('unified-current-pages').innerText = `Totale: ${exam.pages} ${labelUnit}`;
+        document.getElementById('unified-load-label').innerText = `Modifica ${labelUnit}`;
 
         const intGroup = document.getElementById('unified-interrogazione-group');
         const singleGroup = document.getElementById('unified-single-date-group');
@@ -1259,7 +1280,7 @@
 
         document.getElementById('unified-exam-delta').value = '';
         let labelUnit = exam.type === 'Versione' ? 'versioni' : 'pagine';
-        document.getElementById('unified-current-pages').innerText = `Attualmente impostato a: ${exam.pages} ${labelUnit}`;
+        document.getElementById('unified-current-pages').innerText = `Totale: ${exam.pages} ${labelUnit}`;
         showToast("Carico aggiornato!");
     }
 
@@ -1485,7 +1506,7 @@
             let intDates = [...exam.specificInterrogazioneDates].sort();
 
             if (intDates.includes(targetDateStr)) {
-                return { type: 'EXAM', title: `POSSIBILE INTERROGAZIONE` };
+                return { type: 'EXAM', title: `Possibile interrogazione` };
             }
 
             let firstDateStr = intDates[0];
@@ -1514,8 +1535,8 @@
                 if (targetIdx >= studyDaysCount) {
                     return { 
                         type: 'FINAL_REVIEW', 
-                        title: `RIPASSO CONSOLIDATO`, 
-                        desc: `Margine di sicurezza 80%: consolidamento programma per l'interrogazione del ${formatDateShort(firstDateStr)}` 
+                        title: `Ripasso`, 
+                        desc: `Ripasso per il ${formatDateShort(firstDateStr)}` 
                     };
                 }
 
@@ -1526,9 +1547,9 @@
 
                 return { 
                     type: 'STUDY', 
-                    title: `Studio (in vista di ${formatDateShort(firstDateStr)})`, 
+                    title: `Studio`, 
                     pages: daily, 
-                    desc: `Quota di oggi: ${daily} pag. (Parametro di sicurezza 80%)` 
+                    desc: `${daily} pag.` 
                 };
             } 
             else {
@@ -1547,7 +1568,7 @@
                     return { 
                         type: 'INTER_REVIEW', 
                         title: `Ripasso Interrogazione`, 
-                        desc: `Sessione ${reviewDaysNeeded - diffDays + 1} di ${reviewDaysNeeded} (~${pagesPart} pag.) in vista del ${formatDateShort(nextExamDateStr)}` 
+                        desc: `${reviewDaysNeeded - diffDays + 1}/${reviewDaysNeeded} - circa ${pagesPart} pag.` 
                     };
                 }
                 return null;
@@ -1584,8 +1605,8 @@
         if (targetIndex >= studyDaysCount) { 
             return { 
                 type: 'FINAL_REVIEW', 
-                title: `RIPASSO CONSOLIDATO`, 
-                desc: `Margine di sicurezza 80%: consolidamento programma senza ansia da imprevisti` 
+                title: `Ripasso`, 
+                desc: `Ripasso generale` 
             }; 
         }
 
@@ -1599,7 +1620,7 @@
             type: 'STUDY', 
             title: `Studio`, 
             pages: dailyPace, 
-            desc: `Quota di oggi: ${dailyPace} pag. (Parametro di sicurezza 80%)` 
+            desc: `${dailyPace} pag.` 
         };
     }
 
@@ -1682,13 +1703,13 @@
                 dailyTasks.push({ _id: exam.id, isExamReview: true, title: info.title, subject: exam.subject, desc: info.desc || '', priority: 3, isExamRelated: true, isExamStudyObj: true, isDone: isDoneToday }); 
             } 
             else if (info.type === 'STUDY') { 
-                dailyTasks.push({ _id: exam.id, isExamStudy: true, title: info.title, subject: exam.subject, priority: 3, desc: isDoneToday ? `Fatto: ${loggedToday || info.pages} pag.` : `Obiettivo di oggi: ${info.pages} pag.`, pagesSuggested: info.pages, isDone: isDoneToday, loggedPages: loggedToday || info.pages, isExamRelated: true, isExamStudyObj: true }); 
+                dailyTasks.push({ _id: exam.id, isExamStudy: true, title: info.title, subject: exam.subject, priority: 3, desc: isDoneToday ? `Fatto: ${loggedToday || info.pages} pag.` : `${info.pages} pag.`, pagesSuggested: info.pages, isDone: isDoneToday, loggedPages: loggedToday || info.pages, isExamRelated: true, isExamStudyObj: true }); 
             }
             else if (info.type === 'PRACTICE') { 
-                dailyTasks.push({ _id: exam.id, isExamStudy: true, title: info.title, subject: exam.subject, priority: 3, desc: isDoneToday ? `Fatto: ${loggedToday || info.amount} es.` : `Obiettivo fisso: ${info.amount} es.`, pagesSuggested: info.amount, isDone: isDoneToday, loggedPages: loggedToday || info.amount, isPractice: true, isExamRelated: true, isExamStudyObj: true }); 
+                dailyTasks.push({ _id: exam.id, isExamStudy: true, title: info.title, subject: exam.subject, priority: 3, desc: isDoneToday ? `Fatto: ${loggedToday || info.amount} es.` : `${info.amount} es.`, pagesSuggested: info.amount, isDone: isDoneToday, loggedPages: loggedToday || info.amount, isPractice: true, isExamRelated: true, isExamStudyObj: true }); 
             }
             else if (info.type === 'VERSION') {
-                dailyTasks.push({ _id: exam.id, isExamStudy: true, isVersion: true, title: info.title, subject: exam.subject, priority: 3, desc: isDoneToday ? `Completata: 1 versione` : `Oggi: svolgi 1 versione di prova`, pagesSuggested: 1, isDone: isDoneToday, loggedPages: loggedToday || 1, isExamRelated: true, isExamStudyObj: true });
+                dailyTasks.push({ _id: exam.id, isExamStudy: true, isVersion: true, title: info.title, subject: exam.subject, priority: 3, desc: isDoneToday ? `Completata: 1 versione` : `1 versione`, pagesSuggested: 1, isDone: isDoneToday, loggedPages: loggedToday || 1, isExamRelated: true, isExamStudyObj: true });
             }
         });
         
@@ -1698,14 +1719,14 @@
 
     function generateTasksForDate(dateStr) {
         const container = document.getElementById('exercises-container'); 
-        document.getElementById('today-title').innerHTML = (dateStr === todayDateStr) ? "Oggi: Da fare" : "Piano Studio";
+        document.getElementById('today-title').innerHTML = (dateStr === todayDateStr) ? "Oggi" : formatDateShort(dateStr);
         container.innerHTML = '';
         const dailyTasks = getTasksForDate(dateStr);
         if (dateStr === todayDateStr) {
             syncAndroidWidget();
         }
         if (dailyTasks.length === 0) { 
-            container.innerHTML = `<div style="text-align:center; padding: 40px 0;"><h3 style="color:var(--text-muted); font-weight:500;">Nessun task in programma</h3></div>`; 
+            container.innerHTML = `<div style="text-align:center; padding: 40px 0;"><h3 style="color:var(--text-muted); font-weight:500;">Nessuna task</h3></div>`; 
             return; 
         }
 
@@ -1766,7 +1787,7 @@
                 if (task.isDone) {
                     html += `<div class="ex-action" style="cursor:pointer;" onclick="undoExamProgress('${task._id}', '${dateStr}')" title="Clicca per annullare il completamento">
                                 <div style="color:var(--theme-strong); font-weight:700; text-align:center; font-size: 0.8rem;">
-                                    <i class="fa-solid fa-square-check" style="font-size:1.3rem; margin-bottom:2px;"></i><br>Compiuto (${task.loggedPages})
+                                    <i class="fa-solid fa-square-check" style="font-size:1.3rem; margin-bottom:2px;"></i><br>${task.loggedPages}
                                 </div>
                              </div></div>`;
                 } else {
@@ -2098,6 +2119,187 @@
         }
     }
 
+    function initBottomSheetDrag() {
+        const sheets = document.querySelectorAll('.bottom-sheet-overlay');
+        sheets.forEach(overlay => {
+            const content = overlay.querySelector('.bottom-sheet-content');
+            const handle = overlay.querySelector('.sheet-handle');
+            if (!content) return;
+
+            let startY = 0;
+            let currentY = 0;
+            let isDragging = false;
+
+            const onTouchStart = (e) => {
+                if (content.scrollTop > 5 && e.target !== handle) return;
+                startY = e.touches[0].clientY;
+                currentY = startY;
+                isDragging = true;
+                content.style.transition = 'none';
+            };
+
+            const onTouchMove = (e) => {
+                if (!isDragging) return;
+                currentY = e.touches[0].clientY;
+                const deltaY = currentY - startY;
+                if (deltaY > 0) {
+                    content.style.transform = `translateY(${deltaY}px)`;
+                    overlay.style.opacity = Math.max(0.15, 1 - (deltaY / 400));
+                    if (e.cancelable && (e.target === handle || content.scrollTop <= 0)) {
+                        e.preventDefault();
+                    }
+                } else {
+                    content.style.transform = `translateY(${deltaY * 0.15}px)`;
+                }
+            };
+
+            const onTouchEnd = () => {
+                if (!isDragging) return;
+                isDragging = false;
+                const deltaY = currentY - startY;
+
+                content.style.transition = 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)';
+                overlay.style.transition = 'opacity 0.25s ease';
+
+                if (deltaY > 90) {
+                    content.style.transform = 'translateY(100%)';
+                    overlay.style.opacity = '0';
+                    setTimeout(() => {
+                        closeBottomSheet(overlay.id);
+                        content.style.transform = '';
+                        content.style.transition = '';
+                        overlay.style.opacity = '';
+                        overlay.style.transition = '';
+                    }, 260);
+                } else {
+                    content.style.transform = 'translateY(0)';
+                    overlay.style.opacity = '1';
+                    setTimeout(() => {
+                        content.style.transform = '';
+                        content.style.transition = '';
+                        overlay.style.opacity = '';
+                        overlay.style.transition = '';
+                    }, 280);
+                }
+            };
+
+            if (handle) {
+                handle.addEventListener('touchstart', onTouchStart, { passive: false });
+                handle.addEventListener('touchmove', onTouchMove, { passive: false });
+                handle.addEventListener('touchend', onTouchEnd, { passive: true });
+            }
+            content.addEventListener('touchstart', onTouchStart, { passive: true });
+            content.addEventListener('touchmove', onTouchMove, { passive: false });
+            content.addEventListener('touchend', onTouchEnd, { passive: true });
+        });
+    }
+
+    function initTaskSwipeNavigation() {
+        const target = document.getElementById('exercises-container');
+        if (!target) return;
+
+        let startX = 0;
+        let startY = 0;
+        let deltaX = 0;
+        let deltaY = 0;
+        let isHorizontalSwipe = false;
+        let isVerticalScroll = false;
+
+        const onTouchStart = (e) => {
+            if (e.touches.length !== 1) return;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            deltaX = 0;
+            deltaY = 0;
+            isHorizontalSwipe = false;
+            isVerticalScroll = false;
+            target.style.transition = 'none';
+        };
+
+        const onTouchMove = (e) => {
+            if (isVerticalScroll || e.touches.length !== 1) return;
+            deltaX = e.touches[0].clientX - startX;
+            deltaY = e.touches[0].clientY - startY;
+
+            if (!isHorizontalSwipe && !isVerticalScroll) {
+                if (Math.abs(deltaY) > 12 && Math.abs(deltaY) > Math.abs(deltaX)) {
+                    isVerticalScroll = true;
+                    return;
+                } else if (Math.abs(deltaX) > 14 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+                    isHorizontalSwipe = true;
+                }
+            }
+
+            if (isHorizontalSwipe) {
+                if (e.cancelable) e.preventDefault();
+                target.style.transform = `translateX(${deltaX * 0.32}px)`;
+                target.style.opacity = Math.max(0.65, 1 - Math.abs(deltaX) / 380);
+            }
+        };
+
+        const onTouchEnd = () => {
+            if (!isHorizontalSwipe) {
+                target.style.transform = '';
+                target.style.opacity = '';
+                return;
+            }
+
+            target.style.transition = 'transform 0.22s ease-out, opacity 0.22s ease-out';
+            const threshold = 45;
+
+            if (deltaX < -threshold) {
+                target.style.transform = 'translateX(-35px)';
+                target.style.opacity = '0';
+                setTimeout(() => {
+                    navigateDayOffset(1);
+                    target.style.transition = 'none';
+                    target.style.transform = 'translateX(35px)';
+                    setTimeout(() => {
+                        target.style.transition = 'transform 0.22s ease-out, opacity 0.22s ease-out';
+                        target.style.transform = '';
+                        target.style.opacity = '1';
+                    }, 20);
+                }, 120);
+            } else if (deltaX > threshold) {
+                target.style.transform = 'translateX(35px)';
+                target.style.opacity = '0';
+                setTimeout(() => {
+                    navigateDayOffset(-1);
+                    target.style.transition = 'none';
+                    target.style.transform = 'translateX(-35px)';
+                    setTimeout(() => {
+                        target.style.transition = 'transform 0.22s ease-out, opacity 0.22s ease-out';
+                        target.style.transform = '';
+                        target.style.opacity = '1';
+                    }, 20);
+                }, 120);
+            } else {
+                target.style.transform = '';
+                target.style.opacity = '1';
+            }
+            isHorizontalSwipe = false;
+        };
+
+        target.addEventListener('touchstart', onTouchStart, { passive: true });
+        target.addEventListener('touchmove', onTouchMove, { passive: false });
+        target.addEventListener('touchend', onTouchEnd, { passive: true });
+
+        const todayTitle = document.getElementById('today-title');
+        if (todayTitle) {
+            todayTitle.addEventListener('touchstart', onTouchStart, { passive: true });
+            todayTitle.addEventListener('touchmove', onTouchMove, { passive: false });
+            todayTitle.addEventListener('touchend', onTouchEnd, { passive: true });
+        }
+    }
+
+    function navigateDayOffset(offset) {
+        const parts = selectedDateStr.split('-');
+        const cur = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        cur.setDate(cur.getDate() + offset);
+        const newStr = formatDateStr(cur);
+        clickDate(newStr);
+    }
+
     function init() {
         document.body.addEventListener('click', initAudio, { once: true }); 
         applySettingsUI(); 
@@ -2112,6 +2314,8 @@
         renderStreakCalendar(); 
         renderMonthCalendar();
         renderSubjectDonutChart();
+        initBottomSheetDrag();
+        initTaskSwipeNavigation();
         syncAndroidWidget();
         
         setInterval(() => {
@@ -2412,7 +2616,7 @@
         });
 
         const contentDiv = document.getElementById('details-modal-content'); const titleDiv = document.getElementById('details-modal-title');
-        const [y, m, d] = dateStr.split('-'); titleDiv.innerText = `Piano del ${d}/${m}/${y}`;
+        const [y, m, d] = dateStr.split('-'); titleDiv.innerText = `${d}/${m}/${y}`;
         let html = '';
 
         if (exactExams.length > 0) {
@@ -2502,7 +2706,7 @@
         let accumulatedOffset = 0;
         if (centerVal) centerVal.innerText = `${totalTasks}`;
         const centerLabel = document.querySelector('.donut-center-label');
-        if (centerLabel) centerLabel.innerText = totalTasks === 1 ? 'Task' : 'Task Totali';
+        if (centerLabel) centerLabel.innerText = totalTasks === 1 ? 'Task' : 'Task';
 
         subjects.forEach((sub, idx) => {
             const count = subjectCounts[sub];
