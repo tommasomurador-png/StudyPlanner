@@ -3246,22 +3246,36 @@ Rispondi ESCLUSIVAMENTE con un oggetto JSON valido con il seguente schema:
 
         let addedCount = 0;
         let subjectsUpdated = false;
+        let targetDisplayDate = selectedDateStr || todayDateStr;
 
-        pendingAiPlanItems.forEach(item => {
+        pendingAiPlanItems.forEach((item, idx) => {
             const cleanSub = cleanSubjectName(item.subject || 'Generale');
             if (cleanSub && !userSubjects.map(s => s.toLowerCase()).includes(cleanSub.toLowerCase())) {
                 userSubjects.push(cleanSub);
                 subjectsUpdated = true;
             }
 
-            if (item.category === 'exam') {
+            const cat = (item.category || '').toLowerCase();
+            const isExamCategory = cat === 'exam' || cat === 'verifica' || cat === 'interrogazione' || cat === 'prova';
+            const itemDate = item.date || tomorrowStr;
+
+            if (idx === 0) {
+                targetDisplayDate = itemDate;
+            }
+
+            if (isExamCategory) {
+                const examType = (item.type || '').toLowerCase().includes('interrogazione') ? 'Interrogazione' : 
+                                 ((item.type || '').toLowerCase().includes('versione') ? 'Versione' : 'Verifica');
+                const pagesNum = parseInt(item.pagesOrExercises) || parseInt(item.pages) || 20;
+
                 const newExam = {
-                    id: generateId(),
+                    id: 'ex_' + generateId(),
                     subject: cleanSub,
-                    type: item.type === 'Interrogazione' ? 'Interrogazione' : 'Verifica',
-                    pages: parseInt(item.pagesOrExercises) || 20,
-                    date: item.date || tomorrowStr,
+                    type: examType,
+                    pages: pagesNum,
+                    date: itemDate,
                     startDate: todayDateStr,
+                    specificInterrogazioneDates: examType === 'Interrogazione' ? [itemDate] : [],
                     excludedDays: [],
                     snoozedDays: [],
                     progress: {}
@@ -3269,15 +3283,21 @@ Rispondi ESCLUSIVAMENTE con un oggetto JSON valido con il seguente schema:
                 myExams.push(newExam);
                 addedCount++;
             } else {
+                // Task To-Do
+                const taskTitle = item.title || item.details || 'Studio';
                 const newTodo = {
-                    id: generateId(),
-                    title: item.title || 'Studio',
+                    id: 'td_' + generateId(),
+                    title: taskTitle,
                     subject: cleanSub,
-                    dueDate: item.date || todayDateStr,
-                    difficulty: 2,
-                    priority: 2,
+                    deadline: itemDate > todayDateStr ? itemDate : tomorrowStr,
+                    assignedDate: itemDate,
+                    date: itemDate,
+                    priority: parseInt(item.priority) || 2,
+                    difficulty: parseInt(item.difficulty) || 2,
+                    repeat: false,
                     isRepeat: false,
                     isDone: false,
+                    createdAt: todayDateStr,
                     excludedDays: [],
                     snoozedDays: []
                 };
@@ -3298,13 +3318,22 @@ Rispondi ESCLUSIVAMENTE con un oggetto JSON valido con il seguente schema:
         localStorage.setItem('studylog_exams', JSON.stringify(myExams));
 
         closeAiPlanModal();
+
+        // Seleziona la data della task per vederla subito sullo schermo
+        if (targetDisplayDate) {
+            selectedDateStr = targetDisplayDate;
+            if (typeof clickDate === 'function') {
+                clickDate(targetDisplayDate);
+            }
+        }
+
         updateAllDots();
         generateTasksForDate(selectedDateStr);
         updateWeekSliderVisuals(selectedDateStr);
         renderMonthCalendar();
         renderSubjectDonutChart();
         syncAndroidWidget();
-        showToast(`Piano aggiunto con successo (+${addedCount})!`);
+        showToast(`Aggiunto al diario! (+${addedCount})`);
     };
 
     // Android Hardware Back Button Bridge
