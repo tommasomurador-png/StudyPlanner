@@ -329,7 +329,12 @@
                     <button type="button" class="ai-mic-btn" id="ai-mic-btn" onclick="toggleVoiceInput()" title="Registra voce">
                         <i class="fa-solid fa-microphone" id="ai-mic-icon"></i>
                     </button>
-                    <span class="ai-mic-status" id="ai-mic-status">Premi per parlare</span>
+                    <div class="ai-voice-feedback">
+                        <div class="ai-voice-wave-container" id="ai-voice-wave-container">
+                            <canvas id="ai-voice-canvas" class="ai-voice-canvas" width="180" height="28"></canvas>
+                        </div>
+                        <span class="ai-mic-status" id="ai-mic-status">Premi per parlare</span>
+                    </div>
                 </div>
             </div>
 
@@ -585,7 +590,7 @@
 
 </div>
 
-    <script src="js/app.js?v=2.1.3" defer></script>
+    <script src="js/app.js?v=2.1.4" defer></script>
 
 </body>
 </html>

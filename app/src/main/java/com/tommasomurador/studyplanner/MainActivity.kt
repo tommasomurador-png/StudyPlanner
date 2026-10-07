@@ -250,6 +250,8 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     speechRecognizer?.destroy()
+                    var isExplicitlyStopped = false
+
                     speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
                         setRecognitionListener(object : RecognitionListener {
                             override fun onReadyForSpeech(params: Bundle?) {
@@ -258,25 +260,39 @@ class MainActivity : AppCompatActivity() {
                                 }
                             }
                             override fun onBeginningOfSpeech() {}
-                            override fun onRmsChanged(rmsdB: Float) {}
-                            override fun onBufferReceived(buffer: ByteArray?) {}
-                            override fun onEndOfSpeech() {
+                            override fun onRmsChanged(rmsdB: Float) {
+                                // rmsdB varia generalmente tra -2 e 10
+                                val normalizedVolume = Math.max(0.0f, Math.min(1.0f, (rmsdB + 2.0f) / 12.0f))
                                 webView.post {
-                                    webView.evaluateJavascript("window.onNativeSpeechEnd ? window.onNativeSpeechEnd() : null", null)
+                                    webView.evaluateJavascript("window.onNativeSpeechVolume ? window.onNativeSpeechVolume($normalizedVolume) : null", null)
                                 }
                             }
+                            override fun onBufferReceived(buffer: ByteArray?) {}
+                            override fun onEndOfSpeech() {}
                             override fun onError(error: Int) {
+                                if (isExplicitlyStopped) return
+                                // Se c'e' una pausa nel parlato o no-match, riavvia l'ascolto per non chiuderlo finche' l'utente non preme stop
+                                if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+                                    try {
+                                        val restartIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
+                                            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                                        }
+                                        speechRecognizer?.startListening(restartIntent)
+                                        return
+                                    } catch (e: Exception) {}
+                                }
+
                                 val msg = when (error) {
                                     SpeechRecognizer.ERROR_AUDIO -> "Errore audio"
                                     SpeechRecognizer.ERROR_CLIENT -> "Errore client vocale"
                                     SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Permesso microfono mancante"
                                     SpeechRecognizer.ERROR_NETWORK -> "Errore di connessione"
                                     SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Timeout di rete"
-                                    SpeechRecognizer.ERROR_NO_MATCH -> "Nessuna voce riconosciuta"
                                     SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Riconoscitore occupato"
                                     SpeechRecognizer.ERROR_SERVER -> "Errore server vocale"
-                                    SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Nessuna parola pronunciata"
-                                    else -> "Errore riconoscimento vocale"
+                                    else -> "Errore microfono"
                                 }
                                 webView.post {
                                     webView.evaluateJavascript("window.onNativeSpeechError ? window.onNativeSpeechError('$msg') : null", null)
@@ -288,6 +304,17 @@ class MainActivity : AppCompatActivity() {
                                 val escaped = text.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ")
                                 webView.post {
                                     webView.evaluateJavascript("window.onNativeSpeechResult ? window.onNativeSpeechResult('$escaped', true) : null", null)
+                                }
+                                // Se l'utente non ha premuto Stop, continua ad ascoltare per la frase successiva
+                                if (!isExplicitlyStopped) {
+                                    try {
+                                        val restartIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
+                                            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                                        }
+                                        speechRecognizer?.startListening(restartIntent)
+                                    } catch (e: Exception) {}
                                 }
                             }
                             override fun onPartialResults(partialResults: Bundle?) {
@@ -325,6 +352,9 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 try {
                     speechRecognizer?.stopListening()
+                    speechRecognizer?.destroy()
+                    speechRecognizer = null
+                    webView.evaluateJavascript("window.onNativeSpeechEnd ? window.onNativeSpeechEnd() : null", null)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }

@@ -2750,6 +2750,11 @@
     // =========================================================================
     let isVoiceRecording = false;
     let webSpeechRecognizer = null;
+    let webAudioStream = null;
+    let webAudioContext = null;
+    let webAnalyser = null;
+    let waveAnimFrameId = null;
+    let currentVoiceVolume = 0;
     let pendingAiPlanItems = [];
 
     window.getGeminiApiKey = function() {
@@ -2813,18 +2818,106 @@
     function setVoiceStatus(isRecording, text) {
         isVoiceRecording = isRecording;
         const btn = document.getElementById('ai-mic-btn');
+        const icon = document.getElementById('ai-mic-icon');
         const status = document.getElementById('ai-mic-status');
-        if (btn) btn.classList.toggle('listening', isRecording);
-        if (status && text) status.innerText = text;
+        const waveContainer = document.getElementById('ai-voice-wave-container');
+
+        if (btn) {
+            btn.classList.toggle('listening', isRecording);
+            btn.title = isRecording ? "Ferma registrazione" : "Registra voce";
+        }
+        if (icon) {
+            // Se sta registrando, mostra il quadratino di STOP, altrimenti il microfono
+            icon.className = isRecording ? "fa-solid fa-square" : "fa-solid fa-microphone";
+        }
+        if (waveContainer) {
+            waveContainer.classList.toggle('active', isRecording);
+        }
+        if (status && text) {
+            status.innerText = text;
+        }
+
+        if (isRecording) {
+            startWaveformAnimation();
+        } else {
+            stopWaveformAnimation();
+        }
+    }
+
+    function startWaveformAnimation() {
+        stopWaveformAnimation();
+        const canvas = document.getElementById('ai-voice-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let step = 0;
+
+        function drawWave() {
+            if (!isVoiceRecording) return;
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerY = height / 2;
+
+            // Se siamo su web, prendi il volume dall'analyser se attivo
+            if (webAnalyser) {
+                const dataArray = new Uint8Array(webAnalyser.frequencyBinCount);
+                webAnalyser.getByteFrequencyData(dataArray);
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                const avg = sum / dataArray.length;
+                currentVoiceVolume = Math.min(1.0, avg / 60);
+            }
+
+            ctx.clearRect(0, 0, width, height);
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--theme-strong').trim() || '#2c2c2c';
+
+            ctx.beginPath();
+            const minAmp = 2;
+            const maxAmp = (height / 2) - 3;
+            const currentAmp = minAmp + (currentVoiceVolume * (maxAmp - minAmp));
+            const freq = 0.08;
+
+            for (let x = 0; x < width; x++) {
+                // Modulazione ai bordi per sfumare l'onda a zero
+                const envelope = Math.sin((x / width) * Math.PI);
+                const y = centerY + Math.sin((x * freq) + step) * currentAmp * envelope;
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            step += 0.18 + (currentVoiceVolume * 0.25);
+            waveAnimFrameId = requestAnimationFrame(drawWave);
+        }
+
+        waveAnimFrameId = requestAnimationFrame(drawWave);
+    }
+
+    function stopWaveformAnimation() {
+        if (waveAnimFrameId) {
+            cancelAnimationFrame(waveAnimFrameId);
+            waveAnimFrameId = null;
+        }
+        const canvas = document.getElementById('ai-voice-canvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        currentVoiceVolume = 0;
     }
 
     // Callbacks nativi Android per SpeechRecognizer
     window.onNativeSpeechReady = function() {
-        setVoiceStatus(true, "In ascolto... parla ora");
+        setVoiceStatus(true, "In ascolto... premi il quadrato per terminare");
+    };
+
+    window.onNativeSpeechVolume = function(normVolume) {
+        currentVoiceVolume = typeof normVolume === 'number' ? normVolume : 0;
     };
 
     window.onNativeSpeechEnd = function() {
-        setVoiceStatus(false, "Elaborazione voce...");
+        setVoiceStatus(false, "Trascrizione completata");
     };
 
     window.onNativeSpeechError = function(errMsg) {
@@ -2839,7 +2932,7 @@
         if (isFinal) {
             const current = promptEl.value.trim();
             promptEl.value = current ? `${current} ${transcript}` : transcript;
-            setVoiceStatus(false, "Trascrizione completata");
+            promptEl.setAttribute('data-base-text', promptEl.value);
         } else {
             // Risultato parziale in tempo reale
             const baseText = promptEl.getAttribute('data-base-text') || promptEl.value.trim();
@@ -2868,7 +2961,7 @@
             return;
         }
 
-        // 2. Fallback su Web Speech API standard per browser
+        // 2. Fallback su Web Speech API per Browser / PWA
         const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRec) {
             customAlert("Il riconoscimento vocale non è supportato da questo browser. Puoi digitare direttamente il testo.", "Microfono non disponibile");
@@ -2881,28 +2974,41 @@
             }
             webSpeechRecognizer = new SpeechRec();
             webSpeechRecognizer.lang = 'it-IT';
-            webSpeechRecognizer.continuous = false;
+            webSpeechRecognizer.continuous = true;
             webSpeechRecognizer.interimResults = true;
 
+            // Inizializza audio analyser per la forma d'onda su web
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                    webAudioStream = stream;
+                    webAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const source = webAudioContext.createMediaStreamSource(stream);
+                    webAnalyser = webAudioContext.createAnalyser();
+                    webAnalyser.fftSize = 64;
+                    source.connect(webAnalyser);
+                }).catch(() => {});
+            }
+
             webSpeechRecognizer.onstart = function() {
-                setVoiceStatus(true, "In ascolto... parla ora");
+                setVoiceStatus(true, "In ascolto... premi il quadrato per terminare");
             };
 
             webSpeechRecognizer.onresult = function(event) {
                 let interim = '';
-                let finalStr = '';
+                let finalChunk = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     if (event.results[i].isFinal) {
-                        finalStr += event.results[i][0].transcript;
+                        finalChunk += event.results[i][0].transcript;
                     } else {
                         interim += event.results[i][0].transcript;
                     }
                 }
                 if (promptEl) {
                     const baseText = promptEl.getAttribute('data-base-text') || '';
-                    if (finalStr) {
-                        promptEl.value = (baseText ? `${baseText} ${finalStr}` : finalStr).trim();
-                        promptEl.setAttribute('data-base-text', promptEl.value);
+                    if (finalChunk) {
+                        const newBase = (baseText ? `${baseText} ${finalChunk}` : finalChunk).trim();
+                        promptEl.value = newBase;
+                        promptEl.setAttribute('data-base-text', newBase);
                     } else if (interim) {
                         promptEl.value = (baseText ? `${baseText} ${interim}` : interim).trim();
                     }
@@ -2910,14 +3016,23 @@
             };
 
             webSpeechRecognizer.onerror = function(event) {
-                setVoiceStatus(false, "Microfono inattivo");
                 if (event.error !== 'no-speech') {
+                    setVoiceStatus(false, "Microfono inattivo");
                     showToast(`Errore vocale: ${event.error}`, true);
                 }
             };
 
             webSpeechRecognizer.onend = function() {
-                setVoiceStatus(false, "Premi per parlare");
+                // Se l'utente non ha premuto manualmente Stop e il browser chiude la sessione per silenzio, riapri se ancora in recording
+                if (isVoiceRecording) {
+                    try {
+                        webSpeechRecognizer.start();
+                    } catch(e) {
+                        setVoiceStatus(false, "Premi per parlare");
+                    }
+                } else {
+                    setVoiceStatus(false, "Premi per parlare");
+                }
             };
 
             webSpeechRecognizer.start();
@@ -2936,6 +3051,17 @@
         if (webSpeechRecognizer) {
             try { webSpeechRecognizer.stop(); } catch(e){}
             webSpeechRecognizer = null;
+        }
+        if (webAudioStream) {
+            try {
+                webAudioStream.getTracks().forEach(track => track.stop());
+            } catch(e){}
+            webAudioStream = null;
+        }
+        if (webAudioContext) {
+            try { webAudioContext.close(); } catch(e){}
+            webAudioContext = null;
+            webAnalyser = null;
         }
     }
 
@@ -2999,46 +3125,71 @@ Rispondi ESCLUSIVAMENTE con un oggetto JSON valido con il seguente schema:
   ]
 }`;
 
-        try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    contents: [
-                        {
-                            role: 'user',
-                            parts: [
-                                { text: `${systemInstruction}\n\nRichiesta dello studente: "${text}"` }
-                            ]
-                        }
-                    ],
-                    generationConfig: {
-                        responseMimeType: 'application/json',
-                        temperature: 0.2
-                    }
-                })
-            });
+        // Lista modelli con fallback a catena per evitare errori 404 o 503 di sovraccarico temporaneo
+        const candidateModels = [
+            'gemini-3.5-flash-lite',
+            'gemini-3.5-flash',
+            'gemini-3.1-flash-lite',
+            'gemini-flash-latest',
+            'gemini-2.5-flash'
+        ];
 
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                const msg = errData?.error?.message || `Errore HTTP ${response.status}`;
-                throw new Error(msg);
-            }
+        let lastError = null;
+        let parsed = null;
 
-            const data = await response.json();
-            const rawContent = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (!rawContent) {
-                throw new Error("Risposta vuota da Gemini");
-            }
-
-            let parsed;
+        for (const model of candidateModels) {
             try {
-                parsed = JSON.parse(rawContent);
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [
+                            {
+                                role: 'user',
+                                parts: [
+                                    { text: `${systemInstruction}\n\nRichiesta dello studente: "${text}"` }
+                                ]
+                            }
+                        ],
+                        generationConfig: {
+                            responseMimeType: 'application/json',
+                            temperature: 0.2
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    const msg = errData?.error?.message || `Errore HTTP ${response.status}`;
+                    lastError = new Error(msg);
+                    continue; // Prova modello successivo nella lista
+                }
+
+                const data = await response.json();
+                const rawContent = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!rawContent) {
+                    lastError = new Error("Risposta vuota da Gemini");
+                    continue;
+                }
+
+                try {
+                    parsed = JSON.parse(rawContent);
+                } catch(e) {
+                    const clean = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
+                    parsed = JSON.parse(clean);
+                }
+
+                if (parsed) break; // Successo!
             } catch(e) {
-                const clean = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
-                parsed = JSON.parse(clean);
+                lastError = e;
+            }
+        }
+
+        try {
+            if (!parsed) {
+                throw lastError || new Error("Nessun modello Gemini ha risposto con successo");
             }
 
             const items = Array.isArray(parsed) ? parsed : (parsed.items || []);
