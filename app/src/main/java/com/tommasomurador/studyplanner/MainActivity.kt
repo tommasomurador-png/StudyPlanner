@@ -261,6 +261,7 @@ class MainActivity : AppCompatActivity() {
                     .apply()
                 StudyPlannerWidgetProvider.updateAllWidgets(context)
                 MascotWidgetProvider.updateAllWidgets(context)
+                MascotBannerWidgetProvider.updateAllWidgets(context)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -276,6 +277,7 @@ class MainActivity : AppCompatActivity() {
                     .apply()
                 StudyPlannerWidgetProvider.updateAllWidgets(context)
                 MascotWidgetProvider.updateAllWidgets(context)
+                MascotBannerWidgetProvider.updateAllWidgets(context)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -291,6 +293,7 @@ class MainActivity : AppCompatActivity() {
                     .apply()
                 StudyPlannerWidgetProvider.updateAllWidgets(context)
                 MascotWidgetProvider.updateAllWidgets(context)
+                MascotBannerWidgetProvider.updateAllWidgets(context)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

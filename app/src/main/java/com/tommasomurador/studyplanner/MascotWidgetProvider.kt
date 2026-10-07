@@ -53,10 +53,18 @@ class MascotWidgetProvider : AppWidgetProvider() {
 
             val views = RemoteViews(context.packageName, R.layout.widget_mascot_streak)
 
+            // Current hour for progressive urgency
+            val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+            val isNightPanic = pendingCount > 0 && streak > 0 && (hour >= 21 || hour < 4)
+
             // Setup Theme & Transparency
             val isLight = theme == "light"
             val alpha = (((100 - transparency) * 255) / 100).coerceIn(0, 255)
-            val baseColor = if (isLight) Color.parseColor("#FFFFFF") else Color.parseColor("#141416")
+            val baseColor = when {
+                isNightPanic -> Color.parseColor("#881337")
+                isLight -> Color.parseColor("#FFFFFF")
+                else -> Color.parseColor("#141416")
+            }
 
             views.setInt(R.id.mascot_widget_bg, "setColorFilter", baseColor)
             views.setInt(R.id.mascot_widget_bg, "setImageAlpha", alpha)
@@ -66,8 +74,16 @@ class MascotWidgetProvider : AppWidgetProvider() {
                 views.setViewVisibility(R.id.mascot_widget_bg, android.view.View.VISIBLE)
             }
 
-            val textColor = if (isLight) Color.parseColor("#111111") else Color.parseColor("#FFFFFF")
-            val subColor = if (isLight) Color.parseColor("#666666") else Color.parseColor("#A0A0A0")
+            val textColor = when {
+                isNightPanic -> Color.parseColor("#FFFFFF")
+                isLight -> Color.parseColor("#111111")
+                else -> Color.parseColor("#FFFFFF")
+            }
+            val subColor = when {
+                isNightPanic -> Color.parseColor("#FECDD3")
+                isLight -> Color.parseColor("#666666")
+                else -> Color.parseColor("#A0A0A0")
+            }
 
             views.setTextColor(R.id.mascot_streak_num, textColor)
             views.setTextColor(R.id.mascot_status_text, textColor)
@@ -77,12 +93,12 @@ class MascotWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.mascot_streak_num, streak.toString())
             views.setTextViewText(R.id.mascot_streak_label, if (streak == 1) "giorno" else "giorni")
 
-            // Mascot state based on streak and daily progress
+            // Progressive Duolingo Mascot states
             when {
                 streak >= 7 && (allDone || noTasks) -> {
                     views.setImageViewResource(R.id.mascot_image, R.drawable.ic_mascot_fire)
                     views.setTextViewText(R.id.mascot_status_text, "Inarrestabile!")
-                    views.setTextViewText(R.id.mascot_sub_text, "Super serie attiva")
+                    views.setTextViewText(R.id.mascot_sub_text, "Super serie attiva ($streak gg)")
                 }
                 allDone -> {
                     views.setImageViewResource(R.id.mascot_image, R.drawable.ic_mascot_happy)
@@ -90,19 +106,39 @@ class MascotWidgetProvider : AppWidgetProvider() {
                     views.setTextViewText(R.id.mascot_sub_text, "Serie protetta per oggi")
                 }
                 noTasks -> {
-                    views.setImageViewResource(R.id.mascot_image, R.drawable.ic_mascot_happy)
-                    views.setTextViewText(R.id.mascot_status_text, "Nessun compito")
-                    views.setTextViewText(R.id.mascot_sub_text, "Giorno libero")
+                    views.setImageViewResource(R.id.mascot_image, R.drawable.ic_mascot_relax)
+                    views.setTextViewText(R.id.mascot_status_text, "Giorno di riposo")
+                    views.setTextViewText(R.id.mascot_sub_text, "Nessun compito previsto")
                 }
-                pendingCount > 0 && streak > 0 -> {
+                streak == 0 && pendingCount > 0 -> {
+                    views.setImageViewResource(R.id.mascot_image, R.drawable.ic_mascot_sad)
+                    views.setTextViewText(R.id.mascot_status_text, "Inizia la serie!")
+                    views.setTextViewText(R.id.mascot_sub_text, "$pendingCount task in attesa")
+                }
+                // Streak attiva con task pendenti: variazione progressiva in base all'orario
+                hour in 4..11 -> {
+                    // Mattina: incoraggiamento fresco
+                    views.setImageViewResource(R.id.mascot_image, R.drawable.ic_mascot_morning)
+                    views.setTextViewText(R.id.mascot_status_text, "Buongiorno!")
+                    views.setTextViewText(R.id.mascot_sub_text, "$pendingCount task per oggi")
+                }
+                hour in 12..17 -> {
+                    // Pomeriggio: concentrazione e studio
+                    views.setImageViewResource(R.id.mascot_image, R.drawable.ic_mascot_thinking)
+                    views.setTextViewText(R.id.mascot_status_text, "Pausa studio?")
+                    views.setTextViewText(R.id.mascot_sub_text, "Mancano $pendingCount task")
+                }
+                hour in 18..20 -> {
+                    // Sera: allerta media
                     views.setImageViewResource(R.id.mascot_image, R.drawable.ic_mascot_warning)
-                    views.setTextViewText(R.id.mascot_status_text, "Serie in pericolo!")
-                    views.setTextViewText(R.id.mascot_sub_text, "$pendingCount da completare oggi")
+                    views.setTextViewText(R.id.mascot_status_text, "Non dimenticare!")
+                    views.setTextViewText(R.id.mascot_sub_text, "$pendingCount task prima di sera")
                 }
                 else -> {
-                    views.setImageViewResource(R.id.mascot_image, R.drawable.ic_mascot_sad)
-                    views.setTextViewText(R.id.mascot_status_text, "Inizia a studiare")
-                    views.setTextViewText(R.id.mascot_sub_text, "$pendingCount task in attesa")
+                    // Notte (21..23 o 0..3): Panico stile Duolingo
+                    views.setImageViewResource(R.id.mascot_image, R.drawable.ic_mascot_desperate)
+                    views.setTextViewText(R.id.mascot_status_text, "SERIE IN PERICOLO!")
+                    views.setTextViewText(R.id.mascot_sub_text, "Salva la serie ($pendingCount rimaste)")
                 }
             }
 

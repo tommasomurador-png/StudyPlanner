@@ -20,6 +20,9 @@ class StudyPlannerAlarmReceiver : BroadcastReceiver() {
         val action = intent.action
         if (action == Intent.ACTION_BOOT_COMPLETED || action == "android.intent.action.QUICKBOOT_POWERON") {
             scheduleDailyAlarms(context)
+            StudyPlannerWidgetProvider.updateAllWidgets(context)
+            MascotWidgetProvider.updateAllWidgets(context)
+            MascotBannerWidgetProvider.updateAllWidgets(context)
             return
         }
 
@@ -81,6 +84,11 @@ class StudyPlannerAlarmReceiver : BroadcastReceiver() {
         }
 
         showNotification(context, title, message)
+
+        // Aggiorna lo stato visivo dei widget in base all'orario e compiti
+        StudyPlannerWidgetProvider.updateAllWidgets(context)
+        MascotWidgetProvider.updateAllWidgets(context)
+        MascotBannerWidgetProvider.updateAllWidgets(context)
 
         // Riprogramma gli allarmi per continuare ad averli attivi
         scheduleDailyAlarms(context)

@@ -4,4 +4,6 @@
     <string name="widget_todo_title">To-Do List</string>
     <string name="widget_streak_mascot_title">Mascot Serie</string>
     <string name="widget_streak_mascot_desc">Mascot in stile Duolingo che reagisce alla tua serie di studio.</string>
+    <string name="widget_streak_banner_title">Mascot Serie (Banner)</string>
+    <string name="widget_streak_banner_desc">Widget orizzontale con mascot reattiva stile Duolingo, progresso e serie.</string>
 </resources>
