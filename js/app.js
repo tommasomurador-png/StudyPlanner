@@ -765,6 +765,7 @@
         updateNotificationBellUI();
         renderSettingsSubjectTags();
         if (typeof updateWidgetSettingsUI === 'function') updateWidgetSettingsUI();
+        if (typeof updateGeminiKeySettingsUI === 'function') updateGeminiKeySettingsUI();
     }
 
     window.toggleAppTheme = function() {
@@ -2743,6 +2744,417 @@
         });
     };
 
+
+    // =========================================================================
+    // FEATURE AI GEMINI & VOCALE (GOOGLE AI STUDIO & SPEECH RECOGNITION)
+    // =========================================================================
+    let isVoiceRecording = false;
+    let webSpeechRecognizer = null;
+    let pendingAiPlanItems = [];
+
+    window.getGeminiApiKey = function() {
+        return (localStorage.getItem('studylog_gemini_key') || '').trim();
+    };
+
+    window.updateGeminiKeySettingsUI = function() {
+        const input = document.getElementById('settings-gemini-key');
+        const status = document.getElementById('gemini-key-status');
+        const key = window.getGeminiApiKey();
+        if (input) {
+            input.value = key ? '••••••••••••••••' : '';
+        }
+        if (status) {
+            if (key) {
+                status.innerText = "Configurata";
+                status.style.color = "var(--theme-strong)";
+            } else {
+                status.innerText = "Non impostata";
+                status.style.color = "var(--text-muted)";
+            }
+        }
+    };
+
+    window.saveGeminiApiKeyFromSettings = function() {
+        const input = document.getElementById('settings-gemini-key');
+        if (!input) return;
+        const val = input.value.trim();
+        if (!val || val.startsWith('•••')) {
+            if (!val) {
+                localStorage.removeItem('studylog_gemini_key');
+                window.updateGeminiKeySettingsUI();
+                showToast("Chiave rimossa");
+            }
+            return;
+        }
+        localStorage.setItem('studylog_gemini_key', val);
+        window.updateGeminiKeySettingsUI();
+        showToast("Chiave API salvata!");
+    };
+
+    window.openAiPlanModal = function() {
+        closeModal('choice-modal');
+        const modal = document.getElementById('ai-plan-modal');
+        if (modal) {
+            modal.classList.add('active');
+            const promptEl = document.getElementById('ai-plan-prompt');
+            if (promptEl) promptEl.value = '';
+            document.getElementById('ai-plan-loading').style.display = 'none';
+            document.getElementById('ai-plan-preview').style.display = 'none';
+            pendingAiPlanItems = [];
+            setVoiceStatus(false, "Premi per parlare");
+        }
+    };
+
+    window.closeAiPlanModal = function() {
+        stopVoiceInput();
+        closeModal('ai-plan-modal');
+    };
+
+    function setVoiceStatus(isRecording, text) {
+        isVoiceRecording = isRecording;
+        const btn = document.getElementById('ai-mic-btn');
+        const status = document.getElementById('ai-mic-status');
+        if (btn) btn.classList.toggle('listening', isRecording);
+        if (status && text) status.innerText = text;
+    }
+
+    // Callbacks nativi Android per SpeechRecognizer
+    window.onNativeSpeechReady = function() {
+        setVoiceStatus(true, "In ascolto... parla ora");
+    };
+
+    window.onNativeSpeechEnd = function() {
+        setVoiceStatus(false, "Elaborazione voce...");
+    };
+
+    window.onNativeSpeechError = function(errMsg) {
+        setVoiceStatus(false, "Microfono inattivo");
+        showToast(errMsg || "Errore microfono", true);
+    };
+
+    window.onNativeSpeechResult = function(transcript, isFinal) {
+        const promptEl = document.getElementById('ai-plan-prompt');
+        if (!promptEl || !transcript) return;
+        
+        if (isFinal) {
+            const current = promptEl.value.trim();
+            promptEl.value = current ? `${current} ${transcript}` : transcript;
+            setVoiceStatus(false, "Trascrizione completata");
+        } else {
+            // Risultato parziale in tempo reale
+            const baseText = promptEl.getAttribute('data-base-text') || promptEl.value.trim();
+            promptEl.value = baseText ? `${baseText} ${transcript}` : transcript;
+        }
+    };
+
+    window.toggleVoiceInput = function() {
+        if (isVoiceRecording) {
+            stopVoiceInput();
+        } else {
+            startVoiceInput();
+        }
+    };
+
+    function startVoiceInput() {
+        const promptEl = document.getElementById('ai-plan-prompt');
+        if (promptEl) {
+            promptEl.setAttribute('data-base-text', promptEl.value.trim());
+        }
+
+        // 1. Prova ponte nativo Android se presente
+        if (window.AndroidNative && typeof window.AndroidNative.startSpeechRecognition === 'function') {
+            setVoiceStatus(true, "Avvio microfono...");
+            window.AndroidNative.startSpeechRecognition();
+            return;
+        }
+
+        // 2. Fallback su Web Speech API standard per browser
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRec) {
+            customAlert("Il riconoscimento vocale non è supportato da questo browser. Puoi digitare direttamente il testo.", "Microfono non disponibile");
+            return;
+        }
+
+        try {
+            if (webSpeechRecognizer) {
+                try { webSpeechRecognizer.stop(); } catch(e){}
+            }
+            webSpeechRecognizer = new SpeechRec();
+            webSpeechRecognizer.lang = 'it-IT';
+            webSpeechRecognizer.continuous = false;
+            webSpeechRecognizer.interimResults = true;
+
+            webSpeechRecognizer.onstart = function() {
+                setVoiceStatus(true, "In ascolto... parla ora");
+            };
+
+            webSpeechRecognizer.onresult = function(event) {
+                let interim = '';
+                let finalStr = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalStr += event.results[i][0].transcript;
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                if (promptEl) {
+                    const baseText = promptEl.getAttribute('data-base-text') || '';
+                    if (finalStr) {
+                        promptEl.value = (baseText ? `${baseText} ${finalStr}` : finalStr).trim();
+                        promptEl.setAttribute('data-base-text', promptEl.value);
+                    } else if (interim) {
+                        promptEl.value = (baseText ? `${baseText} ${interim}` : interim).trim();
+                    }
+                }
+            };
+
+            webSpeechRecognizer.onerror = function(event) {
+                setVoiceStatus(false, "Microfono inattivo");
+                if (event.error !== 'no-speech') {
+                    showToast(`Errore vocale: ${event.error}`, true);
+                }
+            };
+
+            webSpeechRecognizer.onend = function() {
+                setVoiceStatus(false, "Premi per parlare");
+            };
+
+            webSpeechRecognizer.start();
+        } catch(e) {
+            console.error('Speech recognition error:', e);
+            setVoiceStatus(false, "Microfono non disponibile");
+            showToast("Impossibile avviare il microfono", true);
+        }
+    }
+
+    function stopVoiceInput() {
+        setVoiceStatus(false, "Premi per parlare");
+        if (window.AndroidNative && typeof window.AndroidNative.stopSpeechRecognition === 'function') {
+            window.AndroidNative.stopSpeechRecognition();
+        }
+        if (webSpeechRecognizer) {
+            try { webSpeechRecognizer.stop(); } catch(e){}
+            webSpeechRecognizer = null;
+        }
+    }
+
+    window.submitAiPlanning = async function() {
+        stopVoiceInput();
+        const promptEl = document.getElementById('ai-plan-prompt');
+        const text = (promptEl ? promptEl.value : '').trim();
+        if (!text) {
+            customAlert("Inserisci o detta cosa devi studiare o quali compiti hai.", "Testo mancante");
+            return;
+        }
+
+        const apiKey = window.getGeminiApiKey();
+        if (!apiKey) {
+            const goToSettings = await customConfirm({
+                title: "Chiave Gemini richiesta",
+                message: "Per pianificare con l'AI serve una chiave gratuita di Google AI Studio. Vuoi inserirla ora nelle Impostazioni?",
+                confirmText: "Impostazioni",
+                cancelText: "Annulla"
+            });
+            if (goToSettings) {
+                closeAiPlanModal();
+                openBottomSheet('settings-sheet');
+            }
+            return;
+        }
+
+        const loadingEl = document.getElementById('ai-plan-loading');
+        const loadingText = document.getElementById('ai-plan-loading-text');
+        const previewEl = document.getElementById('ai-plan-preview');
+        const btnGen = document.getElementById('btn-generate-ai');
+
+        loadingEl.style.display = 'flex';
+        loadingText.innerText = "Gemini sta analizzando il carico di studio...";
+        previewEl.style.display = 'none';
+        btnGen.disabled = true;
+
+        const systemInstruction = `Sei l'assistente accademico di StudyPlanner. Il tuo obiettivo e' analizzare la richiesta dello studente e trasformarla in un piano strutturato di impegni.
+Data odierna di riferimento: ${todayDateStr} (Anno-Mese-Giorno).
+Materie registrate dello studente: ${JSON.stringify(userSubjects)}.
+
+Regole fondamentali da applicare rigorosamente:
+1. Per verifiche o interrogazioni su pagine (es. storia, scienze, latino, filosofia): applica il Principio di Sicurezza (80% del tempo): se mancano N giorni, dividi le pagine per l'80% dei giorni per creare un buffer finale di ripasso.
+2. Per gli esercizi (es. matematica, fisica): organizza task di pratica per giorno.
+3. Se l'utente menziona compiti generici per domani o per una data specifica, genera semplici task.
+4. Ogni materia assegnata deve coincidere con una delle materie esistenti o una nuova materia appropriata senza emoji.
+5. VIETATO USARE QUALSIASI EMOJI nei testi o nei titoli. Usa un linguaggio pulito e minimale.
+
+Rispondi ESCLUSIVAMENTE con un oggetto JSON valido con il seguente schema:
+{
+  "items": [
+    {
+      "category": "exam" o "todo",
+      "subject": "Nome materia",
+      "title": "Titolo chiaro del compito o della prova",
+      "date": "YYYY-MM-DD",
+      "type": "Verifica" o "Interrogazione" o "Esercizi" o "Compito",
+      "pagesOrExercises": 30,
+      "details": "Dettaglio quote giornaliere o descrizione sintetica"
+    }
+  ]
+}`;
+
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: [
+                        {
+                            role: 'user',
+                            parts: [
+                                { text: `${systemInstruction}\n\nRichiesta dello studente: "${text}"` }
+                            ]
+                        }
+                    ],
+                    generationConfig: {
+                        responseMimeType: 'application/json',
+                        temperature: 0.2
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                const msg = errData?.error?.message || `Errore HTTP ${response.status}`;
+                throw new Error(msg);
+            }
+
+            const data = await response.json();
+            const rawContent = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!rawContent) {
+                throw new Error("Risposta vuota da Gemini");
+            }
+
+            let parsed;
+            try {
+                parsed = JSON.parse(rawContent);
+            } catch(e) {
+                const clean = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
+                parsed = JSON.parse(clean);
+            }
+
+            const items = Array.isArray(parsed) ? parsed : (parsed.items || []);
+            if (items.length === 0) {
+                throw new Error("Nessun compito o verifica rilevata nella richiesta.");
+            }
+
+            pendingAiPlanItems = items;
+            renderAiPlanPreview(items);
+        } catch(err) {
+            console.error('Gemini error:', err);
+            customAlert(`Impossibile elaborare il piano con Gemini: ${err.message}`, "Errore AI", true);
+        } finally {
+            loadingEl.style.display = 'none';
+            btnGen.disabled = false;
+        }
+    };
+
+    function renderAiPlanPreview(items) {
+        const previewEl = document.getElementById('ai-plan-preview');
+        const listEl = document.getElementById('ai-preview-list');
+        const countEl = document.getElementById('ai-preview-count');
+        if (!previewEl || !listEl) return;
+
+        listEl.innerHTML = '';
+        countEl.innerText = `${items.length} ${items.length === 1 ? 'elemento' : 'elementi'}`;
+
+        items.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'ai-preview-card';
+            
+            const sub = item.subject || 'Generale';
+            const catLabel = item.category === 'exam' ? (item.type || 'Verifica') : 'Task';
+            const dateStr = item.date || todayDateStr;
+            const parts = dateStr.split('-');
+            const dateFormatted = parts.length === 3 ? `${parts[2]}/${parts[1]}` : dateStr;
+
+            card.innerHTML = `
+                <div class="ai-preview-top">
+                    <span class="ai-preview-subject">${sub}</span>
+                    <span class="ai-preview-date">${dateFormatted}</span>
+                </div>
+                <div class="ai-preview-desc">${item.title || item.details || 'Compito'}</div>
+                <div class="ai-preview-badge">${catLabel}${item.pagesOrExercises ? ` • ${item.pagesOrExercises}` : ''}</div>
+            `;
+            listEl.appendChild(card);
+        });
+
+        previewEl.style.display = 'block';
+    }
+
+    window.confirmAndApplyAiPlan = function() {
+        if (!pendingAiPlanItems || pendingAiPlanItems.length === 0) return;
+
+        let addedCount = 0;
+        let subjectsUpdated = false;
+
+        pendingAiPlanItems.forEach(item => {
+            const cleanSub = cleanSubjectName(item.subject || 'Generale');
+            if (cleanSub && !userSubjects.map(s => s.toLowerCase()).includes(cleanSub.toLowerCase())) {
+                userSubjects.push(cleanSub);
+                subjectsUpdated = true;
+            }
+
+            if (item.category === 'exam') {
+                const newExam = {
+                    id: generateId(),
+                    subject: cleanSub,
+                    type: item.type === 'Interrogazione' ? 'Interrogazione' : 'Verifica',
+                    pages: parseInt(item.pagesOrExercises) || 20,
+                    date: item.date || tomorrowStr,
+                    startDate: todayDateStr,
+                    excludedDays: [],
+                    snoozedDays: [],
+                    progress: {}
+                };
+                myExams.push(newExam);
+                addedCount++;
+            } else {
+                const newTodo = {
+                    id: generateId(),
+                    title: item.title || 'Studio',
+                    subject: cleanSub,
+                    dueDate: item.date || todayDateStr,
+                    difficulty: 2,
+                    priority: 2,
+                    isRepeat: false,
+                    isDone: false,
+                    excludedDays: [],
+                    snoozedDays: []
+                };
+                myTodos.push(newTodo);
+                addedCount++;
+            }
+        });
+
+        if (subjectsUpdated) {
+            localStorage.setItem('studylog_subjects', JSON.stringify(userSubjects));
+            renderSettingsSubjectTags();
+            if (todoSubjectPicker) todoSubjectPicker.setItems(userSubjects);
+            if (editTodoSubjectPicker) editTodoSubjectPicker.setItems(userSubjects);
+            if (examSubjectPicker) examSubjectPicker.setItems(userSubjects);
+        }
+
+        localStorage.setItem('studylog_todos', JSON.stringify(myTodos));
+        localStorage.setItem('studylog_exams', JSON.stringify(myExams));
+
+        closeAiPlanModal();
+        updateAllDots();
+        generateTasksForDate(selectedDateStr);
+        updateWeekSliderVisuals(selectedDateStr);
+        renderMonthCalendar();
+        renderSubjectDonutChart();
+        syncAndroidWidget();
+        showToast(`Piano aggiunto con successo (+${addedCount})!`);
+    };
 
     // Android Hardware Back Button Bridge
     window.handleAndroidBackPressed = function() {
