@@ -428,6 +428,7 @@ class MainActivity : AppCompatActivity() {
                     .putString(StudyPlannerWidgetProvider.KEY_COMPLETED_JSON, completedJson)
                     .apply()
                 StudyPlannerWidgetProvider.updateAllWidgets(context)
+                MascotWidgetProvider.updateAllWidgets(context)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -442,6 +443,7 @@ class MainActivity : AppCompatActivity() {
                     .putInt(StudyPlannerWidgetProvider.KEY_TRANSPARENCY, transparency)
                     .apply()
                 StudyPlannerWidgetProvider.updateAllWidgets(context)
+                MascotWidgetProvider.updateAllWidgets(context)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -456,6 +458,7 @@ class MainActivity : AppCompatActivity() {
                     .putString("tasks_summary", tasksSummary)
                     .apply()
                 StudyPlannerWidgetProvider.updateAllWidgets(context)
+                MascotWidgetProvider.updateAllWidgets(context)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

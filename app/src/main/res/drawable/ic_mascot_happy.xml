@@ -1,0 +1,82 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Happy / Triumphant Mascot: Gufetto accademico in festa con tocco e occhi felici -->
+    <!-- Corpo tondeggiante blu/viola accademico -->
+    <path
+        android:fillColor="#4F46E5"
+        android:pathData="M60,18 C36,18 20,38 20,70 C20,95 38,112 60,112 C82,112 100,95 100,70 C100,38 84,18 60,18 Z" />
+    <!-- Ventre chiaro -->
+    <path
+        android:fillColor="#818CF8"
+        android:pathData="M60,48 C45,48 35,62 35,84 C35,102 46,110 60,110 C74,110 85,102 85,84 C85,62 75,48 60,48 Z" />
+    <!-- Orecchiette / Piumette -->
+    <path
+        android:fillColor="#3730A3"
+        android:pathData="M30,30 L20,12 L42,24 Z" />
+    <path
+        android:fillColor="#3730A3"
+        android:pathData="M90,30 L100,12 L78,24 Z" />
+    <!-- Occhi grandi sorridenti (ad arco felice) -->
+    <!-- Occhio sinistro fondo bianco -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M44,48 A11,11 0 1,1 43.99,48 Z" />
+    <!-- Occhio destro fondo bianco -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M76,48 A11,11 0 1,1 75.99,48 Z" />
+    <!-- Archi pupille felici (^_^) -->
+    <path
+        android:strokeColor="#1E1B4B"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M37,49 Q44,41 51,49" />
+    <path
+        android:strokeColor="#1E1B4B"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M69,49 Q76,41 83,49" />
+    <!-- Guance rosate -->
+    <path
+        android:fillColor="#F472B6"
+        android:pathData="M33,59 A4,3 0 1,1 32.99,59 Z" />
+    <path
+        android:fillColor="#F472B6"
+        android:pathData="M87,59 A4,3 0 1,1 86.99,59 Z" />
+    <!-- Becco carino arancione -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M55,54 L65,54 L60,65 Z" />
+    <!-- Sorriso / Linea sotto becco -->
+    <path
+        android:strokeColor="#B45309"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M58,67 Q60,70 62,67" />
+    <!-- Cappello da laurea (Tocco) in cima -->
+    <path
+        android:fillColor="#111827"
+        android:pathData="M60,4 L96,16 L60,28 L24,16 Z" />
+    <path
+        android:fillColor="#1F2937"
+        android:pathData="M42,22 L42,32 C42,38 78,38 78,32 L78,22 Z" />
+    <!-- Nappina dorata del tocco -->
+    <path
+        android:strokeColor="#FBBF24"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M60,16 Q82,18 84,32" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M84,32 L87,38 L81,38 Z" />
+    <!-- Piccole zampette arancioni in basso -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M46,110 L52,110 L49,116 Z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M68,110 L74,110 L71,116 Z" />
+</vector>

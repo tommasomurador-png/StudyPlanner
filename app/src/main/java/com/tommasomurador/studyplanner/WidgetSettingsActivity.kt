@@ -118,6 +118,7 @@ class WidgetSettingsActivity : AppCompatActivity() {
                 .apply()
 
             StudyPlannerWidgetProvider.updateAllWidgets(this)
+            MascotWidgetProvider.updateAllWidgets(this)
 
             MainActivity.activeInstance?.runOnUiThread {
                 MainActivity.activeInstance?.updateWidgetSettingsInJs(selectedTheme, selectedTransparency)

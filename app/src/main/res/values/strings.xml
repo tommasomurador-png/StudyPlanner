@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">Study Planner</string>
-    <string name="widget_description">Mostra la serie di studio, i compiti di oggi e l\'accesso rapido al Pomodoro.</string>
+    <string name="widget_description">Lista interattiva delle to-do task e verifiche di oggi con spunta rapida.</string>
+    <string name="widget_todo_title">To-Do List</string>
+    <string name="widget_streak_mascot_title">Mascot Serie</string>
+    <string name="widget_streak_mascot_desc">Mascot in stile Duolingo che reagisce alla tua serie di studio.</string>
 </resources>

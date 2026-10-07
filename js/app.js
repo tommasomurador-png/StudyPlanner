@@ -456,8 +456,8 @@
         });
 
         todoPausePicker = initPopoverDatePicker('todo-pause-popover-container', {
-            defaultDate: tomorrowStr,
-            min: tomorrowStr,
+            defaultDate: todayDateStr,
+            min: todayDateStr,
             onChange: (val) => {}
         });
 
@@ -474,8 +474,8 @@
         });
 
         examPausePicker = initPopoverDatePicker('exam-pause-popover-container', {
-            defaultDate: tomorrowStr,
-            min: tomorrowStr,
+            defaultDate: todayDateStr,
+            min: todayDateStr,
             onChange: (val) => {}
         });
 
@@ -606,18 +606,18 @@
         if (type === 'todo') {
             const deadline = todoDatePicker ? todoDatePicker.getValue() : tomorrowStr;
             if (todoPausePicker) {
-                todoPausePicker.setMin(tomorrowStr);
+                todoPausePicker.setMin(todayDateStr);
                 todoPausePicker.setMax(deadline || tomorrowStr);
             }
-            currentTodoPauseDates = currentTodoPauseDates.filter(d => d >= tomorrowStr && (!deadline || d <= deadline));
+            currentTodoPauseDates = currentTodoPauseDates.filter(d => d >= todayDateStr && (!deadline || d <= deadline));
             renderPauseChips('todo');
         } else {
             const examDate = examDatePicker ? examDatePicker.getValue() : tomorrowStr;
             if (examPausePicker) {
-                examPausePicker.setMin(tomorrowStr);
+                examPausePicker.setMin(todayDateStr);
                 examPausePicker.setMax(examDate || tomorrowStr);
             }
-            currentExamPauseDates = currentExamPauseDates.filter(d => d >= tomorrowStr && (!examDate || d <= examDate));
+            currentExamPauseDates = currentExamPauseDates.filter(d => d >= todayDateStr && (!examDate || d <= examDate));
             renderPauseChips('exam');
         }
     }
@@ -626,12 +626,12 @@
         const val = type === 'todo' ? (todoPausePicker ? todoPausePicker.getValue() : '') : (examPausePicker ? examPausePicker.getValue() : '');
         const maxLimit = type === 'todo' ? (todoDatePicker ? todoDatePicker.getValue() : '') : (examDatePicker ? examDatePicker.getValue() : '');
         
-        if (!val || val <= todayDateStr) { 
-            customAlert("La data di pausa deve essere successiva a oggi! Non puoi scegliere il giorno stesso.", "Data non valida", true); 
+        if (!val || val < todayDateStr) { 
+            customAlert("La data di pausa non può essere nel passato! Puoi selezionare da oggi in poi.", "Data non valida", true); 
             return; 
         }
         if (maxLimit && val > maxLimit) { 
-            customAlert("La data deve essere compresa tra domani e la scadenza!", "Intervallo non valido"); 
+            customAlert("La data di pausa deve essere compresa tra oggi e la scadenza!", "Intervallo non valido"); 
             return; 
         }
 
@@ -641,7 +641,7 @@
             list.sort();
             renderPauseChips(type);
         } else {
-            customAlert("Data giÃ  inserita nelle pause!", "Data duplicata");
+            customAlert("Data già inserita nelle pause!", "Data duplicata");
         }
     }
 
@@ -1866,6 +1866,11 @@
         let keyDateObj = new Date(dateStr.split('-')[0], dateStr.split('-')[1]-1, dateStr.split('-')[2]);
         let todayDateObj = new Date(todayDateStr.split('-')[0], todayDateStr.split('-')[1]-1, todayDateStr.split('-')[2]);
         
+        if (keyDateObj.getTime() < todayDateObj.getTime()) {
+            showToast("Non puoi completare task di giorni passati.", true);
+            return;
+        }
+
         if (keyDateObj.getTime() > todayDateObj.getTime()) { 
             showToast("Non puoi completare task future.", true); 
             return; 
@@ -1911,6 +1916,11 @@
         let keyDateObj = new Date(keyDate.split('-')[0], keyDate.split('-')[1]-1, keyDate.split('-')[2]);
         let todayDateObj = new Date(todayDateStr.split('-')[0], todayDateStr.split('-')[1]-1, todayDateStr.split('-')[2]);
         
+        if (keyDateObj.getTime() < todayDateObj.getTime()) {
+            showToast("Non puoi completare task di giorni passati.", true);
+            return;
+        }
+
         if (keyDateObj.getTime() > todayDateObj.getTime()) { 
             showToast("Non puoi completare task future.", true); 
             return; 
