@@ -3103,12 +3103,19 @@
 Data odierna di riferimento: ${todayDateStr} (Anno-Mese-Giorno).
 Materie registrate dello studente: ${JSON.stringify(userSubjects)}.
 
-Regole fondamentali da applicare rigorosamente:
-1. Per verifiche o interrogazioni su pagine (es. storia, scienze, latino, filosofia): applica il Principio di Sicurezza (80% del tempo): se mancano N giorni, dividi le pagine per l'80% dei giorni per creare un buffer finale di ripasso.
-2. Per gli esercizi (es. matematica, fisica): organizza task di pratica per giorno.
-3. Se l'utente menziona compiti generici per domani o per una data specifica, genera semplici task.
-4. Ogni materia assegnata deve coincidere con una delle materie esistenti o una nuova materia appropriata senza emoji.
-5. VIETATO USARE QUALSIASI EMOJI nei testi o nei titoli. Usa un linguaggio pulito e minimale.
+REGOLE CRUCIALI SULLE DATE:
+1. Le date devono essere sempre valide nel formato YYYY-MM-DD.
+2. Se lo studente cita un giorno oltre la fine del mese corrente (es. 'per il 32' o 'il 32 ottobre'), interpreta correttamente il giorno nel mese successivo! Esempio: ottobre ha 31 giorni, quindi il '32' significa esattamente il giorno successivo, cioe' 1 Novembre (${todayDateStr.split('-')[0]}-11-01). Se dice 'il 15' ed e' gia' passato rispetto ad oggi (${todayDateStr}), riferisciti al mese successivo. Non inventare mai date inesistenti come 2026-10-32!
+3. Se l'utente dice 'per domani', la data sara' il giorno successivo a ${todayDateStr}.
+
+REGOLE SUI CARICHI (PAGINE ED ESERCIZI):
+1. Per verifiche di MATEMATICA o FISICA in cui lo studente specifica quanti esercizi fare al giorno (es. '4 esercizi al giorno', '5 es al giorno'):
+   - 'pagesOrExercises' DEVE essere esattamente quel numero indicato (es. 4), cioe' la quota giornaliera di esercizi! Non mettere valori inventati o default (es. NON mettere 20).
+2. Per verifiche di studio su pagine (storia, scienze, latino, filosofia, letteratura):
+   - 'pagesOrExercises' rappresenta le pagine totali da distribuire fino alla verifica (applicando il Principio di Sicurezza dell'80% del tempo con buffer finale di ripasso).
+3. Se l'utente menziona compiti o esercizi generici per una data specifica senza verifica, assegna categoria 'todo'.
+4. Ogni materia assegnata deve coincidere con una delle materie esistenti o una nuova appropriata senza emoji.
+5. VIETATO USARE QUALSIASI EMOJI nei testi o nei titoli.
 
 Rispondi ESCLUSIVAMENTE con un oggetto JSON valido con il seguente schema:
 {
@@ -3119,7 +3126,7 @@ Rispondi ESCLUSIVAMENTE con un oggetto JSON valido con il seguente schema:
       "title": "Titolo chiaro del compito o della prova",
       "date": "YYYY-MM-DD",
       "type": "Verifica" o "Interrogazione" o "Esercizi" o "Compito",
-      "pagesOrExercises": 30,
+      "pagesOrExercises": 4,
       "details": "Dettaglio quote giornaliere o descrizione sintetica"
     }
   ]
@@ -3257,7 +3264,23 @@ Rispondi ESCLUSIVAMENTE con un oggetto JSON valido con il seguente schema:
 
             const cat = (item.category || '').toLowerCase();
             const isExamCategory = cat === 'exam' || cat === 'verifica' || cat === 'interrogazione' || cat === 'prova';
-            const itemDate = item.date || tomorrowStr;
+            let rawDate = item.date || tomorrowStr;
+            let itemDate = tomorrowStr;
+            try {
+                // Se la data ha giorno oltre fine mese (es. 2026-10-32), normalizzala matematicamente
+                const parts = rawDate.split('-');
+                if (parts.length === 3) {
+                    const y = parseInt(parts[0]);
+                    const m = parseInt(parts[1]) - 1;
+                    const d = parseInt(parts[2]);
+                    const dObj = new Date(y, m, d);
+                    if (!isNaN(dObj.getTime())) {
+                        itemDate = formatDateStr(dObj);
+                    }
+                }
+            } catch(e) {
+                itemDate = tomorrowStr;
+            }
 
             if (idx === 0) {
                 targetDisplayDate = itemDate;
@@ -3266,7 +3289,13 @@ Rispondi ESCLUSIVAMENTE con un oggetto JSON valido con il seguente schema:
             if (isExamCategory) {
                 const examType = (item.type || '').toLowerCase().includes('interrogazione') ? 'Interrogazione' : 
                                  ((item.type || '').toLowerCase().includes('versione') ? 'Versione' : 'Verifica');
-                const pagesNum = parseInt(item.pagesOrExercises) || parseInt(item.pages) || 20;
+                
+                // Cerca di estrarre il numero esatto anche se presente in details (es. '4 esercizi al giorno')
+                let pagesNum = parseInt(item.pagesOrExercises) || parseInt(item.pages);
+                if (isNaN(pagesNum) || pagesNum <= 0) {
+                    const detailMatch = (item.details || '').match(/(\d+)\s*(?:eserciz|es|pag)/i);
+                    pagesNum = detailMatch ? parseInt(detailMatch[1]) : (cleanSub.toLowerCase().includes('matematica') || cleanSub.toLowerCase().includes('fisica') ? 4 : 20);
+                }
 
                 const newExam = {
                     id: 'ex_' + generateId(),
