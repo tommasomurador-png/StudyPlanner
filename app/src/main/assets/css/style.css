@@ -1037,6 +1037,7 @@
 
         /* Psicologia UI/UX: The Peak-End Rule (Celebration Canvas) */
         #celebration-canvas {
+            display: none;
             position: fixed;
             top: 0;
             left: 0;

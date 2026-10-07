@@ -33,15 +33,17 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.1.2">
+    <link rel="stylesheet" href="css/style.css?v=2.1.8">
 </head>
 <body>
 
 <script>
-    let savedTheme = localStorage.getItem('studylog_theme') || 'light';
-    let savedStyle = localStorage.getItem('studylog_style') || 'classic';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    document.documentElement.setAttribute('data-style', savedStyle);
+    (function() {
+        const theme = localStorage.getItem('studylog_theme') || 'light';
+        const style = localStorage.getItem('studylog_style') || 'classic';
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.setAttribute('data-style', style);
+    })();
 </script>
 
 <div id="app-container">
@@ -545,6 +547,7 @@
     <!-- MODAL DI BENVENUTO E ONBOARDING PRIMO AVVIO -->
     <div class="fullscreen-modal" id="onboarding-modal">
         <div class="glass-panel" style="max-height: 90vh; display: flex; flex-direction: column; text-align: center;">
+            <button class="btn-close-modal-top" onclick="closeModal('onboarding-modal')"><i class="fa-solid fa-xmark"></i></button>
             <div style="margin-bottom: 24px;">
                 <div style="width: 65px; height: 65px; border-radius: 20px; background: var(--theme-empty); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px; border: 1px solid var(--border-color);">
                     <i class="fa-solid fa-graduation-cap" style="font-size: 2rem; color: var(--theme-strong);"></i>
@@ -568,7 +571,7 @@
 
 </div>
 
-    <canvas id="celebration-canvas"></canvas>
+    <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
     <script src="js/app.js?v=2.1.8" defer></script>
 
 </body>

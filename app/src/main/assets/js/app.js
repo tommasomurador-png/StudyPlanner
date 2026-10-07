@@ -1919,6 +1919,7 @@
         }
 
         confettiActive = true;
+        canvas.style.display = 'block';
         const startTime = Date.now();
         function animate() {
             if (!confettiActive) return;
@@ -1926,6 +1927,7 @@
             if (elapsed > 2500) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 confettiActive = false;
+                canvas.style.display = 'none';
                 return;
             }
 
