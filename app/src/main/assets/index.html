@@ -33,16 +33,15 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.2.0">
+    <link rel="stylesheet" href="css/style.css?v=2.2.1">
 </head>
 <body>
 
 <script>
     (function() {
         const theme = localStorage.getItem('studylog_theme') || 'light';
-        const style = localStorage.getItem('studylog_style') || 'classic';
         document.documentElement.setAttribute('data-theme', theme);
-        document.documentElement.setAttribute('data-style', style);
+        document.documentElement.setAttribute('data-style', 'classic');
     })();
 </script>
 
@@ -209,17 +208,6 @@
                         <span class="settings-card-title"><i class="fa-solid fa-palette"></i> Aspetto</span>
                     </div>
                     <div class="settings-row-col">
-                        <span class="settings-row-label">Stile Grafico</span>
-                        <div class="settings-grid" style="grid-template-columns: 1fr 1fr;">
-                            <button class="choice-btn compact" id="btn-style-classic" onclick="setAppStyle('classic')">
-                                <i class="fa-solid fa-feather"></i> Classic
-                            </button>
-                            <button class="choice-btn compact" id="btn-style-pixel" onclick="setAppStyle('pixel')">
-                                <i class="fa-solid fa-cube"></i> Pixel (ISO-CORE)
-                            </button>
-                        </div>
-                    </div>
-                    <div class="settings-row-col" style="margin-top: 14px;">
                         <span class="settings-row-label">Modalita'</span>
                         <div class="settings-grid" style="grid-template-columns: 1fr 1fr;">
                             <button class="choice-btn compact" id="btn-theme-light" onclick="setAppTheme('light')">
@@ -234,19 +222,6 @@
 
                 <div class="settings-card">
                     <div class="settings-card-header">
-                        <span class="settings-card-title"><i class="fa-solid fa-bell"></i> Notifiche</span>
-                    </div>
-                    <div class="notification-bell-btn" id="notif-bell-action-btn" onclick="handleNotificationBellClick(this)">
-                        <span id="notif-status-label" style="font-size: 0.9rem; font-weight: 600; color: var(--text-main);">Attive</span>
-                        <div class="bell-icon-wrapper">
-                            <i class="fa-solid fa-bell"></i>
-                            <span class="bell-badge-count" id="notif-badge-count" style="display: none;">8</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="settings-card">
-                    <div class="settings-card-header">
                         <span class="settings-card-title"><i class="fa-solid fa-book-bookmark"></i> Materie</span>
                     </div>
                     <div class="input-row">
@@ -254,19 +229,6 @@
                         <button type="button" class="btn-submit compact" onclick="addSubjectFromSettings()">Aggiungi</button>
                     </div>
                     <div class="subject-tags-container" id="settings-tags-list"></div>
-                </div>
-
-
-
-                <div class="settings-card">
-                    <div class="settings-card-header">
-                        <span class="settings-card-title"><i class="fa-solid fa-user-graduate"></i> Profilo Studente</span>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label style="font-size: 0.78rem;">Nome</label>
-                        <input type="text" id="settings-user-name" class="form-control" placeholder="Il tuo nome">
-                    </div>
-                    <button type="button" class="btn-submit" style="width: 100%; padding: 11px;" onclick="saveUserProfileFromSettings()">Aggiorna nome</button>
                 </div>
             </div>
         </div>
@@ -572,7 +534,7 @@
 </div>
 
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.2.0" defer></script>
+    <script src="js/app.js?v=2.2.1" defer></script>
 
 </body>
 </html>

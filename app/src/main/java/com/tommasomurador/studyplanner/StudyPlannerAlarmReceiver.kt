@@ -21,15 +21,13 @@ class StudyPlannerAlarmReceiver : BroadcastReceiver() {
         if (action == Intent.ACTION_BOOT_COMPLETED || action == "android.intent.action.QUICKBOOT_POWERON") {
             scheduleDailyAlarms(context)
             StudyPlannerWidgetProvider.updateAllWidgets(context)
-            MascotWidgetProvider.updateAllWidgets(context)
-            MascotBannerWidgetProvider.updateAllWidgets(context)
             return
         }
 
         // Recupera profilo utente e preferenze
         val prefs = context.getSharedPreferences(StudyPlannerWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
         val userName = prefs.getString("user_name", "")?.trim().let {
-            if (it.isNullOrEmpty()) "Campione" else it
+            if (it.isNullOrEmpty()) "Champ" else it
         }
 
         val tasksJson = prefs.getString(StudyPlannerWidgetProvider.KEY_TASKS_JSON, "[]") ?: "[]"
@@ -38,7 +36,7 @@ class StudyPlannerAlarmReceiver : BroadcastReceiver() {
 
         var totalTasks = 0
         var doneTasks = 0
-        var firstCourse = "Studio"
+        var firstCourse = "Study"
 
         try {
             val tasksArray = JSONArray(tasksJson)
@@ -50,7 +48,7 @@ class StudyPlannerAlarmReceiver : BroadcastReceiver() {
                 val isDone = t.optBoolean("isDone", false) || (setKey.isNotEmpty() && completedObj.optBoolean(setKey, false))
                 if (isDone) {
                     doneTasks++
-                } else if (firstCourse == "Studio") {
+                } else if (firstCourse == "Study") {
                     val sub = t.optString("subject", "").trim()
                     if (sub.isNotEmpty()) firstCourse = sub
                 }
@@ -85,10 +83,8 @@ class StudyPlannerAlarmReceiver : BroadcastReceiver() {
 
         showNotification(context, title, message)
 
-        // Aggiorna lo stato visivo dei widget in base all'orario e compiti
+        // Aggiorna lo stato visivo del widget To-Do
         StudyPlannerWidgetProvider.updateAllWidgets(context)
-        MascotWidgetProvider.updateAllWidgets(context)
-        MascotBannerWidgetProvider.updateAllWidgets(context)
 
         // Riprogramma gli allarmi per continuare ad averli attivi
         scheduleDailyAlarms(context)
@@ -150,101 +146,84 @@ class StudyPlannerAlarmReceiver : BroadcastReceiver() {
     }
 
     private fun pickRandom(list: List<String>): String {
-        return if (list.isNotEmpty()) list.random() else "Tempo di studiare!"
+        return if (list.isNotEmpty()) list.random() else "Time to study!"
     }
 
     companion object {
         private val completedPhrases = listOf(
-            "See you tomorrow!",
-            "Till next time!",
-            "See you again?",
-            "See you later!",
-            "Miss me yet?",
-            "Way to go!",
-            "Miss you already!",
-            "Come back soon!",
-            "Don't forget me!"
+            "All homework done! See you tomorrow!",
+            "Great study session! Till next time!",
+            "All tasks completed! Way to go!",
+            "Homework finished! Enjoy your rest!",
+            "Great job studying today!",
+            "Streak protected for today! See you tomorrow!",
+            "Awesome work! See you next study session!"
         )
 
         private val nightPhrases = listOf(
-            "Late night lesson?",
-            "Since you're up...",
-            "Learn from bed?",
-            "Can't sleep, [Username]?",
-            "Start early, [Username]!"
+            "Late night study session, [Username]?",
+            "Still awake? Knock out some homework!",
+            "Can't sleep, [Username]? Review your notes!",
+            "Start early and get your homework done!",
+            "Finish your homework and get some rest, [Username]!"
         )
 
         private val morningPhrases = listOf(
-            "Morning, [Username]!",
-            "[Username]! You're up!",
-            "Coffee + [Course]?",
-            "Get started early!",
-            "Early lesson?",
-            "Gooooood morning!"
+            "Good morning, [Username]!",
+            "Start your day with some homework!",
+            "Coffee + [Course] study time?",
+            "Get your homework started early, [Username]!",
+            "Ready to study [Course] today?",
+            "Early study session, [Username]!",
+            "Time to plan your study tasks today!"
         )
 
         private val afternoonPhrases = listOf(
-            "Time to practice!",
-            "Time to learn [Course]",
-            "[Username]! Practice?",
-            "Practice time!",
-            "[Course] lesson?",
-            "Pleasseeeeee?",
-            "Lesson, [Username]?",
-            "Start a lesson!",
-            "Got 3 minutes?",
-            "Let's practice!",
-            "Hey, [Username]."
+            "Time to do your homework!",
+            "Time to study [Course], [Username]!",
+            "Ready for your homework, [Username]?",
+            "Study time! Let's get it done!",
+            "Work on your [Course] homework now!",
+            "Got a few minutes? Start your homework!",
+            "Don't postpone your study session, [Username]!",
+            "Time to study! Open your books!",
+            "Hey [Username], your homework is waiting!"
         )
 
         private val eveningPhrases = listOf(
-            "Seriously, [Username].",
-            "Please practice!",
-            "Duo's waiting!",
-            "[Username]?",
-            "Ready??????",
-            "[Username]! It's late!",
-            "I'm waitingggg!",
-            "Extend your streak!",
-            "It's getting late!",
-            "You ready, [Username]?"
+            "Time to finish your homework, [Username]!",
+            "Don't forget your homework tonight!",
+            "It's getting late, finish your study tasks!",
+            "Ready to finish your homework, [Username]?",
+            "Complete your [Course] homework before dinner!",
+            "Keep your streak alive! Finish your homework!",
+            "Homework time, [Username]! Don't put it off!",
+            "Finish studying today and protect your streak!"
         )
 
         private val nightUrgentPhrases = listOf(
-            "[Username]...",
-            "Last chance, [Username]!",
-            "[Username]????",
-            "It's late!",
-            "Time's up [Username]!",
-            "Don't let it break!",
-            "Time's almost up!",
-            "Where ARE you?",
-            "Do! Your! [Course]!",
-            "Protect your streak!",
-            "Duo's worried!",
-            "Save your streak!",
-            "Last chance!",
-            "Run or Rest?",
-            "Save your streak"
+            "Finish your homework now, [Username]!",
+            "Your homework isn't done yet, [Username]!",
+            "Time is running out! Do your homework!",
+            "Don't lose your streak! Study now!",
+            "Finish your [Course] tasks before bed!",
+            "Last chance to complete today's homework!",
+            "Protect your study streak, [Username]!",
+            "Still haven't finished your homework?",
+            "Complete your study tasks and keep your streak!"
         )
 
         private val lateNightCriticalPhrases = listOf(
-            "[Username].",
-            "[USERNAME], PLEASE??",
-            "Last chance!",
-            "Now or never!",
-            "Don't forget me!",
-            "Save your streak!",
-            "Duo's not happy...",
-            "Duo is watching...",
-            "It's VERY late!",
-            "Bye-bye, streak??",
-            "Practice now!",
-            "Almost midnight!",
-            "LESSON NOW, [USERNAME]",
-            "ALMOST TOO LATE, [USERNAME]",
-            "*screams internally*",
-            "*PANIC NOISES*"
+            "HOMEWORK NOW, [USERNAME]!",
+            "Midnight is almost here! Finish your homework!",
+            "Save your study streak before midnight!",
+            "Last chance to finish your homework today!",
+            "Now or never, [Username]! Do your homework!",
+            "It's VERY late! Complete your study tasks!",
+            "Don't break your streak! Finish your tasks!",
+            "ALMOST TOO LATE FOR HOMEWORK, [USERNAME]!",
+            "Finish your [Course] homework right now!",
+            "URGENT: Save your study streak tonight!"
         )
 
         fun scheduleDailyAlarms(context: Context) {

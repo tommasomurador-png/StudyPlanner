@@ -75,8 +75,7 @@ class StudyPlannerWidgetProvider : AppWidgetProvider() {
                             updateAppWidget(context, appWidgetManager, id)
                         }
 
-                        // Also update Mascot Widget so it immediately reacts
-                        MascotWidgetProvider.updateAllWidgets(context)
+
 
                         // Also notify MainActivity if active
                         MainActivity.activeInstance?.runOnUiThread {

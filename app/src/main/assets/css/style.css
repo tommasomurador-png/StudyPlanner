@@ -1,7 +1,6 @@
-        /* Tema Classic Chiaro (B/N Minimal Dotted Journal) */
+        /* Tema Chiaro (Minimal Dotted Journal) */
         :root,
-        [data-style="classic"][data-theme="light"],
-        [data-theme="light"]:not([data-style="pixel"]) {
+        [data-theme="light"] {
             color-scheme: light;
             accent-color: #2C2C2C;
 
@@ -29,9 +28,8 @@
             --pixel-radius: 20px;
         }
 
-        /* Tema Classic Scuro (B/N Puro Minimal) */
-        [data-theme="dark"]:not([data-style="pixel"]),
-        [data-style="classic"][data-theme="dark"] {
+        /* Tema Scuro (Minimal Puro) */
+        [data-theme="dark"] {
             color-scheme: dark;
             accent-color: #EAEAEA;
 
@@ -59,64 +57,6 @@
             --pixel-radius: 20px;
         }
 
-        /* Tema Pixel ISO-CORE Scuro (Ispirato al videogioco di JohnBrx: biomi, pietre isometriche, neon core) */
-        [data-style="pixel"][data-theme="dark"] {
-            color-scheme: dark;
-            accent-color: #38BDF8;
-
-            --bg-color: #0F172A;
-            --surface-color: #1E293B;
-            --card-color: #192333;
-            --nav-bg: rgba(15, 23, 42, 0.94);
-            
-            --theme-empty: #26354A;
-            --theme-light: #0284C7;
-            --theme-mid: #38BDF8;
-            --theme-strong: #38BDF8; 
-            
-            --text-main: #F8FAFC; 
-            --text-muted: #94A3B8; 
-            --border-color: #334155; 
-            
-            --pattern-color: rgba(56, 189, 248, 0.06);
-            
-            --danger-color: #F43F5E;
-            --success-color: #10B981; 
-            --ui-font: 'Silkscreen', 'Poppins', monospace;
-            --pixel-border: 2px solid #334155;
-            --pixel-shadow: 3px 3px 0px #090D16;
-            --pixel-radius: 6px;
-        }
-
-        /* Tema Pixel ISO-CORE Chiaro (Ispirato alla terra/erba isometrica diurna del devlog di JohnBrx) */
-        [data-style="pixel"][data-theme="light"] {
-            color-scheme: light;
-            accent-color: #0284C7;
-
-            --bg-color: #E2E8F0;
-            --surface-color: #F1F5F9;
-            --card-color: #FFFFFF;
-            --nav-bg: rgba(241, 245, 249, 0.94);
-            
-            --theme-empty: #CBD5E1;
-            --theme-light: #7DD3FC;
-            --theme-mid: #0284C7;
-            --theme-strong: #0369A1; 
-            
-            --text-main: #0F172A; 
-            --text-muted: #475569; 
-            --border-color: #94A3B8; 
-            
-            --pattern-color: rgba(3, 105, 161, 0.07);
-            
-            --danger-color: #E11D48;
-            --success-color: #059669; 
-            --ui-font: 'Silkscreen', 'Poppins', monospace;
-            --pixel-border: 2px solid #94A3B8;
-            --pixel-shadow: 3px 3px 0px #64748B;
-            --pixel-radius: 6px;
-        }
-
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
@@ -127,28 +67,6 @@
             min-height: 100vh;
             font-family: var(--ui-font); 
             transition: background-color 0.25s ease, color 0.25s ease;
-        }
-
-        /* Modificatori specifici per lo stile Pixel ISO-CORE */
-        [data-style="pixel"] .exercise-card,
-        [data-style="pixel"] .dash-widget,
-        [data-style="pixel"] .settings-card,
-        [data-style="pixel"] .glass-panel,
-        [data-style="pixel"] .bottom-sheet-content,
-        [data-style="pixel"] .popover-popup-content {
-            border-radius: var(--pixel-radius) !important;
-            border: var(--pixel-border) !important;
-            box-shadow: var(--pixel-shadow) !important;
-        }
-
-        [data-style="pixel"] .choice-btn,
-        [data-style="pixel"] .btn-submit,
-        [data-style="pixel"] .fab-btn,
-        [data-style="pixel"] .day-bubble,
-        [data-style="pixel"] .form-control,
-        [data-style="pixel"] .popover-trigger-btn {
-            border-radius: 4px !important;
-            box-shadow: 2px 2px 0px rgba(0,0,0,0.2) !important;
         }
 
         #app-container {
@@ -934,11 +852,6 @@
             box-shadow: 0 4px 14px rgba(0,0,0,0.03);
             transition: all 0.3s ease;
         }
-        [data-style="pixel"] .goal-gradient-card {
-            border-radius: var(--pixel-radius) !important;
-            border: var(--pixel-border) !important;
-            box-shadow: var(--pixel-shadow) !important;
-        }
         .goal-gradient-card.completed {
             border-color: var(--success-color);
             background: linear-gradient(135deg, var(--surface-color) 70%, var(--theme-empty));
@@ -969,9 +882,6 @@
             border-radius: 4px;
             overflow: hidden;
             position: relative;
-        }
-        [data-style="pixel"] .goal-gradient-track {
-            border-radius: 0 !important;
         }
         .goal-gradient-bar {
             height: 100%;

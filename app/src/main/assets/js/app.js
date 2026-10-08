@@ -9,96 +9,79 @@
     let selectedDateStr = todayDateStr;
 
     const notifCompletedPhrases = [
-        "See you tomorrow!",
-        "Till next time!",
-        "See you again?",
-        "See you later!",
-        "Miss me yet?",
-        "Way to go!",
-        "Miss you already!",
-        "Come back soon!",
-        "Don't forget me!"
+        "All homework done! See you tomorrow!",
+        "Great study session! Till next time!",
+        "All tasks completed! Way to go!",
+        "Homework finished! Enjoy your rest!",
+        "Great job studying today!",
+        "Streak protected for today! See you tomorrow!",
+        "Awesome work! See you next study session!"
     ];
 
     const notifNightPhrases = [
-        "Late night lesson?",
-        "Since you're up...",
-        "Learn from bed?",
-        "Can't sleep, [Username]?",
-        "Start early, [Username]!"
+        "Late night study session, [Username]?",
+        "Still awake? Knock out some homework!",
+        "Can't sleep, [Username]? Review your notes!",
+        "Start early and get your homework done!",
+        "Finish your homework and get some rest, [Username]!"
     ];
 
     const notifMorningPhrases = [
-        "Morning, [Username]!",
-        "[Username]! You're up!",
-        "Coffee + [Course]?",
-        "Get started early!",
-        "Early lesson?",
-        "Gooooood morning!"
+        "Good morning, [Username]!",
+        "Start your day with some homework!",
+        "Coffee + [Course] study time?",
+        "Get your homework started early, [Username]!",
+        "Ready to study [Course] today?",
+        "Early study session, [Username]!",
+        "Time to plan your study tasks today!"
     ];
 
     const notifAfternoonPhrases = [
-        "Time to practice!",
-        "Time to learn [Course]",
-        "[Username]! Practice?",
-        "Practice time!",
-        "[Course] lesson?",
-        "Pleasseeeeee?",
-        "Lesson, [Username]?",
-        "Start a lesson!",
-        "Got 3 minutes?",
-        "Let's practice!",
-        "Hey, [Username]."
+        "Time to do your homework!",
+        "Time to study [Course], [Username]!",
+        "Ready for your homework, [Username]?",
+        "Study time! Let's get it done!",
+        "Work on your [Course] homework now!",
+        "Got a few minutes? Start your homework!",
+        "Don't postpone your study session, [Username]!",
+        "Time to study! Open your books!",
+        "Hey [Username], your homework is waiting!"
     ];
 
     const notifEveningPhrases = [
-        "Seriously, [Username].",
-        "Please practice!",
-        "Duo's waiting!",
-        "[Username]?",
-        "Ready??????",
-        "[Username]! It's late!",
-        "I'm waitingggg!",
-        "Extend your streak!",
-        "It's getting late!",
-        "You ready, [Username]?"
+        "Time to finish your homework, [Username]!",
+        "Don't forget your homework tonight!",
+        "It's getting late, finish your study tasks!",
+        "Ready to finish your homework, [Username]?",
+        "Complete your [Course] homework before dinner!",
+        "Keep your streak alive! Finish your homework!",
+        "Homework time, [Username]! Don't put it off!",
+        "Finish studying today and protect your streak!"
     ];
 
     const notifNightUrgentPhrases = [
-        "[Username]...",
-        "Last chance, [Username]!",
-        "[Username]????",
-        "It's late!",
-        "Time's up [Username]!",
-        "Don't let it break!",
-        "Time's almost up!",
-        "Where ARE you?",
-        "Do! Your! [Course]!",
-        "Protect your streak!",
-        "Duo's worried!",
-        "Save your streak!",
-        "Last chance!",
-        "Run or Rest?",
-        "Save your streak"
+        "Finish your homework now, [Username]!",
+        "Your homework isn't done yet, [Username]!",
+        "Time is running out! Do your homework!",
+        "Don't lose your streak! Study now!",
+        "Finish your [Course] tasks before bed!",
+        "Last chance to complete today's homework!",
+        "Protect your study streak, [Username]!",
+        "Still haven't finished your homework?",
+        "Complete your study tasks and keep your streak!"
     ];
 
     const notifLateNightCriticalPhrases = [
-        "[Username].",
-        "[USERNAME], PLEASE??",
-        "Last chance!",
-        "Now or never!",
-        "Don't forget me!",
-        "Save your streak!",
-        "Duo's not happy...",
-        "Duo is watching...",
-        "It's VERY late!",
-        "Bye-bye, streak??",
-        "Practice now!",
-        "Almost midnight!",
-        "LESSON NOW, [USERNAME]",
-        "ALMOST TOO LATE, [USERNAME]",
-        "*screams internally*",
-        "*PANIC NOISES*"
+        "HOMEWORK NOW, [USERNAME]!",
+        "Midnight is almost here! Finish your homework!",
+        "Save your study streak before midnight!",
+        "Last chance to finish your homework today!",
+        "Now or never, [Username]! Do your homework!",
+        "It's VERY late! Complete your study tasks!",
+        "Don't break your streak! Finish your tasks!",
+        "ALMOST TOO LATE FOR HOMEWORK, [USERNAME]!",
+        "Finish your [Course] homework right now!",
+        "URGENT: Save your study streak tonight!"
     ];
 
     function customConfirm(options) {
@@ -811,16 +794,9 @@
     let navDate = new Date(); let streakNavDate = new Date();
 
     let savedTheme = localStorage.getItem('studylog_theme') || 'light';
-    let savedStyle = localStorage.getItem('studylog_style') || 'classic';
+    let savedStyle = 'classic';
 
     function applySettingsUI() {
-        const btnStyleClassic = document.getElementById('btn-style-classic');
-        const btnStylePixel = document.getElementById('btn-style-pixel');
-        if (btnStyleClassic && btnStylePixel) {
-            btnStyleClassic.classList.toggle('active-setting', savedStyle === 'classic');
-            btnStylePixel.classList.toggle('active-setting', savedStyle === 'pixel');
-        }
-
         const btnThemeLight = document.getElementById('btn-theme-light');
         const btnThemeDark = document.getElementById('btn-theme-dark');
         if (btnThemeLight && btnThemeDark) {
@@ -829,9 +805,8 @@
         }
 
         document.documentElement.setAttribute('data-theme', savedTheme);
-        document.documentElement.setAttribute('data-style', savedStyle);
+        document.documentElement.setAttribute('data-style', 'classic');
 
-        updateNotificationBellUI();
         renderSettingsSubjectTags();
         if (typeof updateWidgetSettingsUI === 'function') updateWidgetSettingsUI();
     }
