@@ -8,9 +8,10 @@ Il taccuino digitale per la gestione intelligente dello studio, delle verifiche,
 
 [![Status](https://img.shields.io/badge/Status-Online-success?style=for-the-badge&logo=github)](https://tommasomurador-png.github.io/StudyPlanner/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![Download APK](https://img.shields.io/badge/Download-APK%20Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/tommasomurador-png/StudyPlanner/releases/latest)
 
 <p align="center">
-  <a href="https://tommasomurador-png.github.io/StudyPlanner/"><b>Apri la Web App Online</b></a>
+  <a href="https://tommasomurador-png.github.io/StudyPlanner/"><b>Apri la Web App Online</b></a> &bull; <a href="https://github.com/tommasomurador-png/StudyPlanner/releases/latest"><b>Scarica APK Android</b></a>
 </p>
 
 </div>
@@ -44,7 +45,13 @@ A differenza delle tradizionali applicazioni per to-do list, Study Planner e' pr
 
 ---
 
-## Come installare (Web App / PWA)
+## Come installare
+
+### 1. Applicazione Android (.APK)
+1. Scarica il file .apk ufficiale dalla sezione **[Releases su GitHub](https://github.com/tommasomurador-png/StudyPlanner/releases/latest)**.
+2. Aprilo sul tuo smartphone Android e conferma l'installazione.
+
+### 2. Web App / PWA (Browser)
 
 1. Visita la pagina ufficiale: **[tommasomurador-png.github.io/StudyPlanner](https://tommasomurador-png.github.io/StudyPlanner/)**.
 2. Apri il menu del browser (o il pulsante Condividi su iOS / Safari).
