@@ -61,26 +61,35 @@ A differenza delle tradizionali applicazioni per to-do list, Study Planner e' pr
 
 ## Funzionalita Principali nel Dettaglio
 
-### 1. Pianificazione dello Studio e Gestione Verifiche
-- Calcolo automatico della quantita' di studio giornaliera fino al giorno della verifica o dell'interrogazione.
-- Riorganizzazione immediata del carico residuo in caso di compiti incompleti o imprevisti.
-- Esclusione mirata di date di pausa per festivi, vacanze o impegni personali compresi tra oggi e la scadenza.
-- Sistema Snooze con opzione di riprogrammazione manuale o automatica dei compiti.
-- Gestione flessibile di compiti To-Do con priorita a stelle e difficolta stimata.
+### 1. Pianificazione Scientifica dello Studio (Dunlosky 2013 & Cepeda 2008)
+- **Metodo Spaced Practice "Chunk & Cycle":** Suddivisione del carico in base alle scienze cognitive, dedicando il 68-80% dei giorni all'acquisizione e il restante 20-32% al consolidamento spaziato.
+- **Micro-Richiamo Attivo (Active Recall):** Ogni blocco giornaliero sollecita 10 minuti di autoverifica attiva sui concetti del giorno prima, contrastando la Curva dell'Oblio di Ebbinghaus.
+- **Ricalibrazione Adattiva sui Voti:** Se la media nella materia ? insufficiente (< 6), l'algoritmo alleggerisce il carico giornaliero del 25% (per prevenire il sovraccarico cognitivo di Sweller) ed estende il margine di ripasso finale a pi? giorni.
 
-### 2. Gamification e Gradi Accademici
-- Meccanismo motivazionale basato su punti Conoscenza (XP) maturati a ogni task completata.
+### 2. Mallow AI - Assistente Vocale & Mentore di Studio
+- **Pulsante Microfono Prominente:** Posizionato al centro della barra di navigazione con animazione a onde concentriche iridescenti che pulsano durante l'ascolto vocale.
+- **Comandi Vocali Naturali in Italiano:** Riconoscimento vocale istantaneo (Web Speech API) a costo zero per aggiungere compiti (*"Compito di matematica esercizi pag 50 per domani"*), pianificare verifiche (*"Verifica di storia di 25 pagine venerd?"*) o segnare voti (*"Ho preso 8 in italiano"*).
+- **Sintesi Vocale (TTS):** Mallow risponde con voce naturale in italiano fornendo consigli e feedback motivazionali.
+- **Motore Ibrido Gratuito:** Funziona al 100% offline con parser locale NLP regex; supporta facoltativamente Google Gemini 1.5/2.5 Flash inserendo una chiave API gratuita da Google AI Studio.
+
+### 3. Registro Elettronico dei Voti
+- **Medie per Materia e GPA Generale:** Calcolo istantaneo della media per ciascuna disciplina e della media ponderata complessiva con indicatori di stato (Eccellente, Sufficiente, A Rischio, Critico).
+- **Tipologia e Dettagli:** Tracciamento dei voti per tipologia (Scritto, Orale, Pratico), con data, note dell'argomento e collegamento opzionale alla verifica nel planner.
+- **Correlazione Studio-Voto:** Mallow analizza i giorni di studio impiegati e il voto conseguito per ottimizzare continuamente la strategia di studio.
+
+### 4. Gamification e Gradi Accademici
+- Meccanismo motivazionale basato su punti Conoscenza (XP) maturati a ogni task completata o voto inserito.
 - Serie di Fuoco con tracciamento dei giorni consecutivi di studio sul piano.
 - Gradi accademici progressivi da Matricola fino a Einstein con indicatore di progresso live.
 - Notifiche locali motivazionali intelligenti per non perdere la serie di studio.
 
-### 3. Statistiche, Calendario e Grafico per Materia
+### 5. Statistiche, Calendario e Grafico per Materia
 - Calendario mensile con indicatori distinti per verifiche in programma e compiti da completare.
 - Grafico Donut vettoriale per osservare la percentuale e il numero di task suddivisi per materia.
 - Mappa di impegno continuativo a 90 giorni ispirata ai contributi di GitHub.
 - Grafico a barre dell'andamento settimanale con conteggio complessivo degli XP maturati.
 
-### 4. Widget Nativo per Schermata Home Android
+### 6. Widget Nativo per Schermata Home Android
 - Componente AppWidget nativo sviluppato tramite AppWidgetProvider di Android.
 - Monitoraggio in tempo reale del numero di giorni consecutivi di studio (Serie di Fuoco).
 - Promemoria sintetico delle task ancora da svolgere nel corso della giornata.

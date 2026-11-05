@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.2.1">
+    <link rel="stylesheet" href="css/style.css?v=2.3.0">
 </head>
 <body>
 
@@ -184,13 +184,52 @@
             
             <button class="btn-hard-reset" onclick="promptHardReset()"><i class="fa-solid fa-eraser"></i> Reset dati</button>
         </div>
+
+        <!-- GRADES VIEW (REGISTRO VOTI) -->
+        <div id="grades-view" class="grades-view" style="display: none;">
+            <div class="grades-header-card">
+                <div class="grades-header-top">
+                    <div class="gpa-display">
+                        <div class="gpa-label">Media Generale (GPA)</div>
+                        <div class="gpa-number-row">
+                            <span class="gpa-number" id="gpa-overall-num">--</span>
+                            <span class="gpa-badge" id="gpa-overall-badge">Nessun voto</span>
+                        </div>
+                    </div>
+                    <button class="btn-add-grade" onclick="openAddGradeModal()"><i class="fa-solid fa-plus"></i> Voto</button>
+                </div>
+                <div class="grades-stats-row">
+                    <div class="grades-stat-item">
+                        <div class="grades-stat-val" id="grades-stat-count">0</div>
+                        <div class="grades-stat-lbl">Totale Voti</div>
+                    </div>
+                    <div class="grades-stat-item">
+                        <div class="grades-stat-val" id="grades-stat-passed" style="color: #10B981;">0</div>
+                        <div class="grades-stat-lbl">Sufficienti (>=6)</div>
+                    </div>
+                    <div class="grades-stat-item">
+                        <div class="grades-stat-val" id="grades-stat-failed" style="color: #EF4444;">0</div>
+                        <div class="grades-stat-lbl">Da recuperare</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grades-actions-bar">
+                <h3 class="grades-section-title">Materie e Rendimento</h3>
+            </div>
+
+            <div id="grades-subjects-list"></div>
+        </div>
+
     </div>
 
-    <div class="bottom-nav-wrapper">
+        <div class="bottom-nav-wrapper">
         <nav class="bottom-nav">
             <div class="nav-item active" onclick="switchView('study', this)" id="nav-study" title="Studio"><i class="fa-solid fa-book-open"></i></div>
+            <div class="nav-item" onclick="switchView('calendar', this)" id="nav-calendar" title="Statistiche & Calendario"><i class="fa-solid fa-calendar-days"></i></div>
+            <div class="nav-item nav-ai-center" onclick="openAiAssistantModal()" id="nav-ai" title="Mallow AI - Assistente Vocale"><i class="fa-solid fa-microphone"></i></div>
+            <div class="nav-item" onclick="switchView('grades', this)" id="nav-grades" title="Registro Voti"><i class="fa-solid fa-graduation-cap"></i></div>
             <div class="nav-item" onclick="switchView('ranked', this)" id="nav-ranked" title="XP e Gradi"><i class="fa-solid fa-trophy"></i></div>
-            <div class="nav-item" onclick="switchView('calendar', this)" id="nav-calendar" title="Statistiche"><i class="fa-solid fa-chart-pie"></i></div>
         </nav>
     </div>
 
@@ -229,6 +268,19 @@
                         <button type="button" class="btn-submit compact" onclick="addSubjectFromSettings()">Aggiungi</button>
                     </div>
                     <div class="subject-tags-container" id="settings-tags-list"></div>
+                </div>
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <span class="settings-card-title"><i class="fa-solid fa-robot"></i> Intelligenza Artificiale (Gemini AI)</span>
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
+                        Mallow funziona <b>offline a costo zero</b> con il motore vocale locale. Se vuoi potenziare le sue risposte e il tutoraggio scientifico, inserisci la tua chiave gratuita di Google AI Studio (Gemini Flash).
+                    </p>
+                    <div class="input-row">
+                        <input type="password" id="settings-gemini-key-input" class="form-control" placeholder="Chiave API Gemini (opzionale)">
+                        <button type="button" class="btn-submit compact" onclick="saveGeminiApiKeyFromSettings()">Salva</button>
+                    </div>
+                    <div id="gemini-key-status" style="font-size: 0.78rem; margin-top: 6px; color: var(--text-muted);"></div>
                 </div>
             </div>
         </div>
@@ -276,7 +328,8 @@
             <button class="btn-close-modal-top" onclick="closeModal('choice-modal')"><i class="fa-solid fa-xmark"></i></button>
             <h3 style="margin-bottom: 25px; font-weight: 700; text-transform: uppercase; color: var(--theme-strong); text-align: center;">Aggiungi</h3>
             <button class="choice-btn" onclick="openTodoModal()"><i class="fa-solid fa-list-check"></i> Task</button>
-            <button class="choice-btn" onclick="openExamModal()"><i class="fa-solid fa-file-pen"></i> Verifica</button>
+                        <button class="choice-btn" onclick="openExamModal()"><i class="fa-solid fa-file-pen"></i> Verifica</button>
+            <button class="choice-btn" onclick="openAddGradeModal()"><i class="fa-solid fa-graduation-cap"></i> Voto</button>
         </div>
     </div>
 
@@ -533,8 +586,87 @@
 
 </div>
 
+    
+    <!-- MODAL AGGIUNGI VOTO -->
+    <div class="fullscreen-modal" id="add-grade-modal">
+        <div class="glass-panel">
+            <button class="btn-close-modal-top" onclick="closeModal('add-grade-modal')"><i class="fa-solid fa-xmark"></i></button>
+            <h3 style="margin-bottom: 22px; font-weight: 700; text-transform: uppercase;">Nuovo Voto</h3>
+
+            <div class="input-label">Materia</div>
+            <select class="form-control" id="grade-subject-select" style="margin-bottom: 16px;"></select>
+
+            <div class="input-label">Voto (es. 8, 7.5, 6-)</div>
+            <input type="text" class="form-control" id="grade-val-input" placeholder="Es. 8 o 7.5" style="margin-bottom: 16px;">
+
+            <div class="input-label">Tipologia</div>
+            <div class="segmented-control" id="grade-type-segment" style="margin-bottom: 16px;">
+                <button type="button" class="segment-btn active" onclick="selectGradeType('Scritto', this)">Scritto</button>
+                <button type="button" class="segment-btn" onclick="selectGradeType('Orale', this)">Orale</button>
+                <button type="button" class="segment-btn" onclick="selectGradeType('Pratico', this)">Pratico</button>
+            </div>
+
+            <div class="input-label">Data</div>
+            <input type="date" class="form-control" id="grade-date-input" style="margin-bottom: 16px;">
+
+            <div class="input-label">Verifica associata (facoltativo)</div>
+            <select class="form-control" id="grade-exam-select" style="margin-bottom: 16px;">
+                <option value="">Nessuna verifica collegata</option>
+            </select>
+
+            <div class="input-label">Note / Argomento</div>
+            <input type="text" class="form-control" id="grade-notes-input" placeholder="Es. Rivoluzione Francese" style="margin-bottom: 22px;">
+
+            <button type="button" class="btn-submit" onclick="saveGradeFromModal()">Salva Voto</button>
+        </div>
+    </div>
+
+    <!-- MODAL MALLOW VOICE AI ASSISTANT -->
+    <div class="fullscreen-modal" id="ai-assistant-modal">
+        <div class="glass-panel ai-assistant-panel">
+            <button class="btn-close-modal-top" onclick="closeAiAssistantModal()"><i class="fa-solid fa-xmark"></i></button>
+            
+            <div class="ai-status-indicator">
+                <span class="ai-status-dot" id="ai-status-dot"></span>
+                <span id="ai-status-text">Mallow ? Tutor Vocale</span>
+            </div>
+
+            <div class="ai-mascot-container" id="ai-mascot-container" onclick="toggleVoiceListening()">
+                <div class="ai-glow-ripple"></div>
+                <div class="ai-glow-ripple"></div>
+                <div class="ai-glow-ripple"></div>
+                <img src="mallow-pose.svg" alt="Mallow Mascot" class="ai-mascot-img" id="ai-mascot-img">
+            </div>
+
+            <div class="ai-speech-bubble" id="ai-speech-bubble">
+                Ciao! Sono <b>Mallow</b>, il tuo mentore di studio locale. Dimmi pure a voce i tuoi compiti, verifiche o i voti che hai preso!
+            </div>
+
+            <div class="ai-transcript-box" id="ai-transcript-box">
+                <span id="ai-transcript-text">Tocca il microfono o parla per iniziare...</span>
+            </div>
+
+            <button type="button" class="ai-mic-btn-main" id="ai-mic-btn" onclick="toggleVoiceListening()">
+                <i class="fa-solid fa-microphone" id="ai-mic-icon"></i>
+                <span id="ai-mic-label">Parla con Mallow</span>
+            </button>
+
+            <div class="ai-chip-suggestions">
+                <div class="ai-chip" onclick="feedAiQuickCommand('Compito di matematica esercizi pag 50 per domani')">?? Compito matematica per domani</div>
+                <div class="ai-chip" onclick="feedAiQuickCommand('Verifica di storia di 25 pagine venerd?')">?? Verifica storia 25 pag</div>
+                <div class="ai-chip" onclick="feedAiQuickCommand('Ho preso 8 in italiano')">?? Ho preso 8 in italiano</div>
+                <div class="ai-chip" onclick="feedAiQuickCommand('Come va la mia media e come dovrei studiare?')">?? Analisi studio e voti</div>
+            </div>
+
+            <div class="ai-input-row">
+                <input type="text" class="form-control" id="ai-text-input" placeholder="Oppure scrivi un comando..." onkeydown="if(event.key === 'Enter'){ submitAiTextCommand(); event.preventDefault(); }">
+                <button type="button" class="btn-submit" style="margin-top:0;" onclick="submitAiTextCommand()"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.2.1" defer></script>
+    <script src="js/app.js?v=2.3.0" defer></script>
 
 </body>
 </html>

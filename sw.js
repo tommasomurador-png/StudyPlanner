@@ -1,11 +1,12 @@
-const CACHE_NAME = 'studyplanner-v8-release';
+const CACHE_NAME = 'studyplanner-v2.3.0-release';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './css/style.css',
   './js/app.js',
   './manifest.json',
-  './1790418729575_cutout.png'
+  './1790418729575_cutout.png',
+  './mallow-pose.svg'
 ];
 
 // Installazione: scarica e mette in cache i file principali

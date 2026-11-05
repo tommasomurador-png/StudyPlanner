@@ -1694,16 +1694,29 @@
         let N = validDates.length;
         if (N === 0) return null;
 
-        // 1. IL PRINCIPIO DI SICUREZZA (Il parametro dell'80%)
-        // Se l'esame e' tra 10 giorni, il denominatore della divisione e' 8 (80% dei giorni disponibili).
-        // Il 20% rimanente viene riservato come margine di sicurezza/buffer per il ripasso consolidato.
-        let studyDaysCount = N <= 1 ? 1 : Math.max(1, Math.round(N * 0.80));
+        // SCIENTIFIC PLANNING: Dunlosky et al. 2013 (Spaced Practice) + Adaptive Grade Weighting
+        let subAvg = typeof getSubjectGradeAverage === 'function' ? getSubjectGradeAverage(exam.subject) : null;
+        let safetyFactor = 0.80;
+        let methodTip = ' • 10 min Active Recall';
+
+        if (subAvg !== null && subAvg < 6.0) {
+            // Media insufficiente: estende il buffer di consolidamento al 32% e riduce il carico per prevenire il sovraccarico
+            safetyFactor = 0.68;
+            methodTip = ' • Micro-richiamo guidato';
+        } else if (subAvg !== null && subAvg >= 8.0) {
+            safetyFactor = 0.82;
+            methodTip = ' • Sintesi avanzata';
+        }
+
+        let studyDaysCount = N <= 1 ? 1 : Math.max(1, Math.round(N * safetyFactor));
 
         if (targetIndex >= studyDaysCount) { 
+            let revNum = targetIndex - studyDaysCount + 1;
+            let totRev = N - studyDaysCount;
             return { 
                 type: 'FINAL_REVIEW', 
-                title: `Ripasso`, 
-                desc: `Ripasso generale` 
+                title: `Ripasso Spaziato`, 
+                desc: `Sessione ${revNum}/${totRev} • Active Recall e Simulazione domande` 
             }; 
         }
 
@@ -1715,9 +1728,9 @@
 
         return { 
             type: 'STUDY', 
-            title: `Studio`, 
+            title: `Studio Scientifico`, 
             pages: dailyPace, 
-            desc: `${dailyPace} pag.` 
+            desc: `${dailyPace} pag.${methodTip}` 
         };
     }
 
@@ -2594,7 +2607,7 @@
         initBottomSheetDrag();
         initTaskSwipeNavigation();
         syncAndroidWidget();
-        checkOnboarding();
+        checkOnboarding(); renderGradesView(); updateGeminiKeyStatusUI();
         
         setInterval(() => {
             checkAndSendSmartNotification();
@@ -2809,7 +2822,10 @@
         document.getElementById('study-view').style.display = view === 'study' ? 'block' : 'none';
         document.getElementById('ranked-view').style.display = view === 'ranked' ? 'block' : 'none';
         document.getElementById('calendar-view').style.display = view === 'calendar' ? 'block' : 'none';
+        let gradesView = document.getElementById('grades-view');
+        if (gradesView) gradesView.style.display = view === 'grades' ? 'block' : 'none';
         if(view === 'calendar') { renderSheetData(); renderMonthCalendar(); renderSubjectDonutChart(); }
+        if(view === 'grades') { renderGradesView(); }
     }
 
     function renderSheetData() {
@@ -3095,6 +3111,651 @@
     };
 
     window.promptHardReset = function() { document.getElementById('reset-modal').classList.add('active'); }
+    
+    // ==========================================================================
+    // REGISTRO VOTI (GRADEBOOK) & ADAPTIVE STUDY FEEDBACK (Dunlosky 2013)
+    // ==========================================================================
+    let myGrades = JSON.parse(localStorage.getItem('studylog_grades') || '[]');
+    let geminiApiKey = localStorage.getItem('studylog_gemini_key') || '';
+    let selectedGradeType = 'Scritto';
+    let isAiListening = false;
+    let speechRecognitionInstance = null;
+
+    function parseGradeNumeric(valStr) {
+        if (!valStr) return null;
+        valStr = String(valStr).trim().toLowerCase().replace(',', '.');
+        if (valStr.includes('e mezzo')) {
+            let base = parseFloat(valStr.split(' ')[0]);
+            return isNaN(base) ? null : base + 0.5;
+        }
+        if (valStr.endsWith('+')) {
+            let base = parseFloat(valStr.slice(0, -1));
+            return isNaN(base) ? null : base + 0.25;
+        }
+        if (valStr.endsWith('-')) {
+            let base = parseFloat(valStr.slice(0, -1));
+            return isNaN(base) ? null : base - 0.25;
+        }
+        if (valStr.includes('/')) {
+            let parts = valStr.split('/');
+            let n1 = parseFloat(parts[0]);
+            let n2 = parseFloat(parts[1]);
+            if (!isNaN(n1) && !isNaN(n2)) return (n1 + n2) / 2;
+        }
+        let num = parseFloat(valStr);
+        return isNaN(num) ? null : num;
+    }
+
+    window.getSubjectGradeAverage = function(subject) {
+        if (!subject) return null;
+        let subGrades = myGrades.filter(g => g.subject.toLowerCase() === subject.toLowerCase());
+        if (subGrades.length === 0) return null;
+        let sum = subGrades.reduce((acc, g) => acc + (parseFloat(g.numericValue) || 0), 0);
+        return Math.round((sum / subGrades.length) * 100) / 100;
+    };
+
+    window.getAllGradesAverage = function() {
+        if (myGrades.length === 0) return null;
+        let sum = myGrades.reduce((acc, g) => acc + (parseFloat(g.numericValue) || 0), 0);
+        return Math.round((sum / myGrades.length) * 100) / 100;
+    };
+
+    window.renderGradesView = function() {
+        const overallNumEl = document.getElementById('gpa-overall-num');
+        const overallBadgeEl = document.getElementById('gpa-overall-badge');
+        const statCountEl = document.getElementById('grades-stat-count');
+        const statPassedEl = document.getElementById('grades-stat-passed');
+        const statFailedEl = document.getElementById('grades-stat-failed');
+        const listEl = document.getElementById('grades-subjects-list');
+
+        if (!listEl) return;
+
+        let overall = getAllGradesAverage();
+        if (overall !== null) {
+            overallNumEl.innerText = overall.toFixed(2);
+            if (overall >= 8.0) {
+                overallBadgeEl.className = 'gpa-badge excellent';
+                overallBadgeEl.innerText = 'Eccellente ★';
+            } else if (overall >= 6.0) {
+                overallBadgeEl.className = 'gpa-badge good';
+                overallBadgeEl.innerText = 'Sufficiente';
+            } else if (overall >= 5.5) {
+                overallBadgeEl.className = 'gpa-badge warning';
+                overallBadgeEl.innerText = 'A rischio';
+            } else {
+                overallBadgeEl.className = 'gpa-badge danger';
+                overallBadgeEl.innerText = 'Critico';
+            }
+        } else {
+            overallNumEl.innerText = '--';
+            overallBadgeEl.className = 'gpa-badge';
+            overallBadgeEl.innerText = 'Nessun voto';
+        }
+
+        let passed = myGrades.filter(g => (parseFloat(g.numericValue) || 0) >= 6.0).length;
+        let failed = myGrades.length - passed;
+        if (statCountEl) statCountEl.innerText = myGrades.length;
+        if (statPassedEl) statPassedEl.innerText = passed;
+        if (statFailedEl) statFailedEl.innerText = failed;
+
+        listEl.innerHTML = '';
+
+        if (userSubjects.length === 0 && myGrades.length === 0) {
+            listEl.innerHTML = '<div class="grade-empty-msg"><i class="fa-solid fa-graduation-cap" style="font-size:2.5rem; margin-bottom:12px; opacity:0.3;"></i><br>Nessun voto registrato. Tocca <b>+ Voto</b> per iniziare!</div>';
+            return;
+        }
+
+        let allUniqueSubjects = Array.from(new Set([...userSubjects, ...myGrades.map(g => g.subject)])).sort();
+
+        allUniqueSubjects.forEach(sub => {
+            let subGrades = myGrades.filter(g => g.subject.toLowerCase() === sub.toLowerCase());
+            let avg = getSubjectGradeAverage(sub);
+
+            let avgBadgeClass = 'warning';
+            let avgText = avg !== null ? avg.toFixed(1) : '--';
+            if (avg !== null) {
+                if (avg >= 8.0) avgBadgeClass = 'excellent';
+                else if (avg >= 6.0) avgBadgeClass = 'good';
+                else if (avg >= 5.5) avgBadgeClass = 'warning';
+                else avgBadgeClass = 'danger';
+            }
+
+            let card = document.createElement('div');
+            card.className = 'subject-grade-card';
+
+            let pillsHtml = '';
+            if (subGrades.length > 0) {
+                subGrades.forEach(g => {
+                    let num = parseFloat(g.numericValue) || 0;
+                    let color = num >= 8 ? '#10B981' : (num >= 6 ? 'var(--theme-strong)' : '#EF4444');
+                    pillsHtml += `
+                        <div class="grade-pill-item" onclick="promptDeleteGrade('${g.id}')" title="${g.notes ? g.notes + ' - ' : ''}Tocca per eliminare">
+                            <span style="color:${color}; font-weight:800;">${g.displayValue}</span>
+                            <span class="grade-pill-type">${g.type ? g.type.slice(0,3) : 'Scr'}</span>
+                            <span style="font-size:0.65rem; color:var(--text-muted);">${formatDateShort(g.date)}</span>
+                        </div>
+                    `;
+                });
+            } else {
+                pillsHtml = '<span style="font-size:0.75rem; color:var(--text-muted); font-style:italic;">Nessun voto in questa materia</span>';
+            }
+
+            card.innerHTML = `
+                <div class="subject-grade-header">
+                    <div class="subject-grade-name">${sub}</div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="subject-grade-avg ${avgBadgeClass}">Media: ${avgText}</span>
+                        <button onclick="openAddGradeModal('${sub}')" style="background:none; border:none; color:var(--theme-strong); cursor:pointer; font-size:0.9rem;" title="Aggiungi voto a ${sub}"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                </div>
+                <div class="subject-grade-pills">
+                    ${pillsHtml}
+                </div>
+            `;
+
+            listEl.appendChild(card);
+        });
+    };
+
+    window.openAddGradeModal = function(preselectedSubject = null, examId = null) {
+        const subSelect = document.getElementById('grade-subject-select');
+        const examSelect = document.getElementById('grade-exam-select');
+        const dateInput = document.getElementById('grade-date-input');
+        const valInput = document.getElementById('grade-val-input');
+        const notesInput = document.getElementById('grade-notes-input');
+
+        if (subSelect) {
+            subSelect.innerHTML = '';
+            userSubjects.forEach(s => {
+                let opt = document.createElement('option');
+                opt.value = s;
+                opt.innerText = s;
+                if (preselectedSubject && s.toLowerCase() === preselectedSubject.toLowerCase()) opt.selected = true;
+                subSelect.appendChild(opt);
+            });
+        }
+
+        if (examSelect) {
+            examSelect.innerHTML = '<option value="">Nessuna verifica collegata</option>';
+            myExams.forEach(e => {
+                let opt = document.createElement('option');
+                opt.value = e.id;
+                opt.innerText = `${e.subject} (${e.type || 'Verifica'}) - ${formatDateShort(e.date)}`;
+                if (examId && e.id === examId) opt.selected = true;
+                examSelect.appendChild(opt);
+            });
+        }
+
+        if (dateInput) dateInput.value = todayDateStr;
+        if (valInput) valInput.value = '';
+        if (notesInput) notesInput.value = '';
+        selectedGradeType = 'Scritto';
+        document.querySelectorAll('#grade-type-segment .segment-btn').forEach((b, idx) => {
+            b.classList.toggle('active', idx === 0);
+        });
+
+        openModal('add-grade-modal');
+    };
+
+    window.selectGradeType = function(type, btnEl) {
+        selectedGradeType = type;
+        document.querySelectorAll('#grade-type-segment .segment-btn').forEach(b => b.classList.remove('active'));
+        if (btnEl) btnEl.classList.add('active');
+    };
+
+    window.saveGradeFromModal = function() {
+        const subSelect = document.getElementById('grade-subject-select');
+        const valInput = document.getElementById('grade-val-input');
+        const dateInput = document.getElementById('grade-date-input');
+        const examSelect = document.getElementById('grade-exam-select');
+        const notesInput = document.getElementById('grade-notes-input');
+
+        let rawVal = valInput.value.trim();
+        let numVal = parseGradeNumeric(rawVal);
+        if (numVal === null || numVal < 1 || numVal > 10) {
+            showCustomAlert('Inserisci un voto valido compreso tra 1 e 10 (es. 8, 7.5, 6+).');
+            return;
+        }
+
+        let newGrade = {
+            id: 'gr_' + generateId(),
+            subject: subSelect.value || 'Generale',
+            displayValue: rawVal,
+            numericValue: numVal,
+            type: selectedGradeType || 'Scritto',
+            date: dateInput.value || todayDateStr,
+            examId: examSelect.value || null,
+            notes: notesInput.value.trim()
+        };
+
+        myGrades.push(newGrade);
+        localStorage.setItem('studylog_grades', JSON.stringify(myGrades));
+        closeModal('add-grade-modal');
+        renderGradesView();
+        addXP(20);
+        showToast(`Voto registrato: ${rawVal} in ${newGrade.subject}! +20 XP`);
+
+        triggerMallowGradeFeedback(newGrade);
+    };
+
+    window.promptDeleteGrade = function(gradeId) {
+        let g = myGrades.find(x => x.id === gradeId);
+        if (!g) return;
+        showCustomConfirm(`Eliminare il voto ${g.displayValue} di ${g.subject}?`, () => {
+            myGrades = myGrades.filter(x => x.id !== gradeId);
+            localStorage.setItem('studylog_grades', JSON.stringify(myGrades));
+            renderGradesView();
+            showToast('Voto rimosso');
+        });
+    };
+
+    function triggerMallowGradeFeedback(gradeObj) {
+        let num = gradeObj.numericValue;
+        let sub = gradeObj.subject;
+        let advice = '';
+
+        if (num >= 8.0) {
+            advice = `Ottimo risultato! Hai preso ${gradeObj.displayValue} in ${sub}. Il tuo metodo di studio per questa materia è efficace. Continua ad applicare il richiamo attivo e la sintesi concettuale!`;
+        } else if (num >= 6.0) {
+            advice = `Hai preso ${gradeObj.displayValue} in ${sub}, una buona sufficienza. Per salire verso l'8, aumenta i quiz di autoverifica prima della prova.`;
+        } else {
+            advice = `Ho registrato ${gradeObj.displayValue} in ${sub}. Ho già adattato il tuo piano di studio per questa materia: per le prossime verifiche riserveremo più giorni di ripasso spaziato (35%) e blocchi giornalieri ridotti del 25% per evitare il sovraccarico cognitivo. Non mollare!`;
+        }
+
+        const bubble = document.getElementById('ai-speech-bubble');
+        if (bubble) bubble.innerHTML = `🎓 <b>Nuovo Voto Registrato:</b><br>${advice}`;
+    }
+
+    // ==========================================================================
+    // MALLOW VOICE AI ASSISTANT (MICROPHONE + GEMINI FLASH + LOCAL NLP)
+    // ==========================================================================
+    window.openAiAssistantModal = function() {
+        const bubble = document.getElementById('ai-speech-bubble');
+        const transcriptText = document.getElementById('ai-transcript-text');
+        const mascotContainer = document.getElementById('ai-mascot-container');
+        
+        if (mascotContainer) mascotContainer.classList.remove('listening');
+        if (transcriptText) transcriptText.innerText = 'Tocca il microfono per parlare o scrivi sotto...';
+        
+        let avg = getAllGradesAverage();
+        let name = localStorage.getItem('studylog_user_name') || 'Studente';
+        if (bubble) {
+            bubble.innerHTML = `Ciao <b>${name}</b>! Sono <b>Mallow</b>, il tuo mentore vocale. Dimmi a voce i compiti, verifiche con pagine o i voti che hai preso!`;
+        }
+
+        updateGeminiKeyStatusUI();
+        openModal('ai-assistant-modal');
+    };
+
+    window.closeAiAssistantModal = function() {
+        stopVoiceListening();
+        closeModal('ai-assistant-modal');
+    };
+
+    window.toggleVoiceListening = function() {
+        if (isAiListening) {
+            stopVoiceListening();
+        } else {
+            startVoiceListening();
+        }
+    };
+
+    function startVoiceListening() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            showCustomAlert('Il riconoscimento vocale non è supportato da questo browser. Puoi comunque scrivere il tuo comando nel campo di testo!');
+            return;
+        }
+
+        try {
+            speechRecognitionInstance = new SpeechRecognition();
+            speechRecognitionInstance.lang = 'it-IT';
+            speechRecognitionInstance.continuous = false;
+            speechRecognitionInstance.interimResults = true;
+
+            const mascotContainer = document.getElementById('ai-mascot-container');
+            const micBtn = document.getElementById('ai-mic-btn');
+            const micLabel = document.getElementById('ai-mic-label');
+            const statusDot = document.getElementById('ai-status-dot');
+            const transcriptText = document.getElementById('ai-transcript-text');
+
+            speechRecognitionInstance.onstart = function() {
+                isAiListening = true;
+                if (mascotContainer) mascotContainer.classList.add('listening');
+                if (micBtn) micBtn.classList.add('is-listening');
+                if (micLabel) micLabel.innerText = 'Ascolto... parla ora';
+                if (statusDot) statusDot.classList.add('active');
+                if (transcriptText) transcriptText.innerText = 'Ti sto ascoltando...';
+            };
+
+            speechRecognitionInstance.onresult = function(event) {
+                let current = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    current += event.results[i][0].transcript;
+                }
+                if (transcriptText) transcriptText.innerText = `"${current}"`;
+                if (event.results[0].isFinal) {
+                    stopVoiceListening();
+                    processMallowAiCommand(current);
+                }
+            };
+
+            speechRecognitionInstance.onerror = function(event) {
+                stopVoiceListening();
+                if (transcriptText) transcriptText.innerText = 'Non ho sentito bene, tocca e riprova.';
+            };
+
+            speechRecognitionInstance.onend = function() {
+                stopVoiceListening();
+            };
+
+            speechRecognitionInstance.start();
+        } catch (e) {
+            console.error('Speech recognition error:', e);
+            stopVoiceListening();
+        }
+    }
+
+    function stopVoiceListening() {
+        isAiListening = false;
+        if (speechRecognitionInstance) {
+            try { speechRecognitionInstance.stop(); } catch(e){}
+            speechRecognitionInstance = null;
+        }
+        const mascotContainer = document.getElementById('ai-mascot-container');
+        const micBtn = document.getElementById('ai-mic-btn');
+        const micLabel = document.getElementById('ai-mic-label');
+        const statusDot = document.getElementById('ai-status-dot');
+
+        if (mascotContainer) mascotContainer.classList.remove('listening');
+        if (micBtn) micBtn.classList.remove('is-listening');
+        if (micLabel) micLabel.innerText = 'Parla con Mallow';
+        if (statusDot) statusDot.classList.remove('active');
+    }
+
+    window.feedAiQuickCommand = function(text) {
+        const textInput = document.getElementById('ai-text-input');
+        if (textInput) textInput.value = text;
+        submitAiTextCommand();
+    };
+
+    window.submitAiTextCommand = function() {
+        const textInput = document.getElementById('ai-text-input');
+        if (!textInput) return;
+        let val = textInput.value.trim();
+        if (!val) return;
+        textInput.value = '';
+        processMallowAiCommand(val);
+    };
+
+    window.speakMallowVoice = function(text) {
+        if (!('speechSynthesis' in window)) return;
+        try {
+            window.speechSynthesis.cancel();
+            let clean = text.replace(/<[^>]*>/g, '').replace(/[★•📝📅🎯💡]/g, '');
+            let utterance = new SpeechSynthesisUtterance(clean);
+            utterance.lang = 'it-IT';
+            utterance.rate = 1.05;
+            utterance.pitch = 1.05;
+            window.speechSynthesis.speak(utterance);
+        } catch(e) {
+            console.warn('TTS error:', e);
+        }
+    };
+
+    window.processMallowAiCommand = async function(rawText) {
+        const bubble = document.getElementById('ai-speech-bubble');
+        const transcriptText = document.getElementById('ai-transcript-text');
+        if (transcriptText) transcriptText.innerText = `"${rawText}"`;
+
+        if (bubble) bubble.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mallow sta elaborando...';
+
+        let text = rawText.toLowerCase().trim();
+
+        // 1. INTENTO: Ho preso un voto
+        let gradeMatch = text.match(/(?:ho\s+preso|preso|voto)\s+([0-9]+(?:[\.,][0-9]+)?|[0-9]+\+|[0-9]+\-|[0-9]+\s+e\s+mezzo)(?:\s+(?:in|a|per|di))?\s+([a-zA-Zàèéìòù\s]+)/i);
+        if (gradeMatch) {
+            let gradeVal = gradeMatch[1];
+            let gradeSub = gradeMatch[2].trim();
+            let matchedSub = findBestSubjectMatch(gradeSub);
+            let numVal = parseGradeNumeric(gradeVal);
+
+            if (numVal !== null) {
+                let newG = {
+                    id: 'gr_' + generateId(),
+                    subject: matchedSub,
+                    displayValue: gradeVal,
+                    numericValue: numVal,
+                    type: 'Scritto',
+                    date: todayDateStr,
+                    examId: null,
+                    notes: 'Aggiunto con Mallow AI'
+                };
+                myGrades.push(newG);
+                localStorage.setItem('studylog_grades', JSON.stringify(myGrades));
+                renderGradesView();
+                addXP(20);
+
+                let reply = '';
+                if (numVal >= 8.0) {
+                    reply = `Bravissimo! Ho aggiunto il tuo <b>${gradeVal} in ${matchedSub}</b> al Registro. Questo ritmo di studio sta dando frutti eccellenti! (+20 XP)`;
+                } else if (numVal >= 6.0) {
+                    reply = `Ben fatto! Ho registrato <b>${gradeVal} in ${matchedSub}</b>. Sei sulla buona strada! (+20 XP)`;
+                } else {
+                    reply = `Ho registrato <b>${gradeVal} in ${matchedSub}</b>. Non ti preoccupare: ho subito ricalibrato il tuo planner aumentando i giorni di ripasso spaziato (35%) per recuperare alla grande!`;
+                }
+
+                if (bubble) bubble.innerHTML = `🎯 ${reply}`;
+                speakMallowVoice(reply);
+                return;
+            }
+        }
+
+        // 2. INTENTO: Verifica / Interrogazione
+        if (text.includes('verifica') || text.includes('interrogazione') || text.includes('esame') || text.includes('versione')) {
+            let isInterrogazione = text.includes('interrogazione');
+            let isVersione = text.includes('versione');
+            let type = isInterrogazione ? 'Interrogazione' : (isVersione ? 'Versione' : 'Verifica');
+
+            let pagesMatch = text.match(/([0-9]+)\s*(?:pagine|pag|pg)/);
+            let pages = pagesMatch ? parseInt(pagesMatch[1]) : 20;
+            let targetDate = extractDateFromItalianText(text);
+            let sub = extractSubjectFromText(text);
+
+            let newExam = {
+                id: 'ex_' + generateId(),
+                type: type,
+                subject: sub,
+                date: targetDate,
+                startDate: todayDateStr,
+                pages: pages,
+                specificInterrogazioneDates: [],
+                progress: {},
+                excludedDays: [],
+                snoozedDays: []
+            };
+
+            myExams.push(newExam);
+            localStorage.setItem('studylog_exams', JSON.stringify(myExams));
+            updateAllDots();
+            generateTasksForDate(selectedDateStr);
+            renderStreakCalendar();
+            renderMonthCalendar();
+            addXP(25);
+
+            let reply = `Pianificata nuova <b>${type} di ${sub}</b> per il <b>${formatDateShort(targetDate)}</b> (${pages} pagine)! Ho applicato il metodo scientifico Spaced Practice Dunlosky con micro-richiamo attivo quotidiano. (+25 XP)`;
+            if (bubble) bubble.innerHTML = `📅 ${reply}`;
+            speakMallowVoice(reply);
+            return;
+        }
+
+        // 3. INTENTO: Compito / Esercizi
+        if (text.includes('compito') || text.includes('compiti') || text.includes('esercizi') || text.includes('studiare') || text.includes('task')) {
+            let sub = extractSubjectFromText(text);
+            let targetDate = extractDateFromItalianText(text);
+            let title = rawText.replace(/(?:metti|aggiungi|ho|da fare|il|i|un)\s+/gi, '').trim();
+            if (title.length > 50) title = title.slice(0, 50) + '...';
+
+            myTodos.push({
+                id: 'td_' + generateId(),
+                subject: sub,
+                title: title,
+                priority: 2,
+                difficulty: 1,
+                deadline: targetDate,
+                assignedDate: targetDate,
+                repeat: 'none',
+                isAutoScheduled: false
+            });
+
+            localStorage.setItem('studylog_todos', JSON.stringify(myTodos));
+            updateAllDots();
+            generateTasksForDate(selectedDateStr);
+            renderStreakCalendar();
+            renderMonthCalendar();
+            addXP(15);
+
+            let reply = `Ho aggiunto il compito di <b>${sub}</b> per il <b>${formatDateShort(targetDate)}</b>: "${title}". Buono studio! (+15 XP)`;
+            if (bubble) bubble.innerHTML = `📝 ${reply}`;
+            speakMallowVoice(reply);
+            return;
+        }
+
+        // 4. INTENTO: Domanda su media o rendimento
+        if (text.includes('media') || text.includes('voti') || text.includes('rendimento') || text.includes('come vado')) {
+            let avg = getAllGradesAverage();
+            let reply = '';
+            if (avg !== null) {
+                reply = `La tua media generale attuale è di <b>${avg.toFixed(2)}</b> con ${myGrades.length} voti registrati. Continua così!`;
+            } else {
+                reply = `Non hai ancora registrato nessun voto nel registro. Dimmi pure un voto quando vuoi, ad esempio "Ho preso 8 in matematica"!`;
+            }
+            if (bubble) bubble.innerHTML = `📊 ${reply}`;
+            speakMallowVoice(reply);
+            return;
+        }
+
+        // 5. CHIAMATA GEMINI FLASH API
+        if (geminiApiKey) {
+            try {
+                let geminiReply = await callGeminiFlashApi(rawText);
+                if (geminiReply) {
+                    if (bubble) bubble.innerHTML = `💡 ${geminiReply}`;
+                    speakMallowVoice(geminiReply);
+                    return;
+                }
+            } catch(e) {
+                console.error('Gemini API call failed:', e);
+            }
+        }
+
+        let fallbackReply = `Ho ascoltato: "${rawText}".<br>Puoi dirmi ad esempio:<br>• <i>"Compito di matematica esercizi pag 50 per domani"</i><br>• <i>"Verifica di storia di 25 pagine venerdì"</i><br>• <i>"Ho preso 8 in italiano"</i>`;
+        if (bubble) bubble.innerHTML = `🤖 ${fallbackReply}`;
+        speakMallowVoice('Ti ascolto! Puoi dirmi i tuoi compiti, una verifica o un voto preso.');
+    };
+
+    function findBestSubjectMatch(inputSub) {
+        if (!inputSub) return userSubjects[0] || 'Generale';
+        let clean = inputSub.toLowerCase().trim();
+        for (let s of userSubjects) {
+            if (clean.includes(s.toLowerCase()) || s.toLowerCase().includes(clean)) return s;
+        }
+        return inputSub.charAt(0).toUpperCase() + inputSub.slice(1);
+    }
+
+    function extractSubjectFromText(text) {
+        for (let s of userSubjects) {
+            if (text.includes(s.toLowerCase())) return s;
+        }
+        const commonSubjects = ['matematica', 'storia', 'italiano', 'inglese', 'scienze', 'fisica', 'chimica', 'filosofia', 'arte', 'geografia', 'latino', 'greco'];
+        for (let s of commonSubjects) {
+            if (text.includes(s)) return s.charAt(0).toUpperCase() + s.slice(1);
+        }
+        return userSubjects[0] || 'Generale';
+    }
+
+    function extractDateFromItalianText(text) {
+        let d = new Date();
+        if (text.includes('dopodomani')) {
+            d.setDate(d.getDate() + 2);
+            return formatDateStr(d);
+        }
+        if (text.includes('domani')) {
+            d.setDate(d.getDate() + 1);
+            return formatDateStr(d);
+        }
+        if (text.includes('oggi')) {
+            return todayDateStr;
+        }
+
+        const daysMap = { 'domenica': 0, 'lunedi': 1, 'lunedì': 1, 'martedi': 2, 'martedì': 2, 'mercoledi': 3, 'mercoledì': 3, 'giovedi': 4, 'giovedì': 4, 'venerdi': 5, 'venerdì': 5, 'sabato': 6 };
+        for (let dayName in daysMap) {
+            if (text.includes(dayName)) {
+                let targetDay = daysMap[dayName];
+                let currentDay = d.getDay();
+                let diff = (targetDay - currentDay + 7) % 7;
+                if (diff === 0) diff = 7;
+                d.setDate(d.getDate() + diff);
+                return formatDateStr(d);
+            }
+        }
+        d.setDate(d.getDate() + (text.includes('verifica') ? 4 : 1));
+        return formatDateStr(d);
+    }
+
+    async function callGeminiFlashApi(userPrompt) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+        const systemPrompt = `Sei Mallow, l'assistente e mentore di studio dell'app StudyPlanner. Rispondi SEMPRE in italiano, con tono incoraggiante, empatico, sintetico (massimo 2 o 3 frasi) e orientato alle tecniche scientifiche di studio (Dunlosky, Spaced Repetition, Active Recall).`;
+
+        const requestBody = {
+            contents: [
+                {
+                    parts: [
+                        { text: systemPrompt },
+                        { text: `Richiesta dello studente: ${userPrompt}` }
+                    ]
+                }
+            ],
+            generationConfig: {
+                temperature: 0.6,
+                maxOutputTokens: 160
+            }
+        };
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) throw new Error('Gemini API HTTP Error ' + response.status);
+        const data = await response.json();
+        return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+    }
+
+    window.saveGeminiApiKeyFromSettings = function() {
+        const input = document.getElementById('settings-gemini-key-input');
+        if (!input) return;
+        let val = input.value.trim();
+        geminiApiKey = val;
+        localStorage.setItem('studylog_gemini_key', val);
+        updateGeminiKeyStatusUI();
+        showToast(val ? 'Chiave Gemini salvata con successo!' : 'Chiave Gemini rimossa');
+    };
+
+    function updateGeminiKeyStatusUI() {
+        const statusEl = document.getElementById('gemini-key-status');
+        const input = document.getElementById('settings-gemini-key-input');
+        if (input && geminiApiKey) input.value = geminiApiKey;
+        if (statusEl) {
+            if (geminiApiKey) {
+                statusEl.innerHTML = '<span style="color:#10B981;"><i class="fa-solid fa-check"></i> Chiave Gemini attiva (Gemini Flash abilitato)</span>';
+            } else {
+                statusEl.innerHTML = '<span>Motore locale offline attivo (nessuna chiave necessaria)</span>';
+            }
+        }
+    }
+
     window.executeHardReset = function() { localStorage.clear(); localStorage.setItem('studylog_record_streak', '0'); window.location.reload(true); }
 
     init();

@@ -1,0 +1,853 @@
+{
+  "schema": "open-mascot/definition",
+  "schemaVersion": 2,
+  "name": "Mallow",
+  "blob": {
+    "shape": "round",
+    "renderMode": "projected-3d",
+    "width": 220,
+    "height": 220,
+    "color": "#000000"
+  },
+  "face": {
+    "eyeShape": "capsule",
+    "eyeColor": "#ffffff",
+    "eyeWidth": 23,
+    "eyeHeight": 56,
+    "eyeGap": 42,
+    "eyeY": -10
+  },
+  "stage": {
+    "color": "#ffffff"
+  },
+  "expressions": {
+    "neutral": {
+      "label": "Neutral",
+      "pose": {
+        "blob": {
+          "pitch": 0,
+          "yaw": 0,
+          "roll": 0,
+          "squash": 0,
+          "lift": 0
+        },
+        "gaze": {
+          "x": 0,
+          "y": 0
+        },
+        "eyes": {
+          "left": {
+            "scaleX": 1,
+            "scaleY": 1,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          },
+          "right": {
+            "scaleX": 1,
+            "scaleY": 1,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          }
+        }
+      },
+      "motion": {
+        "body": "none",
+        "eyes": "none"
+      }
+    },
+    "focused": {
+      "label": "Focused",
+      "pose": {
+        "blob": {
+          "pitch": -3,
+          "yaw": 10,
+          "roll": 4,
+          "squash": 0,
+          "lift": 0
+        },
+        "gaze": {
+          "x": 3,
+          "y": 0
+        },
+        "eyes": {
+          "left": {
+            "scaleX": 0.95,
+            "scaleY": 1.13,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          },
+          "right": {
+            "scaleX": 0.95,
+            "scaleY": 1.13,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          }
+        }
+      },
+      "motion": {
+        "body": "none",
+        "eyes": "none"
+      }
+    },
+    "curious": {
+      "label": "Curious",
+      "pose": {
+        "blob": {
+          "pitch": -7,
+          "yaw": -14,
+          "roll": -7,
+          "squash": 0,
+          "lift": 0
+        },
+        "gaze": {
+          "x": -4,
+          "y": -2
+        },
+        "eyes": {
+          "left": {
+            "scaleX": 0.92,
+            "scaleY": 1.06,
+            "x": 0,
+            "y": 0,
+            "rotation": 17
+          },
+          "right": {
+            "scaleX": 0.82,
+            "scaleY": 0.88,
+            "x": 0,
+            "y": 1,
+            "rotation": -13
+          }
+        }
+      },
+      "motion": {
+        "body": "none",
+        "eyes": "none"
+      }
+    },
+    "skyward": {
+      "label": "Skyward",
+      "pose": {
+        "blob": {
+          "pitch": 6,
+          "yaw": 20,
+          "roll": -10,
+          "squash": 0,
+          "lift": 0
+        },
+        "gaze": {
+          "x": 5,
+          "y": -10
+        },
+        "eyes": {
+          "left": {
+            "scaleX": 1.02,
+            "scaleY": 0.88,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          },
+          "right": {
+            "scaleX": 1.02,
+            "scaleY": 0.88,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          }
+        }
+      },
+      "motion": {
+        "body": "none",
+        "eyes": "none"
+      }
+    },
+    "soft-gaze": {
+      "label": "Soft gaze",
+      "pose": {
+        "blob": {
+          "pitch": -10,
+          "yaw": -6,
+          "roll": -5,
+          "squash": 0,
+          "lift": 0
+        },
+        "gaze": {
+          "x": 0,
+          "y": 5
+        },
+        "eyes": {
+          "left": {
+            "scaleX": 1.08,
+            "scaleY": 0.82,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          },
+          "right": {
+            "scaleX": 1.08,
+            "scaleY": 0.82,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          }
+        }
+      },
+      "motion": {
+        "body": "none",
+        "eyes": "none"
+      }
+    },
+    "side-eye": {
+      "label": "Side-eye",
+      "pose": {
+        "blob": {
+          "pitch": -7,
+          "yaw": 12,
+          "roll": -6,
+          "squash": 0,
+          "lift": 0
+        },
+        "gaze": {
+          "x": 4,
+          "y": 0
+        },
+        "eyes": {
+          "left": {
+            "scaleX": 1.1,
+            "scaleY": 0.34,
+            "x": 0,
+            "y": -1,
+            "rotation": -4
+          },
+          "right": {
+            "scaleX": 0.9,
+            "scaleY": 1.08,
+            "x": 0,
+            "y": 1,
+            "rotation": 3
+          }
+        }
+      },
+      "motion": {
+        "body": "none",
+        "eyes": "none"
+      }
+    },
+    "beaming": {
+      "label": "Beaming",
+      "pose": {
+        "blob": {
+          "pitch": -4,
+          "yaw": -11,
+          "roll": 8,
+          "squash": 0.05,
+          "lift": -5
+        },
+        "gaze": {
+          "x": 0,
+          "y": 0
+        },
+        "eyes": {
+          "left": {
+            "scaleX": 1.32,
+            "scaleY": 1.4,
+            "x": 0,
+            "y": -2,
+            "rotation": -5
+          },
+          "right": {
+            "scaleX": 1.32,
+            "scaleY": 1.4,
+            "x": 0,
+            "y": -2,
+            "rotation": 5
+          }
+        }
+      },
+      "motion": {
+        "body": "none",
+        "eyes": "none"
+      }
+    },
+    "cheeky": {
+      "label": "Cheeky",
+      "pose": {
+        "blob": {
+          "pitch": 2,
+          "yaw": 15,
+          "roll": -12,
+          "squash": 0,
+          "lift": -3
+        },
+        "gaze": {
+          "x": 3,
+          "y": 0
+        },
+        "eyes": {
+          "left": {
+            "scaleX": 0.85,
+            "scaleY": 0.86,
+            "x": 0,
+            "y": 0,
+            "rotation": 22
+          },
+          "right": {
+            "scaleX": 0.85,
+            "scaleY": 0.86,
+            "x": 0,
+            "y": 0,
+            "rotation": -18
+          }
+        }
+      },
+      "motion": {
+        "body": "none",
+        "eyes": "none"
+      }
+    },
+    "surprised": {
+      "label": "Surprised",
+      "pose": {
+        "blob": {
+          "pitch": -3,
+          "yaw": -8,
+          "roll": -5,
+          "squash": -0.03,
+          "lift": -4
+        },
+        "gaze": {
+          "x": 0,
+          "y": 0
+        },
+        "eyes": {
+          "left": {
+            "scaleX": 1.55,
+            "scaleY": 0.72,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          },
+          "right": {
+            "scaleX": 1.55,
+            "scaleY": 0.72,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          }
+        }
+      },
+      "motion": {
+        "body": "none",
+        "eyes": "none"
+      }
+    },
+    "shy": {
+      "label": "Shy",
+      "pose": {
+        "blob": {
+          "pitch": -12,
+          "yaw": 7,
+          "roll": 5,
+          "squash": 0,
+          "lift": 0
+        },
+        "gaze": {
+          "x": -2,
+          "y": 10
+        },
+        "eyes": {
+          "left": {
+            "scaleX": 0.92,
+            "scaleY": 0.66,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          },
+          "right": {
+            "scaleX": 0.92,
+            "scaleY": 0.66,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          }
+        }
+      },
+      "motion": {
+        "body": "none",
+        "eyes": "none"
+      }
+    },
+    "sad": {
+      "label": "Sad",
+      "pose": {
+        "blob": {
+          "pitch": -13,
+          "yaw": -5,
+          "roll": -4,
+          "squash": 0.02,
+          "lift": 0
+        },
+        "gaze": {
+          "x": 0,
+          "y": 8
+        },
+        "eyes": {
+          "left": {
+            "scaleX": 1.12,
+            "scaleY": 0.48,
+            "x": 0,
+            "y": 2,
+            "rotation": -8
+          },
+          "right": {
+            "scaleX": 1.12,
+            "scaleY": 0.48,
+            "x": 0,
+            "y": 2,
+            "rotation": 8
+          }
+        }
+      },
+      "motion": {
+        "body": "none",
+        "eyes": "none"
+      }
+    },
+    "sleepy": {
+      "label": "Sleepy",
+      "pose": {
+        "blob": {
+          "pitch": 5,
+          "yaw": 3,
+          "roll": 5,
+          "squash": 0.03,
+          "lift": 0
+        },
+        "gaze": {
+          "x": 0,
+          "y": 4
+        },
+        "eyes": {
+          "left": {
+            "scaleX": 1.25,
+            "scaleY": 0.18,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          },
+          "right": {
+            "scaleX": 1.25,
+            "scaleY": 0.18,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          }
+        }
+      },
+      "motion": {
+        "body": "none",
+        "eyes": "none"
+      }
+    },
+    "confident": {
+      "label": "Confident",
+      "pose": {
+        "blob": {
+          "pitch": 8,
+          "yaw": 17,
+          "roll": -6,
+          "squash": 0,
+          "lift": -2
+        },
+        "gaze": {
+          "x": 5,
+          "y": -5
+        },
+        "eyes": {
+          "left": {
+            "scaleX": 0.94,
+            "scaleY": 0.82,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          },
+          "right": {
+            "scaleX": 0.94,
+            "scaleY": 0.82,
+            "x": 0,
+            "y": 0,
+            "rotation": 0
+          }
+        }
+      },
+      "motion": {
+        "body": "none",
+        "eyes": "none"
+      }
+    },
+    "angry": {
+      "label": "Angry",
+      "pose": {
+        "blob": {
+          "pitch": 5,
+          "yaw": 6,
+          "roll": 3,
+          "squash": 0.03,
+          "lift": 0
+        },
+        "gaze": {
+          "x": 0,
+          "y": -1
+        },
+        "eyes": {
+          "left": {
+            "scaleX": 1.18,
+            "scaleY": 1.22,
+            "x": 0,
+            "y": 0,
+            "rotation": -31
+          },
+          "right": {
+            "scaleX": 1.18,
+            "scaleY": 1.22,
+            "x": 0,
+            "y": 0,
+            "rotation": 31
+          }
+        }
+      },
+      "motion": {
+        "body": "tremble",
+        "eyes": "none"
+      }
+    },
+    "uneasy": {
+      "label": "Uneasy",
+      "pose": {
+        "blob": {
+          "pitch": -7,
+          "yaw": -11,
+          "roll": 4,
+          "squash": 0,
+          "lift": 0
+        },
+        "gaze": {
+          "x": -4,
+          "y": 2
+        },
+        "eyes": {
+          "left": {
+            "scaleX": 1.02,
+            "scaleY": 0.96,
+            "x": 0,
+            "y": 0,
+            "rotation": 19
+          },
+          "right": {
+            "scaleX": 1.02,
+            "scaleY": 0.96,
+            "x": 0,
+            "y": 0,
+            "rotation": -21
+          }
+        }
+      },
+      "motion": {
+        "body": "slow-drift",
+        "eyes": "tremble"
+      }
+    }
+  },
+  "animations": {
+    "idle": {
+      "label": "Idle",
+      "playback": "loop",
+      "ambient": 0.42,
+      "blink": "normal",
+      "steps": [
+        {
+          "expression": "neutral",
+          "holdMs": 4400,
+          "transitionMs": 640,
+          "easing": "gentle"
+        },
+        {
+          "expression": "curious",
+          "holdMs": 3200,
+          "transitionMs": 760,
+          "easing": "gentle"
+        },
+        {
+          "expression": "neutral",
+          "holdMs": 5100,
+          "transitionMs": 720,
+          "easing": "gentle"
+        }
+      ]
+    },
+    "listening": {
+      "label": "Listening",
+      "playback": "loop",
+      "ambient": 0.28,
+      "blink": "calm",
+      "steps": [
+        {
+          "expression": "focused",
+          "holdMs": 2600,
+          "transitionMs": 560,
+          "easing": "gentle"
+        },
+        {
+          "expression": "soft-gaze",
+          "holdMs": 2200,
+          "transitionMs": 680,
+          "easing": "gentle"
+        },
+        {
+          "expression": "focused",
+          "holdMs": 3100,
+          "transitionMs": 610,
+          "easing": "gentle"
+        }
+      ]
+    },
+    "thinking": {
+      "label": "Thinking",
+      "playback": "loop",
+      "ambient": 0.34,
+      "blink": "normal",
+      "steps": [
+        {
+          "expression": "curious",
+          "holdMs": 1750,
+          "transitionMs": 690,
+          "easing": "gentle"
+        },
+        {
+          "expression": "side-eye",
+          "holdMs": 2100,
+          "transitionMs": 610,
+          "easing": "gentle"
+        },
+        {
+          "expression": "skyward",
+          "holdMs": 2500,
+          "transitionMs": 780,
+          "easing": "gentle"
+        },
+        {
+          "expression": "curious",
+          "holdMs": 1850,
+          "transitionMs": 640,
+          "easing": "gentle"
+        }
+      ]
+    },
+    "happy": {
+      "label": "Happy",
+      "playback": "loop",
+      "ambient": 0.48,
+      "blink": "bright",
+      "steps": [
+        {
+          "expression": "soft-gaze",
+          "holdMs": 1300,
+          "transitionMs": 520,
+          "easing": "spring"
+        },
+        {
+          "expression": "beaming",
+          "holdMs": 2100,
+          "transitionMs": 620,
+          "easing": "spring"
+        },
+        {
+          "expression": "cheeky",
+          "holdMs": 1700,
+          "transitionMs": 570,
+          "easing": "gentle"
+        }
+      ]
+    },
+    "curious": {
+      "label": "Curious",
+      "playback": "loop",
+      "ambient": 0.38,
+      "blink": "normal",
+      "steps": [
+        {
+          "expression": "curious",
+          "holdMs": 2300,
+          "transitionMs": 650,
+          "easing": "gentle"
+        },
+        {
+          "expression": "skyward",
+          "holdMs": 2700,
+          "transitionMs": 710,
+          "easing": "gentle"
+        },
+        {
+          "expression": "focused",
+          "holdMs": 1900,
+          "transitionMs": 580,
+          "easing": "gentle"
+        }
+      ]
+    },
+    "surprised": {
+      "label": "Surprised",
+      "playback": "once",
+      "ambient": 0.22,
+      "blink": "bright",
+      "steps": [
+        {
+          "expression": "neutral",
+          "holdMs": 180,
+          "transitionMs": 120,
+          "easing": "quick"
+        },
+        {
+          "expression": "surprised",
+          "holdMs": 1450,
+          "transitionMs": 360,
+          "easing": "spring"
+        },
+        {
+          "expression": "curious",
+          "holdMs": 900,
+          "transitionMs": 820,
+          "easing": "gentle"
+        }
+      ]
+    },
+    "shy": {
+      "label": "Shy",
+      "playback": "loop",
+      "ambient": 0.2,
+      "blink": "calm",
+      "steps": [
+        {
+          "expression": "soft-gaze",
+          "holdMs": 2400,
+          "transitionMs": 720,
+          "easing": "gentle"
+        },
+        {
+          "expression": "shy",
+          "holdMs": 3300,
+          "transitionMs": 810,
+          "easing": "gentle"
+        }
+      ]
+    },
+    "sad": {
+      "label": "Sad",
+      "playback": "loop",
+      "ambient": 0.16,
+      "blink": "sleepy",
+      "steps": [
+        {
+          "expression": "sad",
+          "holdMs": 3900,
+          "transitionMs": 920,
+          "easing": "gentle"
+        },
+        {
+          "expression": "sleepy",
+          "holdMs": 2800,
+          "transitionMs": 980,
+          "easing": "gentle"
+        },
+        {
+          "expression": "soft-gaze",
+          "holdMs": 3500,
+          "transitionMs": 880,
+          "easing": "gentle"
+        }
+      ]
+    },
+    "stand-tall": {
+      "label": "Stand tall",
+      "playback": "loop",
+      "ambient": 0.32,
+      "blink": "normal",
+      "steps": [
+        {
+          "expression": "focused",
+          "holdMs": 1600,
+          "transitionMs": 560,
+          "easing": "gentle"
+        },
+        {
+          "expression": "confident",
+          "holdMs": 2900,
+          "transitionMs": 680,
+          "easing": "spring"
+        },
+        {
+          "expression": "soft-gaze",
+          "holdMs": 1800,
+          "transitionMs": 760,
+          "easing": "gentle"
+        }
+      ]
+    },
+    "victory-bounce": {
+      "label": "Victory bounce",
+      "playback": "once",
+      "ambient": 0.54,
+      "blink": "bright",
+      "steps": [
+        {
+          "expression": "shy",
+          "holdMs": 240,
+          "transitionMs": 180,
+          "easing": "quick"
+        },
+        {
+          "expression": "beaming",
+          "holdMs": 1050,
+          "transitionMs": 390,
+          "easing": "spring"
+        },
+        {
+          "expression": "cheeky",
+          "holdMs": 950,
+          "transitionMs": 430,
+          "easing": "spring"
+        },
+        {
+          "expression": "confident",
+          "holdMs": 1500,
+          "transitionMs": 760,
+          "easing": "gentle"
+        }
+      ]
+    },
+    "sleeping": {
+      "label": "Sleeping",
+      "playback": "loop",
+      "ambient": 0.1,
+      "blink": "sleepy",
+      "steps": [
+        {
+          "expression": "sleepy",
+          "holdMs": 4700,
+          "transitionMs": 1100,
+          "easing": "gentle"
+        },
+        {
+          "expression": "sad",
+          "holdMs": 2100,
+          "transitionMs": 1250,
+          "easing": "gentle"
+        }
+      ]
+    }
+  }
+}
