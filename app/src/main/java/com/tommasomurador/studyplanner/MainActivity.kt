@@ -23,6 +23,10 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.PermissionRequest
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -34,10 +38,12 @@ import androidx.core.view.WindowCompat
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+    private var speechRecognizer: SpeechRecognizer? = null
 
     companion object {
         const val CHANNEL_ID = "studyplanner_notifications"
         const val NOTIF_PERMISSION_CODE = 101
+        const val AUDIO_PERMISSION_CODE = 102
         var activeInstance: MainActivity? = null
     }
 
@@ -158,6 +164,93 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    
+    fun startNativeListening() {
+        runOnUiThread {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), AUDIO_PERMISSION_CODE)
+                return@runOnUiThread
+            }
+
+            if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+                webView.evaluateJavascript("window.onAndroidSpeechError ? window.onAndroidSpeechError('not_available') : null", null)
+                return@runOnUiThread
+            }
+
+            try {
+                speechRecognizer?.destroy()
+                speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+                    setRecognitionListener(object : RecognitionListener {
+                        override fun onReadyForSpeech(params: Bundle?) {
+                            webView.evaluateJavascript("window.onAndroidSpeechReady ? window.onAndroidSpeechReady() : null", null)
+                        }
+                        override fun onBeginningOfSpeech() {
+                            webView.evaluateJavascript("window.onAndroidSpeechStart ? window.onAndroidSpeechStart() : null", null)
+                        }
+                        override fun onRmsChanged(rmsdB: Float) {
+                            webView.evaluateJavascript("window.onAndroidSpeechRms ? window.onAndroidSpeechRms($rmsdB) : null", null)
+                        }
+                        override fun onBufferReceived(buffer: ByteArray?) {}
+                        override fun onEndOfSpeech() {
+                            webView.evaluateJavascript("window.onAndroidSpeechEnd ? window.onAndroidSpeechEnd() : null", null)
+                        }
+                        override fun onError(error: Int) {
+                            webView.evaluateJavascript("window.onAndroidSpeechError ? window.onAndroidSpeechError($error) : null", null)
+                        }
+                        override fun onResults(results: Bundle?) {
+                            val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                            val text = matches?.firstOrNull() ?: ""
+                            val escaped = text.replace("'", "\\\'").replace("\n", " ").trim()
+                            webView.evaluateJavascript("window.onAndroidSpeechResult ? window.onAndroidSpeechResult('$escaped', true) : null", null)
+                        }
+                        override fun onPartialResults(partialResults: Bundle?) {
+                            val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                            val text = matches?.firstOrNull() ?: ""
+                            val escaped = text.replace("'", "\\\'").replace("\n", " ").trim()
+                            webView.evaluateJavascript("window.onAndroidSpeechResult ? window.onAndroidSpeechResult('$escaped', false) : null", null)
+                        }
+                        override fun onEvent(eventType: Int, params: Bundle?) {}
+                    })
+                }
+
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "it-IT")
+                    putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+                }
+                speechRecognizer?.startListening(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                webView.evaluateJavascript("window.onAndroidSpeechError ? window.onAndroidSpeechError('${e.message}') : null", null)
+            }
+        }
+    }
+
+    fun stopNativeListening() {
+        runOnUiThread {
+            try {
+                speechRecognizer?.stopListening()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        val audioIndex = permissions.indexOf(Manifest.permission.RECORD_AUDIO)
+        if (audioIndex != -1 && grantResults.getOrNull(audioIndex) == PackageManager.PERMISSION_GRANTED) {
+            webView.post {
+                webView.evaluateJavascript("window.onMicrophonePermissionGranted ? window.onMicrophonePermissionGranted() : null", null)
+            }
+            if (requestCode == AUDIO_PERMISSION_CODE) {
+                startNativeListening()
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         activeInstance = this
@@ -190,6 +283,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     inner class WebAppInterface(private val context: Context) {
+        @JavascriptInterface
+        fun isNativeSpeechAvailable(): Boolean {
+            return SpeechRecognizer.isRecognitionAvailable(context)
+        }
+
+        @JavascriptInterface
+        fun startNativeSpeechRecognition() {
+            (context as? MainActivity)?.startNativeListening()
+        }
+
+        @JavascriptInterface
+        fun stopNativeSpeechRecognition() {
+            (context as? MainActivity)?.stopNativeListening()
+        }
+
         @JavascriptInterface
         fun isNativeAndroid(): Boolean = true
 

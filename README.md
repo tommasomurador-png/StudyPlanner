@@ -60,7 +60,7 @@ A differenza delle tradizionali applicazioni per to-do list, Study Planner è pr
 
 ---
 
-## Novità Versione 2.4.0: Split Hotbar e Mentore Vocale Mallow
+## Novità Versione 2.4.1: Split Hotbar e Mentore Vocale Mallow
 
 Basata sul design e sulle specifiche interattive dell'utente:
 
