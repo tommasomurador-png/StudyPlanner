@@ -201,10 +201,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun stopNativeListening() {} catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+    fun stopNativeListening() {
+        // Gestito tramite RecognizerIntent
     }
 
     
