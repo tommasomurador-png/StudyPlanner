@@ -44,6 +44,7 @@ class MainActivity : AppCompatActivity() {
         const val CHANNEL_ID = "studyplanner_notifications"
         const val NOTIF_PERMISSION_CODE = 101
         const val AUDIO_PERMISSION_CODE = 102
+        const val SPEECH_REQUEST_CODE = 103
         var activeInstance: MainActivity? = null
     }
 
@@ -93,6 +94,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkAndRequestNotificationPermission() {
+        val permissionsNeeded = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.RECORD_AUDIO)
+        }
+        if (permissionsNeeded.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, permissionsNeeded.toTypedArray(), NOTIF_PERMISSION_CODE)
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), NOTIF_PERMISSION_CODE)
@@ -172,55 +185,15 @@ class MainActivity : AppCompatActivity() {
                 return@runOnUiThread
             }
 
-            if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-                webView.evaluateJavascript("window.onAndroidSpeechError ? window.onAndroidSpeechError('not_available') : null", null)
-                return@runOnUiThread
-            }
-
             try {
-                speechRecognizer?.destroy()
-                speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
-                    setRecognitionListener(object : RecognitionListener {
-                        override fun onReadyForSpeech(params: Bundle?) {
-                            webView.evaluateJavascript("window.onAndroidSpeechReady ? window.onAndroidSpeechReady() : null", null)
-                        }
-                        override fun onBeginningOfSpeech() {
-                            webView.evaluateJavascript("window.onAndroidSpeechStart ? window.onAndroidSpeechStart() : null", null)
-                        }
-                        override fun onRmsChanged(rmsdB: Float) {
-                            webView.evaluateJavascript("window.onAndroidSpeechRms ? window.onAndroidSpeechRms($rmsdB) : null", null)
-                        }
-                        override fun onBufferReceived(buffer: ByteArray?) {}
-                        override fun onEndOfSpeech() {
-                            webView.evaluateJavascript("window.onAndroidSpeechEnd ? window.onAndroidSpeechEnd() : null", null)
-                        }
-                        override fun onError(error: Int) {
-                            webView.evaluateJavascript("window.onAndroidSpeechError ? window.onAndroidSpeechError($error) : null", null)
-                        }
-                        override fun onResults(results: Bundle?) {
-                            val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                            val text = matches?.firstOrNull() ?: ""
-                            val escaped = text.replace("'", "\\\'").replace("\n", " ").trim()
-                            webView.evaluateJavascript("window.onAndroidSpeechResult ? window.onAndroidSpeechResult('$escaped', true) : null", null)
-                        }
-                        override fun onPartialResults(partialResults: Bundle?) {
-                            val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                            val text = matches?.firstOrNull() ?: ""
-                            val escaped = text.replace("'", "\\\'").replace("\n", " ").trim()
-                            webView.evaluateJavascript("window.onAndroidSpeechResult ? window.onAndroidSpeechResult('$escaped', false) : null", null)
-                        }
-                        override fun onEvent(eventType: Int, params: Bundle?) {}
-                    })
-                }
-
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "it-IT")
-                    putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+                    putExtra(RecognizerIntent.EXTRA_PROMPT, "Parla con Mallow...")
                 }
-                speechRecognizer?.startListening(intent)
+                startActivityForResult(intent, SPEECH_REQUEST_CODE)
+                webView.evaluateJavascript("window.onAndroidSpeechStart ? window.onAndroidSpeechStart() : null", null)
             } catch (e: Exception) {
                 e.printStackTrace()
                 webView.evaluateJavascript("window.onAndroidSpeechError ? window.onAndroidSpeechError('${e.message}') : null", null)
@@ -228,12 +201,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun stopNativeListening() {
-        runOnUiThread {
-            try {
-                speechRecognizer?.stopListening()
-            } catch (e: Exception) {
+    fun stopNativeListening() {} catch (e: Exception) {
                 e.printStackTrace()
+            }
+        }
+    }
+
+    
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == SPEECH_REQUEST_CODE) {
+            if (resultCode == RESULT_OK && data != null) {
+                val matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                val text = matches?.firstOrNull() ?: ""
+                val escaped = text.replace("'", "\\'").replace("\n", " ").trim()
+                webView.evaluateJavascript("window.onAndroidSpeechResult ? window.onAndroidSpeechResult('$escaped', true) : null", null)
+            } else {
+                webView.evaluateJavascript("window.onAndroidSpeechCancel ? window.onAndroidSpeechCancel() : null", null)
             }
         }
     }
