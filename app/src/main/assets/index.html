@@ -16,7 +16,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js?v=2.1.2').then(function(reg) {
+          navigator.serviceWorker.register('sw.js?v=2.4.0').then(function(reg) {
             reg.update();
             reg.onupdatefound = function() {
               const newWorker = reg.installing;
@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.3.0">
+    <link rel="stylesheet" href="css/style.css?v=2.4.0">
 </head>
 <body>
 
@@ -223,13 +223,29 @@
 
     </div>
 
-        <div class="bottom-nav-wrapper">
-        <nav class="bottom-nav">
-            <div class="nav-item active" onclick="switchView('study', this)" id="nav-study" title="Studio"><i class="fa-solid fa-book-open"></i></div>
-            <div class="nav-item" onclick="switchView('calendar', this)" id="nav-calendar" title="Statistiche & Calendario"><i class="fa-solid fa-calendar-days"></i></div>
-            <div class="nav-item nav-ai-center" onclick="openAiAssistantModal()" id="nav-ai" title="Mallow AI - Assistente Vocale"><i class="fa-solid fa-microphone"></i></div>
-            <div class="nav-item" onclick="switchView('grades', this)" id="nav-grades" title="Registro Voti"><i class="fa-solid fa-graduation-cap"></i></div>
-            <div class="nav-item" onclick="switchView('ranked', this)" id="nav-ranked" title="XP e Gradi"><i class="fa-solid fa-trophy"></i></div>
+            <div class="bottom-nav-wrapper" id="bottom-nav-wrapper">
+        <nav class="split-hotbar" id="split-hotbar">
+            <!-- Left Wing: Libro e Calendario -->
+            <div class="hotbar-wing hotbar-left">
+                <div class="nav-item active" onclick="switchView('study', this)" id="nav-study" title="Studio"><i class="fa-solid fa-book-open"></i></div>
+                <div class="nav-item" onclick="switchView('calendar', this)" id="nav-calendar" title="Statistiche & Calendario"><i class="fa-solid fa-calendar-days"></i></div>
+            </div>
+
+            <!-- Bot Slot (si chiude e il bot scivola in alto) -->
+            <div class="hotbar-bot-slot" id="hotbar-bot-slot">
+                <button type="button" class="hotbar-bot-btn" id="hotbar-bot-btn" onclick="openMallowVoiceOverlay()" title="Mallow Bot">
+                    <div class="bot-face-mini">
+                        <span class="bot-eye-mini left"></span>
+                        <span class="bot-eye-mini right"></span>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Right Wing: Registro Voti e Gradi/Coppa -->
+            <div class="hotbar-wing hotbar-right">
+                <div class="nav-item" onclick="switchView('grades', this)" id="nav-grades" title="Registro Voti"><i class="fa-solid fa-graduation-cap"></i></div>
+                <div class="nav-item" onclick="switchView('ranked', this)" id="nav-ranked" title="XP e Gradi"><i class="fa-solid fa-trophy"></i></div>
+            </div>
         </nav>
     </div>
 
@@ -621,52 +637,80 @@
         </div>
     </div>
 
-    <!-- MODAL MALLOW VOICE AI ASSISTANT -->
-    <div class="fullscreen-modal" id="ai-assistant-modal">
-        <div class="glass-panel ai-assistant-panel">
-            <button class="btn-close-modal-top" onclick="closeAiAssistantModal()"><i class="fa-solid fa-xmark"></i></button>
-            
-            <div class="ai-status-indicator">
-                <span class="ai-status-dot" id="ai-status-dot"></span>
-                <span id="ai-status-text">Mallow ? Tutor Vocale</span>
+    
+    <!-- MALLOW VOICE AI OVERLAY SCREEN (Hand-drawn Sketch Specification) -->
+    <div class="mallow-voice-overlay" id="mallow-voice-overlay">
+        <div class="mallow-voice-container">
+            <!-- Header Bar -->
+            <div class="mallow-voice-header">
+                <div class="mallow-voice-title">
+                    <span class="voice-status-dot" id="voice-status-dot"></span>
+                    <span id="voice-header-label">Mallow • Mentore Vocale</span>
+                </div>
+                <button type="button" class="btn-close-voice" onclick="closeMallowVoiceOverlay()" title="Chiudi assistente">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
 
-            <div class="ai-mascot-container" id="ai-mascot-container" onclick="toggleVoiceListening()">
-                <div class="ai-glow-ripple"></div>
-                <div class="ai-glow-ripple"></div>
-                <div class="ai-glow-ripple"></div>
-                <img src="mallow-pose.svg" alt="Mallow Mascot" class="ai-mascot-img" id="ai-mascot-img">
+            <!-- Central Mascot Stage -->
+            <div class="mallow-stage-wrapper">
+                <div class="mallow-mascot-box" id="mallow-mascot-box" onclick="toggleVoiceListening()">
+                    <div class="voice-glow-ring ring-1"></div>
+                    <div class="voice-glow-ring ring-2"></div>
+                    <div class="voice-glow-ring ring-3"></div>
+                    <img src="mallow-pose.svg" alt="Mallow Mascot" class="mallow-interactive-svg" id="mallow-screen-mascot">
+                </div>
+                <div class="mallow-name-label">Mallow</div>
+                <div class="mallow-state-subtitle" id="mallow-state-subtitle">Tocca Mallow o parla per iniziare</div>
             </div>
 
-            <div class="ai-speech-bubble" id="ai-speech-bubble">
-                Ciao! Sono <b>Mallow</b>, il tuo mentore di studio locale. Dimmi pure a voce i tuoi compiti, verifiche o i voti che hai preso!
+            <!-- Dialogue & Transcript Bubble -->
+            <div class="mallow-speech-card" id="mallow-speech-card">
+                <div class="mallow-speech-text" id="mallow-speech-text">
+                    Ciao! Dimmi cosa hai da fare: posso <b>aggiungere</b>, <b>togliere</b> o <b>modificare</b> compiti, verifiche e voti!
+                </div>
+                <div class="mallow-transcript-sub" id="mallow-transcript-sub">
+                    <i class="fa-solid fa-microphone" style="opacity: 0.6; margin-right: 5px;"></i>
+                    <span id="mallow-transcript-label">In attesa della tua voce...</span>
+                </div>
             </div>
 
-            <div class="ai-transcript-box" id="ai-transcript-box">
-                <span id="ai-transcript-text">Tocca il microfono o parla per iniziare...</span>
+            <!-- Pending Action Proposal & Confirmation Card -->
+            <div class="pending-action-card" id="pending-action-card" style="display: none;">
+                <div class="pending-action-badge" id="pending-action-badge"><i class="fa-solid fa-bolt"></i> Azione Rilevata</div>
+                <div class="pending-action-desc" id="pending-action-desc">Aggiungerò il compito di Matematica per domani</div>
+                <div class="pending-action-buttons">
+                    <button type="button" class="btn-confirm-action" id="btn-confirm-action" onclick="executePendingAiAction()">
+                        <i class="fa-solid fa-check"></i> Conferma ed Esegui
+                    </button>
+                    <button type="button" class="btn-cancel-action" onclick="cancelPendingAiAction()">
+                        Annulla
+                    </button>
+                </div>
+                <div class="pending-action-helper">
+                    Oppure tocca Mallow sopra per parlare di nuovo e cambiare
+                </div>
             </div>
 
-            <button type="button" class="ai-mic-btn-main" id="ai-mic-btn" onclick="toggleVoiceListening()">
-                <i class="fa-solid fa-microphone" id="ai-mic-icon"></i>
-                <span id="ai-mic-label">Parla con Mallow</span>
-            </button>
-
-            <div class="ai-chip-suggestions">
-                <div class="ai-chip" onclick="feedAiQuickCommand('Compito di matematica esercizi pag 50 per domani')">?? Compito matematica per domani</div>
-                <div class="ai-chip" onclick="feedAiQuickCommand('Verifica di storia di 25 pagine venerd?')">?? Verifica storia 25 pag</div>
-                <div class="ai-chip" onclick="feedAiQuickCommand('Ho preso 8 in italiano')">?? Ho preso 8 in italiano</div>
-                <div class="ai-chip" onclick="feedAiQuickCommand('Come va la mia media e come dovrei studiare?')">?? Analisi studio e voti</div>
+            <!-- Quick Suggestions Chips -->
+            <div class="voice-quick-chips" id="voice-quick-chips">
+                <div class="vchip" onclick="feedAiQuickCommand('Aggiungi compito di matematica esercizi pag 50 per domani')">📝 Aggiungi compito matematica</div>
+                <div class="vchip" onclick="feedAiQuickCommand('Verifica di storia di 30 pagine venerdì')">📅 Verifica storia 30 pag</div>
+                <div class="vchip" onclick="feedAiQuickCommand('Modifica la verifica di storia metti 40 pagine')">✏️ Modifica verifica storia</div>
+                <div class="vchip" onclick="feedAiQuickCommand('Togli il compito di matematica')">🗑️ Togli compito matematica</div>
+                <div class="vchip" onclick="feedAiQuickCommand('Ho preso 8 in italiano')">🎯 Registra 8 in italiano</div>
             </div>
 
-            <div class="ai-input-row">
-                <input type="text" class="form-control" id="ai-text-input" placeholder="Oppure scrivi un comando..." onkeydown="if(event.key === 'Enter'){ submitAiTextCommand(); event.preventDefault(); }">
-                <button type="button" class="btn-submit" style="margin-top:0;" onclick="submitAiTextCommand()"><i class="fa-solid fa-paper-plane"></i></button>
+            <!-- Fallback text input row -->
+            <div class="voice-text-fallback">
+                <input type="text" id="voice-manual-input" class="form-control" placeholder="Oppure scrivi un comando qui..." onkeydown="if(event.key==='Enter'){ submitVoiceManualInput(); event.preventDefault(); }">
+                <button type="button" class="btn-submit compact" style="margin-top:0;" onclick="submitVoiceManualInput()"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
     </div>
 
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.3.0" defer></script>
+    <script src="js/app.js?v=2.4.0" defer></script>
 
 </body>
 </html>

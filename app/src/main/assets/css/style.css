@@ -1402,3 +1402,428 @@
     color: var(--text-muted);
     font-size: 0.9rem;
 }
+
+
+/* ==========================================================================
+   SPLIT HOTBAR ARCHITECTURE (Paper Sketch Implementation)
+   ========================================================================== */
+.bottom-nav-wrapper {
+    position: fixed;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 120;
+    width: fit-content;
+    pointer-events: none;
+}
+.bottom-nav-wrapper * {
+    pointer-events: all;
+}
+
+.split-hotbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    gap: 0 !important;
+}
+
+.hotbar-wing {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--nav-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    padding: 6px 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.09);
+    transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hotbar-left {
+    border-radius: 36px 16px 16px 36px;
+}
+.hotbar-right {
+    border-radius: 16px 36px 36px 16px;
+}
+
+/* Quando il bot si alza: le due mezze ali scorrono e si uniscono in una sola */
+.split-hotbar.is-merged .hotbar-left {
+    border-radius: 36px 0 0 36px;
+    border-right: none;
+    padding-right: 4px;
+}
+.split-hotbar.is-merged .hotbar-right {
+    border-radius: 0 36px 36px 0;
+    border-left: none;
+    padding-left: 4px;
+}
+
+.hotbar-bot-slot {
+    width: 62px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 8px;
+    transition: width 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                margin 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.3s ease,
+                transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: visible;
+}
+.split-hotbar.is-merged .hotbar-bot-slot {
+    width: 0px;
+    margin: 0px;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.2) translateY(-40px);
+}
+
+.hotbar-bot-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #0A0A0A;
+    border: 3px solid var(--surface-color);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    padding: 0;
+}
+.hotbar-bot-btn:hover {
+    transform: scale(1.08);
+}
+.hotbar-bot-btn:active {
+    transform: scale(0.92);
+}
+
+/* Faccia di Mallow nel bot: ( || ) */
+.bot-face-mini {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    pointer-events: none;
+}
+.bot-eye-mini {
+    width: 4px;
+    height: 17px;
+    background: #FFFFFF;
+    border-radius: 4px;
+    display: inline-block;
+    animation: botEyesBlink 4.5s infinite;
+}
+@keyframes botEyesBlink {
+    0%, 93%, 97%, 100% { transform: scaleY(1); }
+    95% { transform: scaleY(0.1); }
+}
+
+/* ==========================================================================
+   MALLOW VOICE FULLSCREEN OVERLAY (Right Screen of Hand-drawn Sketch)
+   ========================================================================== */
+.mallow-voice-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 110;
+    background: var(--bg-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: calc(max(20px, env(safe-area-inset-top, 20px)) + 10px) 20px calc(90px + env(safe-area-inset-bottom));
+    opacity: 0;
+    transform: translateY(30px) scale(0.98);
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow-y: auto;
+}
+.mallow-voice-overlay.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: all;
+}
+
+.mallow-voice-container {
+    max-width: 460px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin: auto 0;
+}
+
+.mallow-voice-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.mallow-voice-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.voice-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10B981;
+    box-shadow: 0 0 8px #10B981;
+}
+.voice-status-dot.listening {
+    animation: voiceStatusPulse 1s infinite alternate;
+}
+@keyframes voiceStatusPulse {
+    0% { transform: scale(0.85); opacity: 0.7; }
+    100% { transform: scale(1.35); opacity: 1; }
+}
+
+.btn-close-voice {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    color: var(--theme-strong);
+    width: 38px;
+    height: 38px;
+    border-radius: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: transform 0.15s ease;
+}
+.btn-close-voice:active {
+    transform: scale(0.9);
+}
+
+/* Stage Centrale con Mascotte Mallow */
+.mallow-stage-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 8px auto 16px;
+}
+.mallow-mascot-box {
+    position: relative;
+    width: 190px;
+    height: 190px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.mallow-interactive-svg {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 14px 28px rgba(0,0,0,0.22));
+    position: relative;
+    z-index: 2;
+    transition: transform 0.08s cubic-bezier(0.1, 0.9, 0.2, 1);
+    will-change: transform;
+}
+
+/* Anelli Luminosi Concentrici che pulsano durante l'ascolto */
+.voice-glow-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    border: 2px solid rgba(16, 185, 129, 0.45);
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, rgba(59, 130, 246, 0.12) 55%, transparent 75%);
+    z-index: 1;
+}
+.mallow-mascot-box.is-listening .voice-glow-ring.ring-1 {
+    animation: voiceRingExpand 2s ease-out infinite;
+}
+.mallow-mascot-box.is-listening .voice-glow-ring.ring-2 {
+    animation: voiceRingExpand 2s ease-out infinite 0.65s;
+}
+.mallow-mascot-box.is-listening .voice-glow-ring.ring-3 {
+    animation: voiceRingExpand 2s ease-out infinite 1.3s;
+}
+@keyframes voiceRingExpand {
+    0% { width: 130px; height: 130px; opacity: 0.95; transform: translate(-50%, -50%) scale(0.8); }
+    50% { opacity: 0.55; }
+    100% { width: 310px; height: 310px; opacity: 0; transform: translate(-50%, -50%) scale(1.4); }
+}
+
+.mallow-name-label {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--theme-strong);
+    margin-top: 6px;
+}
+.mallow-state-subtitle {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+/* Fumetto di conversazione dell'AI */
+.mallow-speech-card {
+    width: 100%;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 16px 18px;
+    text-align: left;
+    margin-bottom: 14px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.03);
+    position: relative;
+}
+.mallow-speech-text {
+    font-size: 0.94rem;
+    line-height: 1.45;
+    color: var(--text-main);
+    margin-bottom: 8px;
+}
+.mallow-transcript-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-style: italic;
+    display: flex;
+    align-items: center;
+}
+
+/* Card di Proposta Azione & Pulsante di Invio/Conferma */
+.pending-action-card {
+    width: 100%;
+    background: var(--card-color);
+    border: 2px solid var(--theme-strong);
+    border-radius: 20px;
+    padding: 16px 18px;
+    text-align: left;
+    margin-bottom: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    animation: actionCardSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes actionCardSlideIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.pending-action-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--theme-strong);
+    color: var(--bg-color);
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+.pending-action-desc {
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: var(--theme-strong);
+    line-height: 1.4;
+    margin-bottom: 12px;
+}
+.pending-action-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.btn-confirm-action {
+    flex: 1;
+    background: #10B981;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 16px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    transition: opacity 0.15s, transform 0.1s;
+}
+.btn-confirm-action:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+}
+.btn-cancel-action {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    border-radius: 14px;
+    padding: 12px 14px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.pending-action-helper {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 8px;
+    text-align: center;
+    font-style: italic;
+}
+
+/* Suggerimenti rapidi */
+.voice-quick-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+.vchip {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 5px 11px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.vchip:hover, .vchip:active {
+    border-color: var(--theme-strong);
+    color: var(--theme-strong);
+}
+
+.voice-text-fallback {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+}
+.voice-text-fallback input {
+    flex: 1;
+    font-size: 0.86rem;
+    padding: 10px 14px;
+}

@@ -2082,9 +2082,9 @@
         });
     }
 
-    let audioCtx = null;
-    function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
-    function playTone() { try { initAudio(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'square'; osc.frequency.setValueAtTime(400, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.05); gain.gain.setValueAtTime(0.5, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05); osc.start(); osc.stop(audioCtx.currentTime + 0.05); } catch(e) {} }
+    let toneAudioCtx = null;
+    function initAudio() { if (!toneAudioCtx) toneAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (toneAudioCtx.state === 'suspended') toneAudioCtx.resume(); }
+    function playTone() { try { initAudio(); const osc = toneAudioCtx.createOscillator(); const gain = toneAudioCtx.createGain(); osc.connect(gain); gain.connect(toneAudioCtx.destination); osc.type = 'square'; osc.frequency.setValueAtTime(400, toneAudioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(800, toneAudioCtx.currentTime + 0.05); gain.gain.setValueAtTime(0.5, toneAudioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, toneAudioCtx.currentTime + 0.05); osc.start(); osc.stop(toneAudioCtx.currentTime + 0.05); } catch(e) {} }
     
     let toastTimeout = null;
     function showToast(text, isNegative = false) { 
@@ -2818,6 +2818,7 @@
     }
 
     window.switchView = function(view, element) {
+        closeMallowVoiceOverlay();
         document.querySelectorAll('.bottom-nav .nav-item').forEach(el => el.classList.remove('active')); if(element) element.classList.add('active');
         document.getElementById('study-view').style.display = view === 'study' ? 'block' : 'none';
         document.getElementById('ranked-view').style.display = view === 'ranked' ? 'block' : 'none';
@@ -3367,29 +3368,55 @@
     }
 
     // ==========================================================================
-    // MALLOW VOICE AI ASSISTANT (MICROPHONE + GEMINI FLASH + LOCAL NLP)
+        // ==========================================================================
+    // MALLOW VOICE AI ASSISTANT & AUDIO-REACTIVE ENGINE (Paper Sketch Spec)
     // ==========================================================================
-    window.openAiAssistantModal = function() {
-        const bubble = document.getElementById('ai-speech-bubble');
-        const transcriptText = document.getElementById('ai-transcript-text');
-        const mascotContainer = document.getElementById('ai-mascot-container');
-        
-        if (mascotContainer) mascotContainer.classList.remove('listening');
-        if (transcriptText) transcriptText.innerText = 'Tocca il microfono per parlare o scrivi sotto...';
-        
-        let avg = getAllGradesAverage();
-        let name = localStorage.getItem('studylog_user_name') || 'Studente';
-        if (bubble) {
-            bubble.innerHTML = `Ciao <b>${name}</b>! Sono <b>Mallow</b>, il tuo mentore vocale. Dimmi a voce i compiti, verifiche con pagine o i voti che hai preso!`;
-        }
+    let micAudioCtx = null;
+    let analyser = null;
+    let micStream = null;
+    let audioAnimFrameId = null;
+    let pendingAiAction = null; // Memorizza l'azione da confermare
 
-        updateGeminiKeyStatusUI();
-        openModal('ai-assistant-modal');
+    window.openMallowVoiceOverlay = function() {
+        const overlay = document.getElementById('mallow-voice-overlay');
+        const hotbar = document.getElementById('split-hotbar');
+        const speechText = document.getElementById('mallow-speech-text');
+        const transcriptLabel = document.getElementById('mallow-transcript-label');
+        const pendingCard = document.getElementById('pending-action-card');
+        const mascotBox = document.getElementById('mallow-mascot-box');
+
+        // 1. Unisci la hotbar: il bot scivola in alto e le due ali si uniscono
+        if (hotbar) hotbar.classList.add('is-merged');
+
+        // 2. Apri la schermata vocale
+        if (overlay) overlay.classList.add('open');
+        if (pendingCard) pendingCard.style.display = 'none';
+        pendingAiAction = null;
+
+        let name = localStorage.getItem('studylog_user_name') || 'Studente';
+        if (speechText) {
+            speechText.innerHTML = `Ciao <b>${name}</b>! Sono <b>Mallow</b>. Dimmi pure cosa vuoi <b>aggiungere</b>, <b>togliere</b> o <b>modificare</b> nei tuoi compiti, verifiche e voti!`;
+        }
+        if (transcriptLabel) transcriptLabel.innerText = 'Ascolto avviato... parla pure!';
+
+        // 3. Avvia audio reattività e riconoscimento vocale
+        startVoiceListening();
     };
 
-    window.closeAiAssistantModal = function() {
+    window.closeMallowVoiceOverlay = function() {
+        const overlay = document.getElementById('mallow-voice-overlay');
+        const hotbar = document.getElementById('split-hotbar');
+        const pendingCard = document.getElementById('pending-action-card');
+
         stopVoiceListening();
-        closeModal('ai-assistant-modal');
+        if (pendingCard) pendingCard.style.display = 'none';
+        pendingAiAction = null;
+
+        // Chiudi l'overlay
+        if (overlay) overlay.classList.remove('open');
+
+        // Ri-separa la hotbar facendo tornare il bot al centro
+        if (hotbar) hotbar.classList.remove('is-merged');
     };
 
     window.toggleVoiceListening = function() {
@@ -3402,30 +3429,35 @@
 
     function startVoiceListening() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const mascotBox = document.getElementById('mallow-mascot-box');
+        const statusDot = document.getElementById('voice-status-dot');
+        const stateSubtitle = document.getElementById('mallow-state-subtitle');
+        const transcriptLabel = document.getElementById('mallow-transcript-label');
+
+        if (mascotBox) mascotBox.classList.add('is-listening');
+        if (statusDot) statusDot.classList.add('listening');
+        if (stateSubtitle) stateSubtitle.innerText = 'In ascolto... parla ora';
+        if (transcriptLabel) transcriptLabel.innerText = 'Ti sto ascoltando...';
+
+        // Avvia analisi frequenza audio del microfono per reattività visiva
+        startAudioReactivity();
+
         if (!SpeechRecognition) {
-            showCustomAlert('Il riconoscimento vocale non è supportato da questo browser. Puoi comunque scrivere il tuo comando nel campo di testo!');
+            if (transcriptLabel) transcriptLabel.innerText = 'Riconoscimento vocale non supportato nel browser. Usa la tastiera sotto.';
             return;
         }
 
         try {
+            if (speechRecognitionInstance) {
+                try { speechRecognitionInstance.stop(); } catch(e){}
+            }
             speechRecognitionInstance = new SpeechRecognition();
             speechRecognitionInstance.lang = 'it-IT';
             speechRecognitionInstance.continuous = false;
             speechRecognitionInstance.interimResults = true;
 
-            const mascotContainer = document.getElementById('ai-mascot-container');
-            const micBtn = document.getElementById('ai-mic-btn');
-            const micLabel = document.getElementById('ai-mic-label');
-            const statusDot = document.getElementById('ai-status-dot');
-            const transcriptText = document.getElementById('ai-transcript-text');
-
             speechRecognitionInstance.onstart = function() {
                 isAiListening = true;
-                if (mascotContainer) mascotContainer.classList.add('listening');
-                if (micBtn) micBtn.classList.add('is-listening');
-                if (micLabel) micLabel.innerText = 'Ascolto... parla ora';
-                if (statusDot) statusDot.classList.add('active');
-                if (transcriptText) transcriptText.innerText = 'Ti sto ascoltando...';
             };
 
             speechRecognitionInstance.onresult = function(event) {
@@ -3433,7 +3465,7 @@
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     current += event.results[i][0].transcript;
                 }
-                if (transcriptText) transcriptText.innerText = `"${current}"`;
+                if (transcriptLabel) transcriptLabel.innerText = `"${current}"`;
                 if (event.results[0].isFinal) {
                     stopVoiceListening();
                     processMallowAiCommand(current);
@@ -3442,7 +3474,7 @@
 
             speechRecognitionInstance.onerror = function(event) {
                 stopVoiceListening();
-                if (transcriptText) transcriptText.innerText = 'Non ho sentito bene, tocca e riprova.';
+                if (transcriptLabel) transcriptLabel.innerText = 'Non ho sentito bene, tocca Mallow per riprovare.';
             };
 
             speechRecognitionInstance.onend = function() {
@@ -3450,7 +3482,7 @@
             };
 
             speechRecognitionInstance.start();
-        } catch (e) {
+        } catch(e) {
             console.error('Speech recognition error:', e);
             stopVoiceListening();
         }
@@ -3462,29 +3494,91 @@
             try { speechRecognitionInstance.stop(); } catch(e){}
             speechRecognitionInstance = null;
         }
-        const mascotContainer = document.getElementById('ai-mascot-container');
-        const micBtn = document.getElementById('ai-mic-btn');
-        const micLabel = document.getElementById('ai-mic-label');
-        const statusDot = document.getElementById('ai-status-dot');
+        stopAudioReactivity();
 
-        if (mascotContainer) mascotContainer.classList.remove('listening');
-        if (micBtn) micBtn.classList.remove('is-listening');
-        if (micLabel) micLabel.innerText = 'Parla con Mallow';
-        if (statusDot) statusDot.classList.remove('active');
+        const mascotBox = document.getElementById('mallow-mascot-box');
+        const statusDot = document.getElementById('voice-status-dot');
+        const stateSubtitle = document.getElementById('mallow-state-subtitle');
+
+        if (mascotBox) mascotBox.classList.remove('is-listening');
+        if (statusDot) statusDot.classList.remove('listening');
+        if (stateSubtitle) stateSubtitle.innerText = 'Tocca Mallow o parla per iniziare';
+    }
+
+    // Audio-Reattività in Tempo Reale: Mallow si ingrandisce e rimpicciolisce con la voce
+    async function startAudioReactivity() {
+        try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+            if (micStream) return;
+
+            micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            micAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = micAudioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            analyser.smoothingTimeConstant = 0.45;
+            const source = micAudioCtx.createMediaStreamSource(micStream);
+            source.connect(analyser);
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            const mascotSvg = document.getElementById('mallow-screen-mascot');
+            let currentScale = 1.0;
+
+            function renderAudioPulse() {
+                if (!isAiListening) return;
+                analyser.getByteFrequencyData(dataArray);
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) {
+                    sum += dataArray[i];
+                }
+                let avg = sum / dataArray.length;
+
+                // Calcolo fattore di scala in base al volume/tono e alle pause ("spazi")
+                let targetScale = 1.0;
+                if (avg > 7) {
+                    let norm = Math.min((avg - 7) / 30, 1.4);
+                    targetScale = 1.0 + norm * 0.36; // Si allarga proporzionalmente alla voce
+                } else {
+                    targetScale = 1.0; // Torna a 1 nelle pause della voce
+                }
+
+                currentScale += (targetScale - currentScale) * 0.35;
+                if (mascotSvg) {
+                    mascotSvg.style.transform = `scale(${currentScale.toFixed(3)})`;
+                }
+
+                audioAnimFrameId = requestAnimationFrame(renderAudioPulse);
+            }
+            renderAudioPulse();
+        } catch(err) {
+            console.warn('Audio analyser non accessibile, fallback visivo:', err);
+        }
+    }
+
+    function stopAudioReactivity() {
+        if (audioAnimFrameId) cancelAnimationFrame(audioAnimFrameId);
+        audioAnimFrameId = null;
+        if (micStream) {
+            micStream.getTracks().forEach(track => track.stop());
+            micStream = null;
+        }
+        if (micAudioCtx) {
+            try { micAudioCtx.close(); } catch(e){}
+            micAudioCtx = null;
+        }
+        const mascotSvg = document.getElementById('mallow-screen-mascot');
+        if (mascotSvg) mascotSvg.style.transform = 'scale(1)';
     }
 
     window.feedAiQuickCommand = function(text) {
-        const textInput = document.getElementById('ai-text-input');
-        if (textInput) textInput.value = text;
-        submitAiTextCommand();
+        processMallowAiCommand(text);
     };
 
-    window.submitAiTextCommand = function() {
-        const textInput = document.getElementById('ai-text-input');
-        if (!textInput) return;
-        let val = textInput.value.trim();
+    window.submitVoiceManualInput = function() {
+        const input = document.getElementById('voice-manual-input');
+        if (!input) return;
+        let val = input.value.trim();
         if (!val) return;
-        textInput.value = '';
+        input.value = '';
         processMallowAiCommand(val);
     };
 
@@ -3492,10 +3586,10 @@
         if (!('speechSynthesis' in window)) return;
         try {
             window.speechSynthesis.cancel();
-            let clean = text.replace(/<[^>]*>/g, '').replace(/[★•📝📅🎯💡]/g, '');
+            let clean = text.replace(/<[^>]*>/g, '').replace(/[★•📝📅🎯💡✏️🗑️]/g, '');
             let utterance = new SpeechSynthesisUtterance(clean);
             utterance.lang = 'it-IT';
-            utterance.rate = 1.05;
+            utterance.rate = 1.04;
             utterance.pitch = 1.05;
             window.speechSynthesis.speak(utterance);
         } catch(e) {
@@ -3503,66 +3597,180 @@
         }
     };
 
+    // Interprete di Mallow: Aggiunge, Toglie e Modifica Compiti, Verifiche e Voti
     window.processMallowAiCommand = async function(rawText) {
-        const bubble = document.getElementById('ai-speech-bubble');
-        const transcriptText = document.getElementById('ai-transcript-text');
-        if (transcriptText) transcriptText.innerText = `"${rawText}"`;
+        const speechText = document.getElementById('mallow-speech-text');
+        const transcriptLabel = document.getElementById('mallow-transcript-label');
+        const pendingCard = document.getElementById('pending-action-card');
+        const pendingBadge = document.getElementById('pending-action-badge');
+        const pendingDesc = document.getElementById('pending-action-desc');
 
-        if (bubble) bubble.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mallow sta elaborando...';
+        if (transcriptLabel) transcriptLabel.innerText = `"${rawText}"`;
+        if (speechText) speechText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mallow sta elaborando la richiesta...';
+        if (pendingCard) pendingCard.style.display = 'none';
+        pendingAiAction = null;
 
         let text = rawText.toLowerCase().trim();
 
-        // 1. INTENTO: Ho preso un voto
-        let gradeMatch = text.match(/(?:ho\s+preso|preso|voto)\s+([0-9]+(?:[\.,][0-9]+)?|[0-9]+\+|[0-9]+\-|[0-9]+\s+e\s+mezzo)(?:\s+(?:in|a|per|di))?\s+([a-zA-Zàèéìòù\s]+)/i);
+        // -------------------------------------------------------------
+        // 1. ELIMINAZIONE / TOGLIERE (Compito, Verifica o Voto)
+        // -------------------------------------------------------------
+        if (text.includes('togli') || text.includes('elimina') || text.includes('cancella') || text.includes('rimuovi')) {
+            // A) Togli Voto
+            if (text.includes('voto') || text.includes('voti')) {
+                let sub = extractSubjectFromText(text);
+                let targetGrade = null;
+                for (let i = myGrades.length - 1; i >= 0; i--) {
+                    if (myGrades[i].subject.toLowerCase() === sub.toLowerCase()) {
+                        targetGrade = myGrades[i];
+                        break;
+                    }
+                }
+                if (!targetGrade && myGrades.length > 0) targetGrade = myGrades[myGrades.length - 1];
+
+                if (targetGrade) {
+                    let intro = 'Ricevuto! Ho individuato il voto da rimuovere:';
+                    let desc = `Eliminerò il voto <b>${targetGrade.displayValue} in ${targetGrade.subject}</b> (${formatDateShort(targetGrade.date)}).`;
+                    setupPendingAction('ELIMINA VOTO', 'delete_grade', targetGrade.id, null, intro, desc);
+                    return;
+                } else {
+                    respondNoAction('Non ho trovato nessun voto registrato da eliminare.');
+                    return;
+                }
+            }
+
+            // B) Togli Verifica
+            if (text.includes('verifica') || text.includes('interrogazione') || text.includes('esame') || text.includes('versione')) {
+                let sub = extractSubjectFromText(text);
+                let targetExam = myExams.find(e => e.subject.toLowerCase() === sub.toLowerCase());
+                if (!targetExam && myExams.length > 0) targetExam = myExams[0];
+
+                if (targetExam) {
+                    let intro = 'Ricevuto! Rimuoverò questa verifica dal tuo piano:';
+                    let desc = `Eliminerò la <b>${targetExam.type || 'Verifica'} di ${targetExam.subject}</b> del ${formatDateShort(targetExam.date)} (${targetExam.pages} pag.).`;
+                    setupPendingAction('ELIMINA VERIFICA', 'delete_exam', targetExam.id, null, intro, desc);
+                    return;
+                } else {
+                    respondNoAction(`Non ho trovato nessuna verifica di ${sub} da eliminare.`);
+                    return;
+                }
+            }
+
+            // C) Togli Compito
+            if (text.includes('compito') || text.includes('compiti') || text.includes('esercizi') || text.includes('task')) {
+                let sub = extractSubjectFromText(text);
+                let targetTodo = myTodos.find(t => t.subject.toLowerCase() === sub.toLowerCase());
+                if (!targetTodo && myTodos.length > 0) targetTodo = myTodos[0];
+
+                if (targetTodo) {
+                    let intro = 'Ricevuto! Ho trovato il compito da rimuovere:';
+                    let desc = `Eliminerò il compito di <b>${targetTodo.subject}</b>: "${targetTodo.title}".`;
+                    setupPendingAction('ELIMINA COMPITO', 'delete_todo', targetTodo.id, null, intro, desc);
+                    return;
+                } else {
+                    respondNoAction(`Nessun compito di ${sub} trovato da rimuovere.`);
+                    return;
+                }
+            }
+        }
+
+        // -------------------------------------------------------------
+        // 2. MODIFICARE (Compito, Verifica o Voto)
+        // -------------------------------------------------------------
+        if (text.includes('modifica') || text.includes('cambia') || text.includes('sposta') || text.includes('aggiorna')) {
+            // A) Modifica Voto
+            if (text.includes('voto')) {
+                let sub = extractSubjectFromText(text);
+                let targetGrade = myGrades.find(g => g.subject.toLowerCase() === sub.toLowerCase()) || myGrades[myGrades.length - 1];
+                let numMatch = text.match(/([0-9]+(?:[\.,][0-9]+)?|[0-9]+\+|[0-9]+\-|[0-9]+\s+e\s+mezzo)/);
+                if (targetGrade && numMatch) {
+                    let newVal = numMatch[1];
+                    let newNumeric = parseGradeNumeric(newVal);
+                    let intro = 'Ho preparato la correzione del voto:';
+                    let desc = `Modificherò il voto di <b>${targetGrade.subject}</b> portandolo da ${targetGrade.displayValue} a <b>${newVal}</b>.`;
+                    setupPendingAction('MODIFICA VOTO', 'edit_grade', targetGrade.id, { numericValue: newNumeric, displayValue: newVal }, intro, desc);
+                    return;
+                }
+            }
+
+            // B) Modifica Verifica (Pagine o Data)
+            if (text.includes('verifica') || text.includes('interrogazione') || text.includes('esame')) {
+                let sub = extractSubjectFromText(text);
+                let targetExam = myExams.find(e => e.subject.toLowerCase() === sub.toLowerCase()) || myExams[0];
+                if (targetExam) {
+                    let pagesMatch = text.match(/([0-9]+)\s*(?:pagine|pag|pg)/);
+                    let newPages = pagesMatch ? parseInt(pagesMatch[1]) : null;
+                    let newDate = extractDateFromItalianText(text);
+
+                    let changesDesc = [];
+                    if (newPages) changesDesc.push(`pagine: <b>${newPages}</b> (erano ${targetExam.pages})`);
+                    if (newDate && newDate !== targetExam.date) changesDesc.push(`data: <b>${formatDateShort(newDate)}</b>`);
+
+                    if (changesDesc.length === 0 && newPages === null) {
+                        changesDesc.push(`data: <b>${formatDateShort(newDate)}</b>`);
+                    }
+
+                    let intro = 'Ho ricalcolato il piano di studio per questa verifica:';
+                    let desc = `Aggiornerò la <b>${targetExam.type || 'Verifica'} di ${targetExam.subject}</b>: ${changesDesc.join(', ')}.`;
+                    setupPendingAction('MODIFICA VERIFICA', 'edit_exam', targetExam.id, { pages: newPages || targetExam.pages, date: newDate || targetExam.date }, intro, desc);
+                    return;
+                }
+            }
+
+            // C) Modifica Compito (Data o Descrizione)
+            if (text.includes('compito') || text.includes('esercizi') || text.includes('task')) {
+                let sub = extractSubjectFromText(text);
+                let targetTodo = myTodos.find(t => t.subject.toLowerCase() === sub.toLowerCase()) || myTodos[0];
+                if (targetTodo) {
+                    let newDate = extractDateFromItalianText(text);
+                    let intro = 'Ho preparato la modifica del compito:';
+                    let desc = `Sposterò il compito di <b>${targetTodo.subject}</b> ("${targetTodo.title}") al <b>${formatDateShort(newDate)}</b>.`;
+                    setupPendingAction('MODIFICA COMPITO', 'edit_todo', targetTodo.id, { deadline: newDate, assignedDate: newDate }, intro, desc);
+                    return;
+                }
+            }
+        }
+
+        // -------------------------------------------------------------
+        // 3. AGGIUNGERE (Voto, Verifica o Compito)
+        // -------------------------------------------------------------
+        // A) Voto (es. "ho preso 8 in storia", "voto 7.5 inglese")
+        let gradeMatch = text.match(/(?:ho\s+preso|preso|voto)\s+([0-9]+(?:[\.,][0-9]+)?|[0-9]+\+|[0-9]+\-|[0-9]+\s+e\s+mezzo)(?:\s+(?:in|a|per|di))?\s+([a-zA-ZÀ-ſ\s]+)/i);
         if (gradeMatch) {
             let gradeVal = gradeMatch[1];
-            let gradeSub = gradeMatch[2].trim();
-            let matchedSub = findBestSubjectMatch(gradeSub);
+            let gradeSub = findBestSubjectMatch(gradeMatch[2].trim());
             let numVal = parseGradeNumeric(gradeVal);
-
             if (numVal !== null) {
-                let newG = {
+                let intro = 'Congratulazioni per la prova!';
+                let desc = `Registrerò il voto <b>${gradeVal} in ${gradeSub}</b> (Scritto) nel Registro Voti.`;
+                let gradeData = {
                     id: 'gr_' + generateId(),
-                    subject: matchedSub,
+                    subject: gradeSub,
                     displayValue: gradeVal,
                     numericValue: numVal,
                     type: 'Scritto',
                     date: todayDateStr,
                     examId: null,
-                    notes: 'Aggiunto con Mallow AI'
+                    notes: 'Aggiunto con Mallow'
                 };
-                myGrades.push(newG);
-                localStorage.setItem('studylog_grades', JSON.stringify(myGrades));
-                renderGradesView();
-                addXP(20);
-
-                let reply = '';
-                if (numVal >= 8.0) {
-                    reply = `Bravissimo! Ho aggiunto il tuo <b>${gradeVal} in ${matchedSub}</b> al Registro. Questo ritmo di studio sta dando frutti eccellenti! (+20 XP)`;
-                } else if (numVal >= 6.0) {
-                    reply = `Ben fatto! Ho registrato <b>${gradeVal} in ${matchedSub}</b>. Sei sulla buona strada! (+20 XP)`;
-                } else {
-                    reply = `Ho registrato <b>${gradeVal} in ${matchedSub}</b>. Non ti preoccupare: ho subito ricalibrato il tuo planner aumentando i giorni di ripasso spaziato (35%) per recuperare alla grande!`;
-                }
-
-                if (bubble) bubble.innerHTML = `🎯 ${reply}`;
-                speakMallowVoice(reply);
+                setupPendingAction('NUOVO VOTO', 'add_grade', null, gradeData, intro, desc);
                 return;
             }
         }
 
-        // 2. INTENTO: Verifica / Interrogazione
+        // B) Verifica / Interrogazione
         if (text.includes('verifica') || text.includes('interrogazione') || text.includes('esame') || text.includes('versione')) {
             let isInterrogazione = text.includes('interrogazione');
             let isVersione = text.includes('versione');
             let type = isInterrogazione ? 'Interrogazione' : (isVersione ? 'Versione' : 'Verifica');
-
             let pagesMatch = text.match(/([0-9]+)\s*(?:pagine|pag|pg)/);
-            let pages = pagesMatch ? parseInt(pagesMatch[1]) : 20;
+            let pages = pagesMatch ? parseInt(pagesMatch[1]) : 25;
             let targetDate = extractDateFromItalianText(text);
             let sub = extractSubjectFromText(text);
 
-            let newExam = {
+            let intro = 'Ottimo, organizziamo lo studio con il metodo scientifico!';
+            let desc = `Pianificherò la <b>${type} di ${sub}</b> per il <b>${formatDateShort(targetDate)}</b> (${pages} pagine) con studio spaziato Dunlosky.`;
+            let examData = {
                 id: 'ex_' + generateId(),
                 type: type,
                 subject: sub,
@@ -3574,29 +3782,21 @@
                 excludedDays: [],
                 snoozedDays: []
             };
-
-            myExams.push(newExam);
-            localStorage.setItem('studylog_exams', JSON.stringify(myExams));
-            updateAllDots();
-            generateTasksForDate(selectedDateStr);
-            renderStreakCalendar();
-            renderMonthCalendar();
-            addXP(25);
-
-            let reply = `Pianificata nuova <b>${type} di ${sub}</b> per il <b>${formatDateShort(targetDate)}</b> (${pages} pagine)! Ho applicato il metodo scientifico Spaced Practice Dunlosky con micro-richiamo attivo quotidiano. (+25 XP)`;
-            if (bubble) bubble.innerHTML = `📅 ${reply}`;
-            speakMallowVoice(reply);
+            setupPendingAction('NUOVA VERIFICA', 'add_exam', null, examData, intro, desc);
             return;
         }
 
-        // 3. INTENTO: Compito / Esercizi
-        if (text.includes('compito') || text.includes('compiti') || text.includes('esercizi') || text.includes('studiare') || text.includes('task')) {
+        // C) Compito / Esercizi
+        if (text.includes('compito') || text.includes('compiti') || text.includes('esercizi') || text.includes('studiare') || text.includes('da fare')) {
             let sub = extractSubjectFromText(text);
             let targetDate = extractDateFromItalianText(text);
-            let title = rawText.replace(/(?:metti|aggiungi|ho|da fare|il|i|un)\s+/gi, '').trim();
-            if (title.length > 50) title = title.slice(0, 50) + '...';
+            let title = rawText.replace(/(?:metti|aggiungi|ho|da fare|il|i|un|compito|compiti)\s+/gi, '').trim();
+            if (!title || title.length < 3) title = `Compito di ${sub}`;
+            if (title.length > 55) title = title.slice(0, 55) + '...';
 
-            myTodos.push({
+            let intro = 'Perfetto, ho registrato il tuo compito!';
+            let desc = `Aggiungerò il compito di <b>${sub}</b> per il <b>${formatDateShort(targetDate)}</b>: "${title}".`;
+            let todoData = {
                 id: 'td_' + generateId(),
                 subject: sub,
                 title: title,
@@ -3606,132 +3806,163 @@
                 assignedDate: targetDate,
                 repeat: 'none',
                 isAutoScheduled: false
-            });
-
-            localStorage.setItem('studylog_todos', JSON.stringify(myTodos));
-            updateAllDots();
-            generateTasksForDate(selectedDateStr);
-            renderStreakCalendar();
-            renderMonthCalendar();
-            addXP(15);
-
-            let reply = `Ho aggiunto il compito di <b>${sub}</b> per il <b>${formatDateShort(targetDate)}</b>: "${title}". Buono studio! (+15 XP)`;
-            if (bubble) bubble.innerHTML = `📝 ${reply}`;
-            speakMallowVoice(reply);
+            };
+            setupPendingAction('NUOVO COMPITO', 'add_todo', null, todoData, intro, desc);
             return;
         }
 
-        // 4. INTENTO: Domanda su media o rendimento
-        if (text.includes('media') || text.includes('voti') || text.includes('rendimento') || text.includes('come vado')) {
-            let avg = getAllGradesAverage();
-            let reply = '';
-            if (avg !== null) {
-                reply = `La tua media generale attuale è di <b>${avg.toFixed(2)}</b> con ${myGrades.length} voti registrati. Continua così!`;
-            } else {
-                reply = `Non hai ancora registrato nessun voto nel registro. Dimmi pure un voto quando vuoi, ad esempio "Ho preso 8 in matematica"!`;
-            }
-            if (bubble) bubble.innerHTML = `📊 ${reply}`;
-            speakMallowVoice(reply);
-            return;
-        }
-
-        // 5. CHIAMATA GEMINI FLASH API
+        // 4. Se è configurata la chiave Gemini Flash -> Richiesta ad alta intelligenza
         if (geminiApiKey) {
             try {
                 let geminiReply = await callGeminiFlashApi(rawText);
                 if (geminiReply) {
-                    if (bubble) bubble.innerHTML = `💡 ${geminiReply}`;
+                    if (speechText) speechText.innerHTML = `💡 ${geminiReply}`;
                     speakMallowVoice(geminiReply);
                     return;
                 }
             } catch(e) {
-                console.error('Gemini API call failed:', e);
+                console.error('Gemini call error:', e);
             }
         }
 
-        let fallbackReply = `Ho ascoltato: "${rawText}".<br>Puoi dirmi ad esempio:<br>• <i>"Compito di matematica esercizi pag 50 per domani"</i><br>• <i>"Verifica di storia di 25 pagine venerdì"</i><br>• <i>"Ho preso 8 in italiano"</i>`;
-        if (bubble) bubble.innerHTML = `🤖 ${fallbackReply}`;
-        speakMallowVoice('Ti ascolto! Puoi dirmi i tuoi compiti, una verifica o un voto preso.');
+        // Fallback
+        respondNoAction(`Ho ascoltato: "${rawText}".<br>Puoi dirmi:<br>• <i>"Aggiungi compito di matematica per domani"</i><br>• <i>"Verifica di storia di 30 pagine venerdì"</i><br>• <i>"Modifica verifica di storia metti 40 pagine"</i><br>• <i>"Togli compito di matematica"</i><br>• <i>"Ho preso 8 in inglese"</i>`);
     };
 
-    function findBestSubjectMatch(inputSub) {
-        if (!inputSub) return userSubjects[0] || 'Generale';
-        let clean = inputSub.toLowerCase().trim();
-        for (let s of userSubjects) {
-            if (clean.includes(s.toLowerCase()) || s.toLowerCase().includes(clean)) return s;
-        }
-        return inputSub.charAt(0).toUpperCase() + inputSub.slice(1);
-    }
+    function setupPendingAction(badgeText, actionType, targetId, actionData, introText, descHtml) {
+        const speechText = document.getElementById('mallow-speech-text');
+        const pendingCard = document.getElementById('pending-action-card');
+        const pendingBadge = document.getElementById('pending-action-badge');
+        const pendingDesc = document.getElementById('pending-action-desc');
 
-    function extractSubjectFromText(text) {
-        for (let s of userSubjects) {
-            if (text.includes(s.toLowerCase())) return s;
-        }
-        const commonSubjects = ['matematica', 'storia', 'italiano', 'inglese', 'scienze', 'fisica', 'chimica', 'filosofia', 'arte', 'geografia', 'latino', 'greco'];
-        for (let s of commonSubjects) {
-            if (text.includes(s)) return s.charAt(0).toUpperCase() + s.slice(1);
-        }
-        return userSubjects[0] || 'Generale';
-    }
-
-    function extractDateFromItalianText(text) {
-        let d = new Date();
-        if (text.includes('dopodomani')) {
-            d.setDate(d.getDate() + 2);
-            return formatDateStr(d);
-        }
-        if (text.includes('domani')) {
-            d.setDate(d.getDate() + 1);
-            return formatDateStr(d);
-        }
-        if (text.includes('oggi')) {
-            return todayDateStr;
-        }
-
-        const daysMap = { 'domenica': 0, 'lunedi': 1, 'lunedì': 1, 'martedi': 2, 'martedì': 2, 'mercoledi': 3, 'mercoledì': 3, 'giovedi': 4, 'giovedì': 4, 'venerdi': 5, 'venerdì': 5, 'sabato': 6 };
-        for (let dayName in daysMap) {
-            if (text.includes(dayName)) {
-                let targetDay = daysMap[dayName];
-                let currentDay = d.getDay();
-                let diff = (targetDay - currentDay + 7) % 7;
-                if (diff === 0) diff = 7;
-                d.setDate(d.getDate() + diff);
-                return formatDateStr(d);
-            }
-        }
-        d.setDate(d.getDate() + (text.includes('verifica') ? 4 : 1));
-        return formatDateStr(d);
-    }
-
-    async function callGeminiFlashApi(userPrompt) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
-        const systemPrompt = `Sei Mallow, l'assistente e mentore di studio dell'app StudyPlanner. Rispondi SEMPRE in italiano, con tono incoraggiante, empatico, sintetico (massimo 2 o 3 frasi) e orientato alle tecniche scientifiche di studio (Dunlosky, Spaced Repetition, Active Recall).`;
-
-        const requestBody = {
-            contents: [
-                {
-                    parts: [
-                        { text: systemPrompt },
-                        { text: `Richiesta dello studente: ${userPrompt}` }
-                    ]
-                }
-            ],
-            generationConfig: {
-                temperature: 0.6,
-                maxOutputTokens: 160
-            }
+        pendingAiAction = {
+            badge: badgeText,
+            action: actionType,
+            id: targetId,
+            data: actionData,
+            intro: introText,
+            desc: descHtml
         };
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-        });
+        if (speechText) {
+            speechText.innerHTML = `${introText}<br><span style="color:var(--text-muted); font-size:0.86rem;">Premi <b>Conferma ed Esegui</b> per applicare, oppure tocca Mallow per parlare di nuovo.</span>`;
+        }
+        if (pendingBadge) pendingBadge.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> ${badgeText}`;
+        if (pendingDesc) pendingDesc.innerHTML = descHtml;
+        if (pendingCard) pendingCard.style.display = 'block';
 
-        if (!response.ok) throw new Error('Gemini API HTTP Error ' + response.status);
-        const data = await response.json();
-        return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+        // Voce TTS di introduzione ed esecuzione
+        speakMallowVoice(`${introText} ${descHtml.replace(/<[^>]*>/g, '')}. Premi conferma per applicare.`);
     }
+
+    function respondNoAction(messageHtml) {
+        const speechText = document.getElementById('mallow-speech-text');
+        const pendingCard = document.getElementById('pending-action-card');
+        if (pendingCard) pendingCard.style.display = 'none';
+        pendingAiAction = null;
+        if (speechText) speechText.innerHTML = messageHtml;
+        speakMallowVoice(messageHtml.replace(/<[^>]*>/g, ''));
+    }
+
+    // Esegue l'azione confermata dall'utente con il pulsante d'invio
+    window.executePendingAiAction = function() {
+        if (!pendingAiAction) return;
+
+        const { action, id, data } = pendingAiAction;
+        const speechText = document.getElementById('mallow-speech-text');
+        const pendingCard = document.getElementById('pending-action-card');
+
+        switch(action) {
+            case 'add_todo':
+                myTodos.push(data);
+                localStorage.setItem('studylog_todos', JSON.stringify(myTodos));
+                addXP(15);
+                showToast(`Compito di ${data.subject} aggiunto! +15 XP`);
+                break;
+
+            case 'delete_todo':
+                myTodos = myTodos.filter(t => t.id !== id);
+                localStorage.setItem('studylog_todos', JSON.stringify(myTodos));
+                showToast('Compito rimosso!');
+                break;
+
+            case 'edit_todo':
+                let todo = myTodos.find(t => t.id === id);
+                if (todo) {
+                    Object.assign(todo, data);
+                    localStorage.setItem('studylog_todos', JSON.stringify(myTodos));
+                    showToast('Compito aggiornato!');
+                }
+                break;
+
+            case 'add_exam':
+                myExams.push(data);
+                localStorage.setItem('studylog_exams', JSON.stringify(myExams));
+                addXP(25);
+                showToast(`Verifica di ${data.subject} pianificata! +25 XP`);
+                break;
+
+            case 'delete_exam':
+                myExams = myExams.filter(e => e.id !== id);
+                localStorage.setItem('studylog_exams', JSON.stringify(myExams));
+                showToast('Verifica eliminata dal calendario!');
+                break;
+
+            case 'edit_exam':
+                let exam = myExams.find(e => e.id === id);
+                if (exam) {
+                    Object.assign(exam, data);
+                    localStorage.setItem('studylog_exams', JSON.stringify(myExams));
+                    showToast('Verifica modificata!');
+                }
+                break;
+
+            case 'add_grade':
+                myGrades.push(data);
+                localStorage.setItem('studylog_grades', JSON.stringify(myGrades));
+                addXP(20);
+                showToast(`Voto ${data.displayValue} in ${data.subject} registrato! +20 XP`);
+                triggerMallowGradeFeedback(data);
+                break;
+
+            case 'delete_grade':
+                myGrades = myGrades.filter(g => g.id !== id);
+                localStorage.setItem('studylog_grades', JSON.stringify(myGrades));
+                showToast('Voto rimosso dal registro!');
+                break;
+
+            case 'edit_grade':
+                let gr = myGrades.find(g => g.id === id);
+                if (gr) {
+                    Object.assign(gr, data);
+                    localStorage.setItem('studylog_grades', JSON.stringify(myGrades));
+                    showToast('Voto aggiornato!');
+                }
+                break;
+        }
+
+        // Aggiorna tutte le viste e componenti dell'applicazione
+        updateAllDots();
+        generateTasksForDate(selectedDateStr);
+        renderStreakCalendar();
+        renderMonthCalendar();
+        renderGradesView();
+
+        if (speechText) {
+            speechText.innerHTML = `✅ <b>Fatto!</b> Modifiche applicate con successo al tuo piano di studio.`;
+        }
+        if (pendingCard) pendingCard.style.display = 'none';
+        speakMallowVoice('Fatto! Modifiche applicate con successo.');
+        pendingAiAction = null;
+    };
+
+    window.cancelPendingAiAction = function() {
+        const speechText = document.getElementById('mallow-speech-text');
+        const pendingCard = document.getElementById('pending-action-card');
+        pendingAiAction = null;
+        if (pendingCard) pendingCard.style.display = 'none';
+        if (speechText) speechText.innerHTML = 'Azione annullata. Dimmi pure un altro comando o tocca Mallow per parlare!';
+    };
 
     window.saveGeminiApiKeyFromSettings = function() {
         const input = document.getElementById('settings-gemini-key-input');
