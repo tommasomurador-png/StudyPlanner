@@ -193,16 +193,58 @@ class MainActivity : AppCompatActivity() {
             }
 
             try {
+                speechRecognizer?.destroy()
+                speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+                    setRecognitionListener(object : RecognitionListener {
+                        override fun onReadyForSpeech(params: Bundle?) {
+                            webView.evaluateJavascript("window.onAndroidSpeechStart ? window.onAndroidSpeechStart() : null", null)
+                        }
+
+                        override fun onBeginningOfSpeech() {}
+
+                        override fun onRmsChanged(rmsdB: Float) {
+                            webView.evaluateJavascript("window.onAndroidSpeechRms ? window.onAndroidSpeechRms($rmsdB) : null", null)
+                        }
+
+                        override fun onBufferReceived(buffer: ByteArray?) {}
+
+                        override fun onEndOfSpeech() {}
+
+                        override fun onError(error: Int) {
+                            webView.evaluateJavascript("window.onAndroidSpeechError ? window.onAndroidSpeechError('$error') : null", null)
+                        }
+
+                        override fun onResults(results: Bundle?) {
+                            val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                            val text = matches?.firstOrNull() ?: ""
+                            val escaped = text.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ").trim()
+                            webView.evaluateJavascript("window.onAndroidSpeechResult ? window.onAndroidSpeechResult('$escaped', true) : null", null)
+                        }
+
+                        override fun onPartialResults(partialResults: Bundle?) {
+                            val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                            val text = matches?.firstOrNull() ?: ""
+                            if (text.isNotEmpty()) {
+                                val escaped = text.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ").trim()
+                                webView.evaluateJavascript("window.onAndroidSpeechResult ? window.onAndroidSpeechResult('$escaped', false) : null", null)
+                            }
+                        }
+
+                        override fun onEvent(eventType: Int, params: Bundle?) {}
+                    })
+                }
+
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "it-IT")
-                    putExtra(RecognizerIntent.EXTRA_PROMPT, "Parla con Proxima AI...")
-                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3500L)
-                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 2500L)
-                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 3500L)
+                    putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2200L)
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1800L)
                 }
-                startActivityForResult(intent, SPEECH_REQUEST_CODE)
+
+                speechRecognizer?.startListening(intent)
                 webView.evaluateJavascript("window.onAndroidSpeechStart ? window.onAndroidSpeechStart() : null", null)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -212,7 +254,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun stopNativeListening() {
-        // Gestito tramite RecognizerIntent
+        runOnUiThread {
+            try {
+                speechRecognizer?.stopListening()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun cancelNativeListening() {
+        runOnUiThread {
+            try {
+                speechRecognizer?.cancel()
+                speechRecognizer?.destroy()
+                speechRecognizer = null
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     
@@ -256,6 +316,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        try {
+            speechRecognizer?.destroy()
+            speechRecognizer = null
+        } catch (e: Exception) {}
         if (activeInstance == this) activeInstance = null
         webView.destroy()
         super.onDestroy()
@@ -288,6 +352,11 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun stopNativeSpeechRecognition() {
             (context as? MainActivity)?.stopNativeListening()
+        }
+
+        @JavascriptInterface
+        fun cancelNativeSpeechRecognition() {
+            (context as? MainActivity)?.cancelNativeListening()
         }
 
         @JavascriptInterface

@@ -16,7 +16,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js?v=2.4.6').then(function(reg) {
+          navigator.serviceWorker.register('sw.js?v=2.4.7').then(function(reg) {
             reg.update();
             reg.onupdatefound = function() {
               const newWorker = reg.installing;
@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.4.6">
+    <link rel="stylesheet" href="css/style.css?v=2.4.7">
 </head>
 <body>
 
@@ -124,80 +124,114 @@
         <!-- AI CHATBOT VIEW (Proxima UI - Image 2 Specification) -->
         <div id="ai-view" class="ai-view" style="display: none;">
 
-            <!-- Welcome Screen (Left Phone in Image 2) -->
-            <div class="proxima-welcome" id="ai-welcome-container">
-                <div class="proxima-greeting-block">
-                    <div class="proxima-hello-line">
-                        Hello <span id="ai-user-name" class="proxima-user-highlight" onclick="promptChangeUserName()" title="Tocca per cambiare il tuo nome">Studente</span>
-                    </div>
-                    <div class="proxima-subtitle-line">May I help you?</div>
-                </div>
-
-                <!-- Proxima Brand Header with Isometric Cube -->
-                <div class="proxima-brand-bar">
-                    <div class="proxima-brand-left">
-                        <span class="proxima-cube-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                                <polygon points="12,2 21,7 12,12 3,7" fill="currentColor"/>
-                                <polygon points="3,7 12,12 12,22 3,17" fill="currentColor" opacity="0.72"/>
-                                <polygon points="21,7 12,12 12,22 21,17" stroke="currentColor" stroke-width="1.8" fill="currentColor" fill-opacity="0.2"/>
-                            </svg>
-                        </span>
-                        <span class="proxima-brand-title">Proxima A*</span>
-                    </div>
-                </div>
-
-                <!-- Bento Suggestion Cards (Image 2 Layout) -->
-                <div class="proxima-bento-grid">
-                    <div class="proxima-bento-card tall" onclick="fillAiQuickPrompt('Aggiungi 5 esercizi di matematica per domani e 7 di scienze')">
-                        <div class="proxima-bento-text">
-                            Organizza i compiti per casa o dividi le pagine della prossima verifica
+            <!-- Dedicated Scrollable Viewport (ONLY messages scroll; header & input bar stay fixed) -->
+            <div class="ai-scroll-viewport" id="ai-scroll-viewport">
+                <!-- Welcome Screen (Left Phone in Image 2) -->
+                <div class="proxima-welcome" id="ai-welcome-container">
+                    <div class="proxima-greeting-block">
+                        <div class="proxima-hello-line">
+                            Hello <span id="ai-user-name" class="proxima-user-highlight" onclick="promptChangeUserName()" title="Tocca per cambiare il tuo nome">Studente</span>
                         </div>
-                        <div class="proxima-bento-icon-circle">
-                            <i class="fa-regular fa-clone"></i>
+                        <div class="proxima-subtitle-line">May I help you?</div>
+                    </div>
+
+                    <!-- Proxima Brand Header with Isometric Cube -->
+                    <div class="proxima-brand-bar">
+                        <div class="proxima-brand-left">
+                            <span class="proxima-cube-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                                    <polygon points="12,2 21,7 12,12 3,7" fill="currentColor"/>
+                                    <polygon points="3,7 12,12 12,22 3,17" fill="currentColor" opacity="0.72"/>
+                                    <polygon points="21,7 12,12 12,22 21,17" stroke="currentColor" stroke-width="1.8" fill="currentColor" fill-opacity="0.2"/>
+                                </svg>
+                            </span>
+                            <span class="proxima-brand-title">Proxima A*</span>
                         </div>
                     </div>
 
-                    <div class="proxima-bento-col">
-                        <div class="proxima-bento-card square" onclick="fillAiQuickPrompt('Ho preso 8 in matematica')">
+                    <!-- Bento Suggestion Cards (Image 2 Layout) -->
+                    <div class="proxima-bento-grid">
+                        <div class="proxima-bento-card tall" onclick="fillAiQuickPrompt('Aggiungi 5 esercizi di matematica sulle funzioni per domani')">
                             <div class="proxima-bento-text">
-                                Registra un nuovo voto e adatta il metodo
+                                Organizza i compiti per casa o dividi le pagine della prossima verifica
                             </div>
                             <div class="proxima-bento-icon-circle">
-                                <i class="fa-solid fa-graduation-cap"></i>
+                                <i class="fa-regular fa-clone"></i>
                             </div>
                         </div>
 
-                        <div class="proxima-bento-actions-pill">
-                            <button type="button" class="proxima-mini-action" onclick="openBottomSheet('settings-sheet')" title="Configura Chiave API Gemini">
-                                <i class="fa-solid fa-key"></i>
-                            </button>
-                            <button type="button" class="proxima-mini-action" onclick="resetAiChatConversation()" title="Nuova conversazione">
-                                <i class="fa-solid fa-rotate-right"></i>
-                            </button>
-                            <button type="button" class="proxima-mini-action" onclick="toggleAiVoiceRecording()" title="Parla con Proxima">
-                                <i class="fa-solid fa-microphone"></i>
-                            </button>
+                        <div class="proxima-bento-col">
+                            <div class="proxima-bento-card square" onclick="fillAiQuickPrompt('Ho preso 8 in matematica')">
+                                <div class="proxima-bento-text">
+                                    Registra un nuovo voto e adatta il metodo
+                                </div>
+                                <div class="proxima-bento-icon-circle">
+                                    <i class="fa-solid fa-graduation-cap"></i>
+                                </div>
+                            </div>
+
+                            <div class="proxima-bento-actions-pill">
+                                <button type="button" class="proxima-mini-action" onclick="openBottomSheet('settings-sheet')" title="Configura Chiave API Gemini">
+                                    <i class="fa-solid fa-key"></i>
+                                </button>
+                                <button type="button" class="proxima-mini-action" onclick="resetAiChatConversation()" title="Nuova conversazione">
+                                    <i class="fa-solid fa-rotate-right"></i>
+                                </button>
+                                <button type="button" class="proxima-mini-action" onclick="toggleAiVoiceRecording()" title="Parla con Proxima">
+                                    <i class="fa-solid fa-microphone"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Chat Thread (Right Phone in Image 2) -->
+                <div class="proxima-chat-thread" id="ai-chat-thread"></div>
+            </div>
+
+            <!-- Custom In-App Voice Recognition Animation Card (Replaces Google Popup) -->
+            <div class="proxima-voice-card" id="ai-voice-custom-overlay" style="display: none;">
+                <div class="proxima-voice-orb-stage">
+                    <div class="proxima-orb-ring ring-1" id="proxima-orb-ring-1"></div>
+                    <div class="proxima-orb-ring ring-2" id="proxima-orb-ring-2"></div>
+                    <div class="proxima-orb-core" id="proxima-orb-core">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                            <polygon points="12,2 21,7 12,12 3,7" fill="currentColor"/>
+                            <polygon points="3,7 12,12 12,22 3,17" fill="currentColor" opacity="0.72"/>
+                            <polygon points="21,7 12,12 12,22 21,17" stroke="currentColor" stroke-width="1.8" fill="currentColor" fill-opacity="0.2"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="proxima-voice-eq" id="proxima-voice-eq">
+                    <span class="eq-bar"></span>
+                    <span class="eq-bar"></span>
+                    <span class="eq-bar"></span>
+                    <span class="eq-bar"></span>
+                    <span class="eq-bar"></span>
+                    <span class="eq-bar"></span>
+                    <span class="eq-bar"></span>
+                    <span class="eq-bar"></span>
+                    <span class="eq-bar"></span>
+                </div>
+
+                <div class="proxima-voice-status" id="ai-voice-live-status">Proxima ti ascolta...</div>
+                <div class="proxima-voice-transcript" id="ai-voice-live-transcript">Parla pure (es. "Esercizi sulle funzioni per il 10 novembre")</div>
+
+                <div class="proxima-voice-actions">
+                    <button type="button" class="btn-voice-cancel" onclick="cancelAiVoiceRecording()" title="Annulla">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    <button type="button" class="btn-voice-finish" onclick="finishAiVoiceRecordingNow()" title="Conferma e invia">
+                        <i class="fa-solid fa-check"></i> Fine
+                    </button>
                 </div>
             </div>
 
-            <!-- Chat Thread (Right Phone in Image 2) -->
-            <div class="proxima-chat-thread" id="ai-chat-thread"></div>
-
-            <!-- Bottom Prompt Box (Image 2 Input Dock with 100% Circular Buttons) -->
-            <div class="ai-input-dock">
+            <!-- Bottom Prompt Box (Fixed, never scrolls) -->
+            <div class="ai-input-dock" id="ai-input-dock">
                 <div class="ai-input-bar">
                     <input type="text" id="ai-prompt-input" class="ai-prompt-field" placeholder="Scrivi qui o parla con Proxima..." onkeydown="if(event.key==='Enter'){ sendAiChatMessage(); event.preventDefault(); }">
-                    
-                    <!-- Voice Waveform Animation Indicator -->
-                    <div class="ai-waveform-container" id="ai-waveform-container" style="display: none;">
-                        <span class="ai-wave-bar"></span>
-                        <span class="ai-wave-bar"></span>
-                        <span class="ai-wave-bar"></span>
-                        <span class="ai-wave-bar"></span>
-                    </div>
 
                     <!-- Circular Voice Mic Button -->
                     <button type="button" class="btn-ai-circle-icon" id="btn-ai-mic" onclick="toggleAiVoiceRecording()" title="Parla al microfono">
@@ -714,7 +748,7 @@
     </div>
 
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.4.6" defer></script>
+    <script src="js/app.js?v=2.4.7" defer></script>
 
 </body>
 </html>

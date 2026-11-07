@@ -2878,6 +2878,9 @@
         const mainHeader = document.querySelector('header');
         if (mainHeader) mainHeader.style.display = 'flex';
 
+        // Lock outer page scroll when in AI view so ONLY the chat messages scroll
+        document.body.classList.toggle('ai-view-locked', view === 'ai');
+
         const viewsMap = {
             study: document.getElementById('study-view'),
             calendar: document.getElementById('calendar-view'),
@@ -2890,7 +2893,7 @@
             const vEl = viewsMap[k];
             if (!vEl) return;
             if (k === view) {
-                vEl.style.display = 'block';
+                vEl.style.display = (k === 'ai') ? 'flex' : 'block';
                 vEl.classList.remove('view-animate-in');
                 void vEl.offsetWidth; // reflow for smooth animation restart
                 vEl.classList.add('view-animate-in');
@@ -3602,6 +3605,15 @@
         }
     };
 
+    function scrollAiViewportToBottom() {
+        const vp = document.getElementById('ai-scroll-viewport');
+        if (vp) {
+            setTimeout(() => {
+                vp.scrollTo({ top: vp.scrollHeight, behavior: 'smooth' });
+            }, 30);
+        }
+    }
+
     function renderAiChatThread() {
         const threadEl = document.getElementById('ai-chat-thread');
         const welcomeEl = document.getElementById('ai-welcome-container');
@@ -3617,7 +3629,7 @@
 
         aiChatHistory.forEach((item, idx) => {
             const turnDiv = document.createElement('div');
-            turnDiv.className = 'proxima-turn';
+            turnDiv.className = 'proxima-turn ' + (item.sender === 'user' ? 'user-turn' : 'ai-turn');
 
             if (item.sender === 'user') {
                 turnDiv.innerHTML = `
@@ -3666,7 +3678,7 @@
             threadEl.appendChild(turnDiv);
         });
 
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        scrollAiViewportToBottom();
     }
 
     window.resetAiChatConversation = function() {
@@ -3695,24 +3707,44 @@
     }
 
     // ==========================================================================
-    // VOICE RECOGNITION (Fixed AndroidNative Bridge + Web Fallback)
+    // CUSTOM IN-APP VOICE RECOGNITION (Zero Google Popup + Live Audio Orb)
     // ==========================================================================
+    let liveVoiceTranscriptBuffer = '';
+    let hasDispatchedVoiceResult = false;
+
     window.toggleAiVoiceRecording = function() {
         if (isAiListening) {
-            stopAiVoiceRecording();
+            finishAiVoiceRecordingNow();
         } else {
             startAiVoiceRecording();
         }
     };
 
+    function showCustomVoiceOverlay(active) {
+        const overlay = document.getElementById('ai-voice-custom-overlay');
+        const micBtn = document.getElementById('btn-ai-mic');
+        const transcriptEl = document.getElementById('ai-voice-live-transcript');
+        const statusEl = document.getElementById('ai-voice-live-status');
+
+        if (micBtn) micBtn.classList.toggle('is-listening', active);
+        if (overlay) overlay.style.display = active ? 'flex' : 'none';
+
+        if (active) {
+            if (statusEl) statusEl.innerText = 'Proxima ti ascolta...';
+            if (transcriptEl) {
+                transcriptEl.innerText = 'Parla pure (es. "Esercizi sulle funzioni per il 10 novembre")';
+                transcriptEl.classList.remove('has-live-words');
+            }
+        }
+    }
+
     function startAiVoiceRecording() {
         isAiListening = true;
-        const micBtn = document.getElementById('btn-ai-mic');
-        const waveContainer = document.getElementById('ai-waveform-container');
-        if (micBtn) micBtn.classList.add('is-listening');
-        if (waveContainer) waveContainer.style.display = 'flex';
+        liveVoiceTranscriptBuffer = '';
+        hasDispatchedVoiceResult = false;
+        showCustomVoiceOverlay(true);
 
-        // Use AndroidNative (or Android alias) bridge on mobile APK
+        // Use AndroidNative (or Android alias) bridge on mobile APK (silent SpeechRecognizer, no Google dialog)
         const nativeBridge = window.AndroidNative || window.Android;
         if (nativeBridge && typeof nativeBridge.startNativeSpeechRecognition === 'function') {
             try {
@@ -3734,20 +3766,12 @@
                 rec.interimResults = true;
                 rec.onresult = (e) => {
                     const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
-                    const input = document.getElementById('ai-prompt-input');
-                    if (input) input.value = transcript;
-                    if (e.results[0].isFinal) {
-                        stopAiVoiceRecording();
-                        if (transcript.trim()) {
-                            const inp = document.getElementById('ai-prompt-input');
-                            if (inp) inp.value = '';
-                            appendChatMessage('user', transcript.trim());
-                            processStudyAiCommand(transcript.trim());
-                        }
-                    }
+                    window.onAndroidSpeechResult(transcript, e.results[0].isFinal);
                 };
-                rec.onerror = () => stopAiVoiceRecording();
-                rec.onend = () => stopAiVoiceRecording();
+                rec.onerror = () => window.onAndroidSpeechError('web_error');
+                rec.onend = () => {
+                    if (isAiListening) finishAiVoiceRecordingNow();
+                };
                 rec.start();
             } catch(e) {
                 stopAiVoiceRecording();
@@ -3761,10 +3785,7 @@
 
     function stopAiVoiceRecording() {
         isAiListening = false;
-        const micBtn = document.getElementById('btn-ai-mic');
-        const waveContainer = document.getElementById('ai-waveform-container');
-        if (micBtn) micBtn.classList.remove('is-listening');
-        if (waveContainer) waveContainer.style.display = 'none';
+        showCustomVoiceOverlay(false);
 
         if (window._activeWebSpeechRec) {
             try { window._activeWebSpeechRec.stop(); } catch(e){}
@@ -3777,22 +3798,91 @@
         }
     }
 
+    window.cancelAiVoiceRecording = function() {
+        isAiListening = false;
+        liveVoiceTranscriptBuffer = '';
+        hasDispatchedVoiceResult = true;
+        showCustomVoiceOverlay(false);
+        const input = document.getElementById('ai-prompt-input');
+        if (input) input.value = '';
+
+        if (window._activeWebSpeechRec) {
+            try { window._activeWebSpeechRec.abort(); } catch(e){}
+            window._activeWebSpeechRec = null;
+        }
+
+        const nativeBridge = window.AndroidNative || window.Android;
+        if (nativeBridge) {
+            if (typeof nativeBridge.cancelNativeSpeechRecognition === 'function') {
+                try { nativeBridge.cancelNativeSpeechRecognition(); } catch(e){}
+            } else if (typeof nativeBridge.stopNativeSpeechRecognition === 'function') {
+                try { nativeBridge.stopNativeSpeechRecognition(); } catch(e){}
+            }
+        }
+    };
+
+    window.finishAiVoiceRecordingNow = function() {
+        const textToSend = (liveVoiceTranscriptBuffer || document.getElementById('ai-prompt-input')?.value || '').trim();
+        stopAiVoiceRecording();
+        if (textToSend && !hasDispatchedVoiceResult) {
+            hasDispatchedVoiceResult = true;
+            liveVoiceTranscriptBuffer = '';
+            const input = document.getElementById('ai-prompt-input');
+            if (input) input.value = '';
+            appendChatMessage('user', textToSend);
+            processStudyAiCommand(textToSend);
+        }
+    };
+
     window.onAndroidSpeechStart = function() {
         isAiListening = true;
-        const micBtn = document.getElementById('btn-ai-mic');
-        const waveContainer = document.getElementById('ai-waveform-container');
-        if (micBtn) micBtn.classList.add('is-listening');
-        if (waveContainer) waveContainer.style.display = 'flex';
+        showCustomVoiceOverlay(true);
+    };
+
+    window.onAndroidSpeechRms = function(rmsdB) {
+        if (!isAiListening) return;
+        const level = Math.max(0, Math.min(1, (parseFloat(rmsdB) + 2) / 12));
+        const ring1 = document.getElementById('proxima-orb-ring-1');
+        const ring2 = document.getElementById('proxima-orb-ring-2');
+        const core = document.getElementById('proxima-orb-core');
+        if (ring1) ring1.style.transform = `scale(${1 + level * 0.38})`;
+        if (ring2) ring2.style.transform = `scale(${1 + level * 0.56})`;
+        if (core) core.style.transform = `scale(${1 + level * 0.14})`;
+
+        const bars = document.querySelectorAll('#proxima-voice-eq .eq-bar');
+        bars.forEach((bar, i) => {
+            const centerFactor = 1 - Math.abs(i - 4) * 0.14;
+            const jitter = 0.75 + Math.sin(Date.now() / 90 + i) * 0.25;
+            const h = Math.max(6, Math.round((8 + level * 24) * centerFactor * jitter));
+            bar.style.height = h + 'px';
+        });
     };
 
     window.onAndroidSpeechResult = function(transcript, isFinal) {
-        const input = document.getElementById('ai-prompt-input');
-        if (input) input.value = transcript;
-        if (isFinal && transcript && transcript.trim()) {
+        if (hasDispatchedVoiceResult) return;
+        const clean = (transcript || '').trim();
+        if (clean) {
+            liveVoiceTranscriptBuffer = clean;
+            const input = document.getElementById('ai-prompt-input');
+            if (input) input.value = clean;
+            const transcriptEl = document.getElementById('ai-voice-live-transcript');
+            if (transcriptEl) {
+                transcriptEl.innerText = '"' + clean + '"';
+                transcriptEl.classList.add('has-live-words');
+            }
+        }
+
+        if (isFinal) {
+            const finalToSend = (clean || liveVoiceTranscriptBuffer).trim();
             stopAiVoiceRecording();
-            if (input) input.value = '';
-            appendChatMessage('user', transcript.trim());
-            processStudyAiCommand(transcript.trim());
+            if (finalToSend && !hasDispatchedVoiceResult) {
+                hasDispatchedVoiceResult = true;
+                liveVoiceTranscriptBuffer = '';
+                const input = document.getElementById('ai-prompt-input');
+                if (input) input.value = '';
+                appendChatMessage('user', finalToSend);
+                processStudyAiCommand(finalToSend);
+            }
         }
     };
 
@@ -3801,6 +3891,11 @@
     };
 
     window.onAndroidSpeechError = function(err) {
+        // If we already captured partial words before silence timeout, process them seamlessly!
+        if (liveVoiceTranscriptBuffer && liveVoiceTranscriptBuffer.trim().length > 1 && !hasDispatchedVoiceResult) {
+            window.finishAiVoiceRecordingNow();
+            return;
+        }
         stopAiVoiceRecording();
     };
 
@@ -3818,7 +3913,7 @@
     };
 
     // ==========================================================================
-    // NATURAL LANGUAGE PARSING (Multi-Task Offline + Gemini 2.5/2.0 Flash)
+    // NATURAL LANGUAGE PARSING (Smart Concise Titles + Modify/Move Tasks + Multi-Task)
     // ==========================================================================
     const ITALIAN_NUM_WORDS = {
         'un': 1, 'uno': 1, 'una': 1, 'due': 2, 'tre': 3, 'quattro': 4,
@@ -3839,12 +3934,10 @@
 
     function findSubjectInSegment(segText) {
         const lower = segText.toLowerCase();
-        // Sort subjects by length descending so "Scienze motorie" matches before "Scienze"
         const sortedSubs = [...userSubjects].sort((a, b) => b.length - a.length);
         for (const sub of sortedSubs) {
             if (lower.includes(sub.toLowerCase())) return sub;
         }
-        // Common aliases
         if (lower.includes('mate')) return userSubjects.find(s => s.toLowerCase().includes('mat')) || 'Matematica';
         if (lower.includes('ita')) return userSubjects.find(s => s.toLowerCase().includes('ita')) || 'Italiano';
         if (lower.includes('ingl')) return userSubjects.find(s => s.toLowerCase().includes('ing')) || 'Inglese';
@@ -3866,67 +3959,190 @@
             d.setDate(d.getDate() + 1);
             return formatDateStr(d);
         }
-        const traGiorni = lower.match(/tra\s+(\d+)\s+giorn/);
+        const traGiorni = lower.match(/\b(?:tra|fra)\s+(\d+)\s+giorn/);
         if (traGiorni) {
             let d = new Date(now);
             d.setDate(d.getDate() + Math.max(1, parseInt(traGiorni[1], 10)));
             return formatDateStr(d);
         }
 
-        // Italian month names (e.g. "15 novembre")
+        // Italian month names (e.g. "3 novembre", "l'11 novembre", "il 10 novembre")
         const monthsMap = {
             'gennaio': 1, 'febbraio': 2, 'marzo': 3, 'aprile': 4, 'maggio': 5, 'giugno': 6,
             'luglio': 7, 'agosto': 8, 'settembre': 9, 'ottobre': 10, 'novembre': 11, 'dicembre': 12
         };
         for (const [mName, mIdx] of Object.entries(monthsMap)) {
-            const mReg = new RegExp('(\\d{1,2})\\s+' + mName);
+            const mReg = new RegExp("(?:l['’]?\\s*)?(\\d{1,2}|primo)\\s+" + mName, 'i');
             const mMatch = lower.match(mReg);
             if (mMatch) {
-                const day = parseInt(mMatch[1], 10);
+                const day = mMatch[1].toLowerCase() === 'primo' ? 1 : parseInt(mMatch[1], 10);
                 let year = now.getFullYear();
                 let candidate = new Date(year, mIdx - 1, day);
-                if (formatDateStr(candidate) <= todayDateStr) {
+                if (formatDateStr(candidate) <= todayDateStr && (now.getMonth() + 1) > mIdx) {
                     candidate = new Date(year + 1, mIdx - 1, day);
                 }
                 return formatDateStr(candidate);
             }
         }
 
+        // Numeric DD/MM format (e.g. "10/11")
+        const slashMatch = lower.match(/\b(\d{1,2})\/(\d{1,2})\b/);
+        if (slashMatch) {
+            const day = parseInt(slashMatch[1], 10);
+            const mIdx = parseInt(slashMatch[2], 10);
+            if (mIdx >= 1 && mIdx <= 12 && day >= 1 && day <= 31) {
+                return formatDateStr(new Date(now.getFullYear(), mIdx - 1, day));
+            }
+        }
+
         return tomorrowStr;
+    }
+
+    function stripDatesAndPoliteness(text) {
+        let s = text;
+        const monthPattern = '(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)';
+        // Remove date phrases like "per il 3 novembre", "per l'11 novembre", "al 10 novembre", "il 3 novembre"
+        s = s.replace(new RegExp("\\b(?:per\\s+il|per\\s+l['’]?|al|all['’]?|entro\\s+il|entro\\s+l['’]?|il|l['’]?|del)\\s*(?:\\d{1,2}|primo)\\s+" + monthPattern + "\\b", 'gi'), '');
+        s = s.replace(new RegExp("\\b(?:\\d{1,2}|primo)\\s+" + monthPattern + "\\b", 'gi'), '');
+        s = s.replace(/\b(?:per\s+|al\s+|il\s+)?\d{1,2}\/\d{1,2}\b/gi, '');
+        s = s.replace(/\b(?:per\s+domani|per\s+dopodomani|domani|dopodomani|per\s+oggi|oggi)\b/gi, '');
+        s = s.replace(/\b(?:tra|fra)\s+\d+\s+giorn[oi]\b/gi, '');
+        // Remove politeness & conversational tail phrases
+        s = s.replace(/\b(?:per\s+cortesia|per\s+favore|per\s+piacere|cortesemente|grazie\s+mille|grazie|mi\s+raccomando)\b/gi, '');
+        return s.replace(/\s+/g, ' ').trim();
     }
 
     function extractCleanTaskDetails(segmentRaw, subjectName) {
         let norm = normalizeNumberWords(segmentRaw);
-        // Remove conversational prefixes
-        norm = norm.replace(/^((aggiungi|allora|guarda|senti|vorrei|dovrei|devo|ho da|bisogna|completare|fare|svolgere|studiare|ripassare|leggere)\s+)+/gi, '');
+        const hadExercisesWord = /\b(?:esercizio|esercizi|es\.)\b/i.test(norm);
+        const hadStudyWord = /\b(?:studiare|studio|ripassare|ripasso|leggere|lettura)\b/i.test(norm);
 
-        // Remove "di <Materia>" or "in <Materia>"
+        // 1. Strip dates and politeness expressions first
+        norm = stripDatesAndPoliteness(norm);
+
+        // 2. Remove subject mentions ("di matematica", "in matematica", "matematica")
         if (subjectName) {
-            const subReg = new RegExp('\\b(di|in|per)\\s+' + subjectName + '\\b', 'gi');
-            norm = norm.replace(subReg, '');
-            const subPlain = new RegExp('\\b' + subjectName + '\\b', 'gi');
-            norm = norm.replace(subPlain, '');
+            const escapedSub = subjectName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            norm = norm.replace(new RegExp('\\b(?:di|in|per)\\s+' + escapedSub + '\\b', 'gi'), '');
+            norm = norm.replace(new RegExp('\\b' + escapedSub + '\\b', 'gi'), '');
+        }
+        norm = norm.replace(/\b(?:di|in|per)\s+(?:mate|matematica|ita|italiano|ingl|inglese|scienze|storia|filo|filosofia|fisica|latino|arte)\b/gi, '');
+
+        // 3. Remove conversational lead-in verbs, pronouns, and articles iteratively
+        const leadInPattern = /^(?:(?:allora|guarda|senti|ciao|ehi|proxima|ascolta|vorrei|dovrei|devo|ho\s+da|bisogna|c['’]è\s+da|ci\s+sono\s+da|puoi|potresti|mi\s+puoi|aggiungi|aggiungere|metti|mettere|metterli|mettili|inserisci|inserire|segna|segnare|modifica|modificare|sposta|spostare|cambia|cambiare|fare|svolgere|completare|studiare|ripassare|leggere|scrivere|che\s+devo|da|degli|dei|delle|dello|della|gli|le|i|un|uno|una|qualche|alcuni|alcune|quegli|quei|quelle|questi|queste)\s+)+/i;
+        norm = norm.replace(leadInPattern, '').trim();
+
+        // 4. Clean up connectors like "riguardanti / riguardante / relativi a" into clean diary labels
+        if (/^(\d+)\s+(?:esercizi\s+)?(?:riguardant[ei]|relativ[oi]\s+a|su|sull['’]|sulle|sui|sugli|sul|sulla)\s+/i.test(norm)) {
+            norm = norm.replace(/^(\d+)\s+(?:esercizi\s+)?(?:riguardant[ei]|relativ[oi]\s+a)\s+/i, '$1 esercizi: ');
+            norm = norm.replace(/^(\d+)\s+(?:riguardant[ei]|su|sull['’]|sulle|sui|sugli|sul|sulla)\s+/i, '$1 esercizi su ');
+        } else if (/^(?:esercizi|compiti)\s+(?:riguardant[ei]|relativ[oi]\s+a)\s+/i.test(norm)) {
+            norm = norm.replace(/^(?:esercizi|compiti)\s+(?:riguardant[ei]|relativ[oi]\s+a)\s+/i, 'Esercizi: ');
+        } else if (/^(?:riguardant[ei]|relativ[oi]\s+a|sull['’]argomento)\s+/i.test(norm)) {
+            const prefix = hadExercisesWord ? 'Esercizi: ' : (hadStudyWord ? 'Studio: ' : 'Argomento: ');
+            norm = norm.replace(/^(?:riguardant[ei]|relativ[oi]\s+a|sull['’]argomento)\s+/i, prefix);
+        } else if (!/^(?:\d+|eserciz|compit|studi|ripass|pagin|version|capitol|paragraf)/i.test(norm) && norm.length > 1) {
+            if (hadExercisesWord) {
+                norm = 'Esercizi: ' + norm;
+            } else if (hadStudyWord) {
+                norm = 'Studio: ' + norm;
+            }
         }
 
-        norm = norm.replace(/\b(per\s+domani|domani|dopodomani)\b/gi, '').replace(/\s+/g, ' ').trim();
+        // Remove trailing stray prepositions ("per", "di", "in", "e")
+        norm = norm.replace(/\s+\b(?:per|di|in|a|da|con|su|e)\s*$/i, '').replace(/\s+/g, ' ').trim();
 
-        // If it starts with a number (e.g., "7 riguardante i mitocondri" where "esercizi" was in the first clause)
-        if (/^\d+\s+(riguardant|su|sull|relativ|pag|es)/i.test(norm) && !/eserciz|pagin/i.test(norm)) {
-            norm = norm.replace(/^(\d+)/, '$1 esercizi');
-        } else if (/^\d+$/.test(norm)) {
+        if (/^\d+$/.test(norm)) {
             norm = norm + ' esercizi';
         }
 
         if (!norm || norm.length < 2) {
-            return 'Esercizi di ' + (subjectName || 'studio');
+            return hadExercisesWord ? 'Esercizi' : ('Studio di ' + (subjectName || 'materia'));
         }
         return norm.charAt(0).toUpperCase() + norm.slice(1);
+    }
+
+    function findLastDiscussedOrSavedTask(preferredSubject) {
+        // 1. Check saved tasks in myTodos first
+        if (myTodos.length > 0) {
+            if (preferredSubject) {
+                const match = [...myTodos].reverse().find(t => (t.subject || '').toLowerCase() === preferredSubject.toLowerCase());
+                if (match) return { source: 'saved', todo: match, subject: match.subject, details: match.title };
+            }
+            const last = myTodos[myTodos.length - 1];
+            return { source: 'saved', todo: last, subject: last.subject, details: last.title };
+        }
+        // 2. Check recent proposed actions in aiChatHistory (in case user hasn't clicked Confirm yet!)
+        for (let i = aiChatHistory.length - 1; i >= 0; i--) {
+            const turn = aiChatHistory[i];
+            if (turn && turn.actionCard && turn.actionCard.action) {
+                const acts = Array.isArray(turn.actionCard.action) ? turn.actionCard.action : [turn.actionCard.action];
+                for (const a of acts) {
+                    if (a.type === 'add_task' || a.type === 'modify_task') {
+                        if (!preferredSubject || (a.subject && a.subject.toLowerCase() === preferredSubject.toLowerCase())) {
+                            return { source: 'pending', todo: null, subject: a.subject || preferredSubject || 'Matematica', details: a.details || 'Esercizi' };
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     function parseLocalStudyActions(rawText) {
         const normText = normalizeNumberWords(rawText.trim());
         const lower = normText.toLowerCase();
         const globalTargetDate = parseDateFromText(normText);
+
+        // 0. Check if it's a MODIFY / MOVE / RESCHEDULE request ("modifica quegli esercizi per l'11 novembre", "sposta gli esercizi di matematica al 10 novembre")
+        const isModifyIntent = /\b(modifica|modificare|sposta|spostare|cambia|cambiare|rimanda|rimandare|posticipa|posticipare|metterli|mettili|metti\s+quegli|metti\s+quei|aggiorna)\b/i.test(lower);
+        if (isModifyIntent) {
+            const explicitSub = findSubjectInSegment(normText);
+            const isExamMod = /\b(verifica|verifiche|interrogazione|esame)\b/i.test(lower);
+
+            if (isExamMod && myExams.length > 0) {
+                const targetExam = explicitSub
+                    ? ([...myExams].reverse().find(e => e.subject.toLowerCase() === explicitSub.toLowerCase()) || myExams[myExams.length - 1])
+                    : myExams[myExams.length - 1];
+                const pagMatch = normText.match(/(\d+)\s*(pag|pagine|esercizi)/i);
+                return [{
+                    type: 'modify_exam',
+                    examId: targetExam.id,
+                    subject: targetExam.subject,
+                    date: globalTargetDate,
+                    pages: pagMatch ? parseInt(pagMatch[1], 10) : targetExam.pages
+                }];
+            }
+
+            const existingRef = findLastDiscussedOrSavedTask(explicitSub);
+            const targetSub = explicitSub || (existingRef ? existingRef.subject : (userSubjects[0] || 'Matematica'));
+            // Keep existing clean title unless the user explicitly specified a new topic with "riguardante / su / argomento"
+            let finalDetails = existingRef ? existingRef.details : ('Esercizi di ' + targetSub);
+            if (/\b(riguardant[ei]|relativ[oi]\s+a|sull['’]argomento|sulle|sui|sugli)\b/i.test(lower)) {
+                finalDetails = extractCleanTaskDetails(normText, targetSub);
+            }
+
+            return [{
+                type: 'modify_task',
+                todoId: existingRef && existingRef.todo ? existingRef.todo.id : null,
+                subject: targetSub,
+                date: globalTargetDate,
+                details: finalDetails
+            }];
+        }
+
+        // 0b. Check if it's a DELETE / REMOVE request ("elimina quegli esercizi", "cancella il compito di matematica")
+        const isDeleteIntent = /\b(elimina|eliminare|cancella|cancellare|togli|togliere|rimuovi|rimuovere)\b/i.test(lower);
+        if (isDeleteIntent) {
+            const sub = findSubjectInSegment(normText);
+            const existingRef = findLastDiscussedOrSavedTask(sub);
+            return [{
+                type: 'remove_task',
+                todoId: existingRef && existingRef.todo ? existingRef.todo.id : null,
+                subject: sub || (existingRef ? existingRef.subject : (userSubjects[0] || 'Matematica')),
+                details: existingRef ? existingRef.details : 'Compito'
+            }];
+        }
 
         // 1. Check if it's a Grade registration ("ho preso 8 in fisica", "voto 7.5 in matematica")
         const isGradeIntent = /\b(voto|preso|ottenuto|registrare\s+voto|registra\s+\d)\b/i.test(lower);
@@ -3961,7 +4177,6 @@
         // 3. Check if it's Homework / Exercises / Study tasks (supports multiple subjects separated by " e " or ",")
         const isTaskIntent = /\b(compito|compiti|esercizio|esercizi|studiare|completare|fare|svolgere|ripassare|leggere|pagine|pagina|es\.)\b/i.test(lower) || findSubjectInSegment(normText) !== null;
         if (isTaskIntent) {
-            // Split by " e " or "," to see if multiple subjects are mentioned
             const clauses = normText.split(/\s+e\s+|\s*,\s*/i);
             const multiTasks = [];
 
@@ -3969,9 +4184,8 @@
                 const sub = findSubjectInSegment(clause);
                 if (sub) {
                     const details = extractCleanTaskDetails(clause, sub);
-                    const clauseDate = (clause.toLowerCase().includes('domani') || clause.toLowerCase().includes('tra '))
-                        ? parseDateFromText(clause)
-                        : globalTargetDate;
+                    const clauseHasOwnDate = /\b(domani|dopodomani|tra\s+\d+|gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\b/i.test(clause);
+                    const clauseDate = clauseHasOwnDate ? parseDateFromText(clause) : globalTargetDate;
                     multiTasks.push({
                         type: 'add_task',
                         subject: sub,
@@ -3985,8 +4199,7 @@
                 return multiTasks;
             }
 
-            // Fallback single task if no explicit subject matched
-            const fallbackSub = userSubjects[0] || 'Matematica';
+            const fallbackSub = findSubjectInSegment(normText) || userSubjects[0] || 'Matematica';
             return [{
                 type: 'add_task',
                 subject: fallbackSub,
@@ -4003,15 +4216,24 @@
         const list = Array.isArray(actionOrArray) ? actionOrArray : [actionOrArray];
         return list.map(act => {
             if (act.type === 'add_task') {
-                return '• Compito di ' + act.subject + ': "' + (act.details || 'Studio') + '" (scadenza ' + formatDateShort(act.date || tomorrowStr) + ')';
+                return '• Compito di ' + act.subject + ': "' + (act.details || 'Esercizi') + '" (scadenza ' + formatDateShort(act.date || tomorrowStr) + ')';
+            }
+            if (act.type === 'modify_task') {
+                return '• Sposta/Modifica compito di ' + act.subject + ': "' + (act.details || 'Esercizi') + '" → nuova scadenza ' + formatDateShort(act.date || tomorrowStr);
+            }
+            if (act.type === 'remove_task') {
+                return '• Rimuovi compito di ' + act.subject + ': "' + (act.details || 'Compito') + '"';
             }
             if (act.type === 'add_exam') {
                 return '• ' + (act.examType || 'Verifica') + ' di ' + act.subject + ': ' + (act.pages || 20) + ' pag. per il ' + formatDateShort(act.date || tomorrowStr);
             }
+            if (act.type === 'modify_exam') {
+                return '• Sposta/Modifica verifica di ' + act.subject + ' → nuova data ' + formatDateShort(act.date || tomorrowStr) + ' (' + (act.pages || 20) + ' pag.)';
+            }
             if (act.type === 'add_grade') {
                 return '• Voto ' + act.value + ' in ' + act.subject + ' (' + getQuadrimestreForDate(formatDateStr(new Date())) + ')';
             }
-            return '• Modifica piano di studio';
+            return '• Aggiornamento piano di studio';
         }).join('\n');
     }
 
@@ -4023,7 +4245,7 @@
         if (welcomeEl) welcomeEl.style.display = 'none';
 
         const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'proxima-turn';
+        loadingDiv.className = 'proxima-turn ai-turn';
         loadingDiv.id = 'ai-msg-loading';
         loadingDiv.innerHTML = `
             <div class="proxima-turn-header">
@@ -4034,7 +4256,7 @@
         `;
         if (threadEl) {
             threadEl.appendChild(loadingDiv);
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            scrollAiViewportToBottom();
         }
 
         const removeLoading = () => {
@@ -4044,18 +4266,29 @@
 
         // 1. If Gemini API Key is present, call Gemini 2.5 Flash (with fallback to 2.0 Flash)
         if (geminiApiKey && geminiApiKey.trim().length > 10) {
+            const recentTurnsSummary = aiChatHistory.slice(-4).map(m => (m.sender === 'user' ? 'Studente: ' : 'Proxima: ') + m.text).join('\n');
             const systemPrompt = `Sei Proxima, l'assistente AI integrato in Study Planner.
 Rispondi sempre in italiano in modo conciso, chiaro, naturale e senza MAI usare grassetto o asterischi (**).
 Oggi è ${todayDateStr} e domani è ${tomorrowStr}.
 Materie dello studente: ${userSubjects.join(', ')}.
-Compiti attuali: ${myTodos.map(t => t.title + ' (' + t.subject + ', scadenza ' + t.deadline + ')').join('; ') || 'Nessuno'}.
-Verifiche attuali: ${myExams.map(e => e.subject + ' il ' + e.date + ' (' + (e.pages || 20) + ' pag)').join('; ') || 'Nessuna'}.
+Compiti attuali in agenda: ${myTodos.map(t => '[id:' + t.id + '] "' + t.title + '" (' + t.subject + ', scadenza ' + t.deadline + ')').join('; ') || 'Nessuno'}.
+Verifiche attuali: ${myExams.map(e => '[id:' + e.id + '] ' + e.subject + ' il ' + e.date + ' (' + (e.pages || 20) + ' pag)').join('; ') || 'Nessuna'}.
 Voti registrati: ${myGrades.map(g => g.subject + ': ' + g.displayValue).join('; ') || 'Nessuno'}.
+Contesto recente della conversazione:
+${recentTurnsSummary || 'Inizio conversazione'}
 
-IMPORTANTE: Se lo studente menziona uno o più compiti/esercizi da fare, verifiche da programmare o voti presi, rispondi confermando cosa stai per aggiungere e inserisci OBBLIGATORIAMENTE in fondo alla risposta questo blocco esatto (può contenere una singola azione o un array di più azioni):
-###JSON_ACTION: [{"type": "add_task", "subject": "NomeMateria", "date": "YYYY-MM-DD", "details": "Descrizione esercizi/argomento"}]###
-Oppure per verifiche: {"type": "add_exam", "subject": "NomeMateria", "date": "YYYY-MM-DD", "pages": 25}
-Oppure per voti: {"type": "add_grade", "subject": "NomeMateria", "value": "8"}
+REGOLE FONDAMENTALI PER I TITOLI ("details") E LE MODIFICHE:
+1. Nel campo "details" NON copiare MAI la frase intera dello studente (es. NON scrivere "devo fare degli esercizi riguardanti le funzioni per il 3 novembre" e NON scrivere "puoi modificare quegli esercizi"). Scrivi SOLO un titolo sintetico da diario scolastico, ad esempio: "Esercizi: le funzioni", "5 esercizi sulle funzioni", "Studio cap. 4".
+2. Se lo studente chiede di MODIFICARE o SPOSTARE di data un compito/esercizio già detto o presente (es. "modifica quegli esercizi per l'11 novembre"), usa "type": "modify_task" mantenendo il titolo originale pulito dell'esercizio (es. "Esercizi: le funzioni") e cambiando solo "date" con la nuova data YYYY-MM-DD!
+3. Inserisci OBBLIGATORIAMENTE in fondo alla risposta il blocco JSON esatto:
+###JSON_ACTION: [{"type": "add_task", "subject": "NomeMateria", "date": "YYYY-MM-DD", "details": "Esercizi: argomento"}]###
+Tipi supportati:
+- Aggiungere compito: {"type": "add_task", "subject": "NomeMateria", "date": "YYYY-MM-DD", "details": "Titolo sintetico"}
+- Modificare/Spostare compito: {"type": "modify_task", "subject": "NomeMateria", "date": "YYYY-MM-DD", "details": "Titolo sintetico originale"}
+- Rimuovere compito: {"type": "remove_task", "subject": "NomeMateria", "details": "Titolo sintetico"}
+- Aggiungere verifica: {"type": "add_exam", "subject": "NomeMateria", "date": "YYYY-MM-DD", "pages": 25}
+- Modificare verifica: {"type": "modify_exam", "subject": "NomeMateria", "date": "YYYY-MM-DD", "pages": 25}
+- Registrare voto: {"type": "add_grade", "subject": "NomeMateria", "value": "8"}
 
 Messaggio dello studente: "${rawText}"`;
 
@@ -4079,10 +4312,30 @@ Messaggio dello studente: "${rawText}"`;
                                 reply = parts[0].trim();
                                 const jsonStr = parts[1].split('###')[0].trim();
                                 try {
-                                    const parsedActions = JSON.parse(jsonStr);
+                                    let parsedActions = JSON.parse(jsonStr);
+                                    const actList = Array.isArray(parsedActions) ? parsedActions : [parsedActions];
+                                    const userAskedModify = /\b(modifica|modificare|sposta|spostare|cambia|cambiare|metterli|mettili)\b/i.test(rawText);
+                                    actList.forEach(a => {
+                                        if (userAskedModify && a.type === 'add_task') {
+                                            a.type = 'modify_task';
+                                        }
+                                        if (a.type === 'modify_task') {
+                                            const prevRef = findLastDiscussedOrSavedTask(a.subject);
+                                            if (prevRef && (!a.details || /\b(modifica|sposta|cambia|quegli|quei|devo\s+fare)\b/i.test(a.details))) {
+                                                a.details = prevRef.details;
+                                            }
+                                            if (prevRef && prevRef.todo) {
+                                                a.todoId = prevRef.todo.id;
+                                            }
+                                        } else if (a.type === 'add_task' && a.details) {
+                                            if (/\b(devo\s+fare|vorrei|puoi|riguardant|per\s+il|per\s+l['’])\b/i.test(a.details)) {
+                                                a.details = extractCleanTaskDetails(a.details, a.subject);
+                                            }
+                                        }
+                                    });
                                     actionCard = {
-                                        desc: formatActionDescription(parsedActions),
-                                        action: parsedActions
+                                        desc: formatActionDescription(actList),
+                                        action: actList
                                     };
                                 } catch(e){}
                             }
@@ -4098,7 +4351,7 @@ Messaggio dello studente: "${rawText}"`;
             }
         }
 
-        // 2. Smart Local NLU Engine (Offline / No API Key needed for tasks, exams, grades)
+        // 2. Smart Local NLU Engine (Offline / No API Key needed for tasks, modifications, exams, grades)
         removeLoading();
         const detectedActions = parseLocalStudyActions(rawText);
 
@@ -4106,13 +4359,19 @@ Messaggio dello studente: "${rawText}"`;
             const descText = formatActionDescription(detectedActions);
             let reply = '';
             if (detectedActions.length > 1) {
-                reply = `Ho preparato ${detectedActions.length} attività da aggiungere al tuo piano di studio. Premi conferma qui sotto per salvarle tutte.`;
+                reply = `Ho preparato ${detectedActions.length} attività per il tuo piano di studio. Premi conferma qui sotto per applicarle.`;
             } else {
                 const first = detectedActions[0];
                 if (first.type === 'add_task') {
                     reply = `Ho preparato il compito di ${first.subject} ("${first.details}") per il ${formatDateShort(first.date)}. Premi conferma per aggiungerlo.`;
+                } else if (first.type === 'modify_task') {
+                    reply = `Ho aggiornato il compito di ${first.subject} ("${first.details}") spostandolo al ${formatDateShort(first.date)}. Premi conferma per applicare la modifica.`;
+                } else if (first.type === 'remove_task') {
+                    reply = `Ho preparato la rimozione del compito di ${first.subject} ("${first.details}"). Premi conferma per eliminarlo.`;
                 } else if (first.type === 'add_exam') {
                     reply = `Ho preparato la ${first.examType || 'verifica'} di ${first.subject} (${first.pages} pagine) per il ${formatDateShort(first.date)}. Premi conferma per pianificarla.`;
+                } else if (first.type === 'modify_exam') {
+                    reply = `Ho spostato la verifica di ${first.subject} al ${formatDateShort(first.date)}. Premi conferma per salvare.`;
                 } else if (first.type === 'add_grade') {
                     reply = `Ho preparato la registrazione del voto ${first.value} in ${first.subject}. Premi conferma per salvarlo nel registro.`;
                 }
@@ -4125,13 +4384,13 @@ Messaggio dello studente: "${rawText}"`;
 
         // 3. Conversational greeting or general message
         if (/^(ciao|ehi|buongiorno|buonasera|salve|hello|hey)\b/i.test(text)) {
-            const greetReply = `Ciao ${getUserName()}! Sono Proxima. Dimmi pure quali esercizi o compiti hai da fare (anche di più materie insieme), quali verifiche devi preparare o che voto hai preso.`;
+            const greetReply = `Ciao ${getUserName()}! Sono Proxima. Dimmi pure quali esercizi o compiti hai da fare, quali verifiche devi preparare o se vuoi spostare un compito già inserito.`;
             appendChatMessage('ai', greetReply);
             speakAiVoice(greetReply);
             return;
         }
 
-        const fallbackReply = `Puoi dirmi ad esempio: "5 esercizi di matematica sulle funzioni e 7 di scienze sui mitocondri", "Verifica di storia il 20 novembre 30 pagine" oppure "Ho preso 8 in fisica". Per domande libere su qualsiasi argomento, inserisci la tua chiave gratuita Gemini nelle Impostazioni.`;
+        const fallbackReply = `Puoi dirmi ad esempio: "Esercizi di matematica sulle funzioni per il 3 novembre", "Modifica quegli esercizi per l'11 novembre", "Verifica di storia il 20 novembre 30 pagine" oppure "Ho preso 8 in fisica".`;
         appendChatMessage('ai', fallbackReply);
         speakAiVoice(fallbackReply);
     };
@@ -4145,18 +4404,22 @@ Messaggio dello studente: "${rawText}"`;
     window.executePendingAiAction = function(actionOrArray) {
         if (!actionOrArray) return;
         const actions = Array.isArray(actionOrArray) ? actionOrArray : [actionOrArray];
-        let addedTasks = 0;
-        let addedExams = 0;
-        let addedGrades = 0;
+        let changedTodos = false;
+        let changedExams = false;
+        let changedGrades = false;
+        let xpGain = 0;
 
         actions.forEach(actionObj => {
             if (actionObj.type === 'add_task') {
-                const deadline = (actionObj.date && actionObj.date > todayDateStr) ? actionObj.date : tomorrowStr;
+                const deadline = actionObj.date || tomorrowStr;
                 const assignedDate = calculateAssignedDate(deadline, 2, 2, todayDateStr, []);
+                const cleanTitle = (actionObj.details && !/\b(devo fare|puoi modificare)\b/i.test(actionObj.details))
+                    ? actionObj.details
+                    : extractCleanTaskDetails(actionObj.details || '', actionObj.subject);
                 const newTodo = {
                     id: 'td_' + generateId(),
                     subject: actionObj.subject || userSubjects[0] || 'Matematica',
-                    title: actionObj.details || ('Studio di ' + (actionObj.subject || 'Materia')),
+                    title: cleanTitle,
                     priority: 2,
                     difficulty: 2,
                     deadline: deadline,
@@ -4166,9 +4429,68 @@ Messaggio dello studente: "${rawText}"`;
                     excludedDays: []
                 };
                 myTodos.push(newTodo);
-                addedTasks++;
+                changedTodos = true;
+                xpGain += 25;
+            } else if (actionObj.type === 'modify_task') {
+                const newDeadline = actionObj.date || tomorrowStr;
+                let targetTodo = null;
+                if (actionObj.todoId) {
+                    targetTodo = myTodos.find(t => t.id === actionObj.todoId);
+                }
+                if (!targetTodo && actionObj.subject) {
+                    targetTodo = [...myTodos].reverse().find(t => (t.subject || '').toLowerCase() === actionObj.subject.toLowerCase());
+                }
+                if (!targetTodo && myTodos.length > 0) {
+                    targetTodo = myTodos[myTodos.length - 1];
+                }
+
+                if (targetTodo) {
+                    targetTodo.deadline = newDeadline;
+                    targetTodo.assignedDate = calculateAssignedDate(newDeadline, targetTodo.priority || 2, targetTodo.difficulty || 2, todayDateStr, targetTodo.excludedDays || []);
+                    if (actionObj.details && !/\b(modifica|sposta|cambia)\b/i.test(actionObj.details)) {
+                        targetTodo.title = actionObj.details;
+                    }
+                    changedTodos = true;
+                } else {
+                    // Task wasn't confirmed yet previously; add it now with the clean title and updated date
+                    const assignedDate = calculateAssignedDate(newDeadline, 2, 2, todayDateStr, []);
+                    myTodos.push({
+                        id: 'td_' + generateId(),
+                        subject: actionObj.subject || userSubjects[0] || 'Matematica',
+                        title: actionObj.details || ('Esercizi di ' + (actionObj.subject || 'Matematica')),
+                        priority: 2,
+                        difficulty: 2,
+                        deadline: newDeadline,
+                        assignedDate: assignedDate,
+                        repeat: false,
+                        createdAt: todayDateStr,
+                        excludedDays: []
+                    });
+                    changedTodos = true;
+                    xpGain += 25;
+                }
+            } else if (actionObj.type === 'remove_task') {
+                let idxToRemove = -1;
+                if (actionObj.todoId) {
+                    idxToRemove = myTodos.findIndex(t => t.id === actionObj.todoId);
+                }
+                if (idxToRemove === -1 && actionObj.subject) {
+                    for (let i = myTodos.length - 1; i >= 0; i--) {
+                        if ((myTodos[i].subject || '').toLowerCase() === actionObj.subject.toLowerCase()) {
+                            idxToRemove = i;
+                            break;
+                        }
+                    }
+                }
+                if (idxToRemove === -1 && myTodos.length > 0) {
+                    idxToRemove = myTodos.length - 1;
+                }
+                if (idxToRemove !== -1) {
+                    myTodos.splice(idxToRemove, 1);
+                    changedTodos = true;
+                }
             } else if (actionObj.type === 'add_exam') {
-                const examDate = (actionObj.date && actionObj.date > todayDateStr) ? actionObj.date : tomorrowStr;
+                const examDate = actionObj.date || tomorrowStr;
                 const newExam = {
                     id: 'ex_' + generateId(),
                     type: actionObj.examType || 'Verifica',
@@ -4182,7 +4504,21 @@ Messaggio dello studente: "${rawText}"`;
                     snoozedDays: []
                 };
                 myExams.push(newExam);
-                addedExams++;
+                changedExams = true;
+                xpGain += 40;
+            } else if (actionObj.type === 'modify_exam') {
+                let targetExam = actionObj.examId ? myExams.find(e => e.id === actionObj.examId) : null;
+                if (!targetExam && actionObj.subject) {
+                    targetExam = [...myExams].reverse().find(e => (e.subject || '').toLowerCase() === actionObj.subject.toLowerCase());
+                }
+                if (!targetExam && myExams.length > 0) {
+                    targetExam = myExams[myExams.length - 1];
+                }
+                if (targetExam) {
+                    if (actionObj.date) targetExam.date = actionObj.date;
+                    if (actionObj.pages) targetExam.pages = parseInt(actionObj.pages, 10) || targetExam.pages;
+                    changedExams = true;
+                }
             } else if (actionObj.type === 'add_grade') {
                 const rawVal = String(actionObj.value || '7');
                 const nowDateStr = formatDateStr(new Date());
@@ -4195,22 +4531,23 @@ Messaggio dello studente: "${rawText}"`;
                     date: nowDateStr
                 };
                 myGrades.push(newGrade);
-                addedGrades++;
+                changedGrades = true;
+                xpGain += 20;
             }
         });
 
-        if (addedTasks > 0) {
+        if (changedTodos) {
             localStorage.setItem('studylog_todos', JSON.stringify(myTodos));
-            addXP(25 * addedTasks);
         }
-        if (addedExams > 0) {
+        if (changedExams) {
             localStorage.setItem('studylog_exams', JSON.stringify(myExams));
-            addXP(40 * addedExams);
         }
-        if (addedGrades > 0) {
+        if (changedGrades) {
             localStorage.setItem('studylog_grades', JSON.stringify(myGrades));
             try { renderGradesView(); } catch(e){}
-            addXP(20 * addedGrades);
+        }
+        if (xpGain > 0) {
+            addXP(xpGain);
         }
 
         try { updateAllDots(); } catch(e){}
@@ -4221,8 +4558,8 @@ Messaggio dello studente: "${rawText}"`;
         try { updateDashboard(); } catch(e){}
 
         showToast('Piano di studio aggiornato con successo!');
-        appendChatMessage('ai', 'Perfetto! Ho aggiunto tutto al tuo diario di studio.');
-        speakAiVoice('Perfetto! Ho aggiunto tutto al tuo diario di studio.');
+        appendChatMessage('ai', 'Perfetto! Ho aggiornato il tuo diario di studio.');
+        speakAiVoice('Perfetto! Ho aggiornato il tuo diario di studio.');
     };
 
     function updateGeminiKeyStatusUI() {

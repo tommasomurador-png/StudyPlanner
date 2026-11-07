@@ -1555,12 +1555,31 @@
 /* ==========================================================================
    PROXIMA AI VIEW (Image 2 Specification - System Monochrome Theme)
    ========================================================================== */
+body.ai-view-locked {
+    overflow: hidden !important;
+    height: 100dvh !important;
+}
+
 .ai-view {
     display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 180px);
-    padding-bottom: 155px;
+    height: calc(100dvh - 150px);
+    max-height: calc(100dvh - 150px);
+    overflow: hidden;
     position: relative;
+}
+
+/* Dedicated Scrollable Viewport: ONLY messages scroll, input dock stays 100% fixed */
+.ai-scroll-viewport {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 110px;
+    scrollbar-width: none;
+}
+.ai-scroll-viewport::-webkit-scrollbar {
+    display: none;
 }
 
 /* Welcome Screen (Image 2 Left Phone) */
@@ -1706,19 +1725,58 @@
     background: var(--bg-color);
 }
 
-/* Proxima Chat Thread (Image 2 Right Phone) */
+/* Proxima Chat Thread (User Right-Aligned, Proxima Left-Aligned) */
 .proxima-chat-thread {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    padding: 8px 4px 36px;
+    padding: 8px 4px 28px;
 }
 .proxima-turn {
     display: flex;
     flex-direction: column;
     gap: 8px;
     animation: viewFadeSlideIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    width: 100%;
 }
+
+/* USER MESSAGE -> RIGHT ALIGNED */
+.proxima-turn.user-turn {
+    align-items: flex-end;
+    text-align: right;
+}
+.proxima-turn.user-turn .proxima-turn-header {
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+}
+.proxima-turn.user-turn .proxima-turn-body {
+    padding-left: 0;
+    padding-right: 0;
+    text-align: right;
+    background: var(--theme-strong);
+    color: var(--bg-color);
+    padding: 11px 16px;
+    border-radius: 20px 20px 4px 20px;
+    max-width: 84%;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+/* PROXIMA MESSAGE -> LEFT ALIGNED */
+.proxima-turn.ai-turn {
+    align-items: flex-start;
+    text-align: left;
+}
+.proxima-turn.ai-turn .proxima-turn-header {
+    flex-direction: row;
+    justify-content: flex-start;
+}
+.proxima-turn.ai-turn .proxima-turn-body {
+    padding-left: 36px;
+    padding-right: 8px;
+    text-align: left;
+    max-width: 94%;
+}
+
 .proxima-turn-header {
     display: flex;
     align-items: center;
@@ -1787,6 +1845,7 @@
     padding: 14px 16px;
     margin-top: 10px;
     margin-left: 36px;
+    width: calc(100% - 40px);
     box-shadow: 0 6px 18px rgba(0,0,0,0.04);
 }
 .ai-action-header {
@@ -1805,6 +1864,7 @@
     color: var(--text-main);
     margin-bottom: 12px;
     line-height: 1.45;
+    white-space: pre-line;
 }
 .ai-action-btn-row {
     display: flex;
@@ -1829,15 +1889,190 @@
     opacity: 0.9;
 }
 
-/* Floating Input Dock (Image 2 Prompt Box with Guaranteed Circular Buttons) */
-.ai-input-dock {
+/* ==========================================================================
+   CUSTOM IN-APP VOICE RECOGNITION ANIMATION CARD (Replaces Google Popup)
+   ========================================================================== */
+.proxima-voice-card {
     position: fixed;
-    bottom: calc(88px + env(safe-area-inset-bottom));
+    bottom: calc(152px + env(safe-area-inset-bottom));
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 32px);
+    max-width: 420px;
+    background: var(--surface-color);
+    border: 1.5px solid var(--border-color);
+    border-radius: 28px;
+    padding: 22px 20px 18px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+    z-index: 135;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    animation: voiceCardPopIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+[data-theme="dark"] .proxima-voice-card {
+    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.65);
+}
+@keyframes voiceCardPopIn {
+    0% { opacity: 0; transform: translateX(-50%) translateY(16px) scale(0.94); }
+    100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+.proxima-voice-orb-stage {
+    position: relative;
+    width: 84px;
+    height: 84px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+.proxima-orb-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1.5px solid var(--theme-strong);
+    pointer-events: none;
+    transition: transform 0.1s ease-out, opacity 0.15s ease-out;
+}
+.proxima-orb-ring.ring-1 {
+    width: 68px;
+    height: 68px;
+    opacity: 0.25;
+    animation: orbRipple1 2s infinite ease-in-out;
+}
+.proxima-orb-ring.ring-2 {
+    width: 84px;
+    height: 84px;
+    opacity: 0.12;
+    animation: orbRipple2 2s infinite ease-in-out 0.4s;
+}
+@keyframes orbRipple1 {
+    0%, 100% { transform: scale(0.92); opacity: 0.28; }
+    50% { transform: scale(1.14); opacity: 0.12; }
+}
+@keyframes orbRipple2 {
+    0%, 100% { transform: scale(0.88); opacity: 0.16; }
+    50% { transform: scale(1.22); opacity: 0.05; }
+}
+.proxima-orb-core {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: var(--theme-strong);
+    color: var(--bg-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+    transition: transform 0.1s ease-out;
+}
+
+.proxima-voice-eq {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 30px;
+    margin-bottom: 10px;
+}
+.proxima-voice-eq .eq-bar {
+    width: 4px;
+    height: 10px;
+    border-radius: 4px;
+    background: var(--theme-strong);
+    transition: height 0.09s ease-out, opacity 0.12s ease;
+    animation: eqIdleWave 1.1s infinite ease-in-out;
+}
+.proxima-voice-eq .eq-bar:nth-child(1) { animation-delay: 0.0s; }
+.proxima-voice-eq .eq-bar:nth-child(2) { animation-delay: 0.12s; }
+.proxima-voice-eq .eq-bar:nth-child(3) { animation-delay: 0.24s; }
+.proxima-voice-eq .eq-bar:nth-child(4) { animation-delay: 0.36s; }
+.proxima-voice-eq .eq-bar:nth-child(5) { animation-delay: 0.48s; height: 22px; }
+.proxima-voice-eq .eq-bar:nth-child(6) { animation-delay: 0.36s; }
+.proxima-voice-eq .eq-bar:nth-child(7) { animation-delay: 0.24s; }
+.proxima-voice-eq .eq-bar:nth-child(8) { animation-delay: 0.12s; }
+.proxima-voice-eq .eq-bar:nth-child(9) { animation-delay: 0.0s; }
+
+@keyframes eqIdleWave {
+    0%, 100% { transform: scaleY(0.45); opacity: 0.45; }
+    50% { transform: scaleY(1.25); opacity: 1; }
+}
+
+.proxima-voice-status {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--theme-strong);
+    letter-spacing: 0.2px;
+    margin-bottom: 4px;
+}
+.proxima-voice-transcript {
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    line-height: 1.4;
+    min-height: 22px;
+    max-height: 66px;
+    overflow-y: auto;
+    margin-bottom: 14px;
+    padding: 0 8px;
+}
+.proxima-voice-transcript.has-live-words {
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.proxima-voice-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+.btn-voice-cancel {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+.btn-voice-cancel:active {
+    transform: scale(0.9);
+}
+.btn-voice-finish {
+    background: var(--theme-strong);
+    color: var(--bg-color);
+    border: none;
+    border-radius: 20px;
+    padding: 9px 20px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+.btn-voice-finish:active {
+    transform: scale(0.94);
+}
+
+/* Floating Input Dock (Locked to Viewport, Never Scrolls) */
+.ai-input-dock {
+    position: fixed !important;
+    bottom: calc(88px + env(safe-area-inset-bottom)) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: calc(100% - 32px);
     max-width: 440px;
-    z-index: 110;
+    z-index: 125;
 }
 .ai-input-bar {
     display: flex;
@@ -1894,9 +2129,9 @@
     font-size: 1rem;
 }
 .btn-ai-circle-icon.is-listening {
-    background: #EF4444 !important;
-    border-color: #EF4444 !important;
-    color: #FFFFFF !important;
+    background: var(--theme-strong) !important;
+    border-color: var(--theme-strong) !important;
+    color: var(--bg-color) !important;
     animation: micPulseRing 1.2s infinite ease-in-out;
 }
 .btn-ai-circle-send {
@@ -1911,33 +2146,9 @@
 }
 
 @keyframes micPulseRing {
-    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
-    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-}
-
-/* Voice Waveform Animation */
-.ai-waveform-container {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    height: 24px;
-    padding: 0 6px;
-    flex-shrink: 0;
-}
-.ai-wave-bar {
-    width: 3px;
-    height: 12px;
-    background: #EF4444;
-    border-radius: 3px;
-    animation: aiWaveBounce 0.7s infinite ease-in-out;
-}
-.ai-wave-bar:nth-child(2) { animation-delay: 0.15s; height: 18px; }
-.ai-wave-bar:nth-child(3) { animation-delay: 0.3s; height: 22px; }
-.ai-wave-bar:nth-child(4) { animation-delay: 0.45s; height: 14px; }
-@keyframes aiWaveBounce {
-    0%, 100% { transform: scaleY(0.45); }
-    50% { transform: scaleY(1.15); }
+    0% { box-shadow: 0 0 0 0 rgba(128, 128, 128, 0.45); }
+    70% { box-shadow: 0 0 0 10px rgba(128, 128, 128, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(128, 128, 128, 0); }
 }
 
 /* ==========================================================================
@@ -1945,7 +2156,7 @@
    ========================================================================== */
 @keyframes viewFadeSlideIn {
     0% { opacity: 0; transform: translateY(10px) scale(0.99); }
-    100% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 1; transform: none; }
 }
 .view-animate-in {
     animation: viewFadeSlideIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
