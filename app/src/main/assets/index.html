@@ -16,7 +16,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js?v=2.4.7').then(function(reg) {
+          navigator.serviceWorker.register('sw.js?v=2.4.8').then(function(reg) {
             reg.update();
             reg.onupdatefound = function() {
               const newWorker = reg.installing;
@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.4.7">
+    <link rel="stylesheet" href="css/style.css?v=2.4.8">
 </head>
 <body>
 
@@ -189,59 +189,44 @@
                 <div class="proxima-chat-thread" id="ai-chat-thread"></div>
             </div>
 
-            <!-- Custom In-App Voice Recognition Animation Card (Replaces Google Popup) -->
-            <div class="proxima-voice-card" id="ai-voice-custom-overlay" style="display: none;">
-                <div class="proxima-voice-orb-stage">
-                    <div class="proxima-orb-ring ring-1" id="proxima-orb-ring-1"></div>
-                    <div class="proxima-orb-ring ring-2" id="proxima-orb-ring-2"></div>
-                    <div class="proxima-orb-core" id="proxima-orb-core">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                            <polygon points="12,2 21,7 12,12 3,7" fill="currentColor"/>
-                            <polygon points="3,7 12,12 12,22 3,17" fill="currentColor" opacity="0.72"/>
-                            <polygon points="21,7 12,12 12,22 21,17" stroke="currentColor" stroke-width="1.8" fill="currentColor" fill-opacity="0.2"/>
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="proxima-voice-eq" id="proxima-voice-eq">
-                    <span class="eq-bar"></span>
-                    <span class="eq-bar"></span>
-                    <span class="eq-bar"></span>
-                    <span class="eq-bar"></span>
-                    <span class="eq-bar"></span>
-                    <span class="eq-bar"></span>
-                    <span class="eq-bar"></span>
-                    <span class="eq-bar"></span>
-                    <span class="eq-bar"></span>
-                </div>
-
-                <div class="proxima-voice-status" id="ai-voice-live-status">Proxima ti ascolta...</div>
-                <div class="proxima-voice-transcript" id="ai-voice-live-transcript">Parla pure (es. "Esercizi sulle funzioni per il 10 novembre")</div>
-
-                <div class="proxima-voice-actions">
-                    <button type="button" class="btn-voice-cancel" onclick="cancelAiVoiceRecording()" title="Annulla">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                    <button type="button" class="btn-voice-finish" onclick="finishAiVoiceRecordingNow()" title="Conferma e invia">
-                        <i class="fa-solid fa-check"></i> Fine
-                    </button>
-                </div>
-            </div>
-
-            <!-- Bottom Prompt Box (Fixed, never scrolls) -->
+            <!-- Bottom Prompt Box (Stationary, Gemini-style inline voice waveform + manual start/stop) -->
             <div class="ai-input-dock" id="ai-input-dock">
-                <div class="ai-input-bar">
-                    <input type="text" id="ai-prompt-input" class="ai-prompt-field" placeholder="Scrivi qui o parla con Proxima..." onkeydown="if(event.key==='Enter'){ sendAiChatMessage(); event.preventDefault(); }">
+                <div class="ai-input-bar" id="ai-input-bar">
+                    <textarea id="ai-prompt-input" rows="1" class="ai-prompt-field" placeholder="Scrivi qui o parla con Proxima..." oninput="autoResizeAiPrompt(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey){ sendAiChatMessage(); event.preventDefault(); }"></textarea>
 
-                    <!-- Circular Voice Mic Button -->
-                    <button type="button" class="btn-ai-circle-icon" id="btn-ai-mic" onclick="toggleAiVoiceRecording()" title="Parla al microfono">
-                        <i class="fa-solid fa-microphone"></i>
-                    </button>
+                    <!-- Gemini-Style Inline Horizontal Voice Equalizer (shown inside bar while recording) -->
+                    <div class="ai-gemini-wave-track" id="ai-gemini-wave-track" style="display: none;">
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                        <span class="gemini-wave-tick"></span>
+                    </div>
 
-                    <!-- Circular Send Button -->
-                    <button type="button" class="btn-ai-circle-send" id="btn-ai-send" onclick="sendAiChatMessage()" title="Invia messaggio">
-                        <i class="fa-solid fa-arrow-up"></i>
-                    </button>
+                    <div class="ai-input-actions">
+                        <!-- Circular Voice Mic / Manual Stop Button -->
+                        <button type="button" class="btn-ai-circle-icon" id="btn-ai-mic" onclick="toggleAiVoiceRecording()" title="Parla o ferma registrazione">
+                            <i class="fa-solid fa-microphone" id="btn-ai-mic-icon"></i>
+                            <span class="gemini-stop-square" id="btn-ai-stop-square" style="display: none;"></span>
+                        </button>
+
+                        <!-- Circular Send Button -->
+                        <button type="button" class="btn-ai-circle-send" id="btn-ai-send" onclick="sendAiChatMessage()" title="Invia messaggio">
+                            <i class="fa-solid fa-arrow-up"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -748,7 +733,7 @@
     </div>
 
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.4.7" defer></script>
+    <script src="js/app.js?v=2.4.8" defer></script>
 
 </body>
 </html>

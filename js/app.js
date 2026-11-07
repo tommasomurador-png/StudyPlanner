@@ -2878,7 +2878,8 @@
         const mainHeader = document.querySelector('header');
         if (mainHeader) mainHeader.style.display = 'flex';
 
-        // Lock outer page scroll when in AI view so ONLY the chat messages scroll
+        // Lock outer page scroll when in AI view so ONLY the chat messages scroll (zero bounce)
+        document.documentElement.classList.toggle('ai-view-locked', view === 'ai');
         document.body.classList.toggle('ai-view-locked', view === 'ai');
 
         const viewsMap = {
@@ -3688,13 +3689,42 @@
         showToast('Conversazione azzerata');
     };
 
+    window.autoResizeAiPrompt = function(el) {
+        if (!el) el = document.getElementById('ai-prompt-input');
+        if (!el) return;
+        el.style.height = 'auto';
+        const nextH = Math.min(116, Math.max(24, el.scrollHeight));
+        el.style.height = nextH + 'px';
+    };
+
     window.sendAiChatMessage = function() {
+        // If user taps Send (↑) while recording is active, stop recording and immediately send the spoken text
+        if (isAiListening) {
+            const spoken = getFullVoiceTranscript();
+            stopAiVoiceEngineOnly();
+            setGeminiVoiceBarMode(false);
+            const inputEl = document.getElementById('ai-prompt-input');
+            const finalSpoken = (spoken || (inputEl ? inputEl.value : '')).trim();
+            if (inputEl) {
+                inputEl.value = '';
+                window.autoResizeAiPrompt(inputEl);
+            }
+            accumulatedVoiceText = '';
+            currentPartialVoiceText = '';
+            if (finalSpoken) {
+                appendChatMessage('user', finalSpoken);
+                processStudyAiCommand(finalSpoken);
+            }
+            return;
+        }
+
         const input = document.getElementById('ai-prompt-input');
         if (!input) return;
         const text = input.value.trim();
         if (!text) return;
 
         input.value = '';
+        window.autoResizeAiPrompt(input);
         appendChatMessage('user', text);
         processStudyAiCommand(text);
     };
@@ -3707,44 +3737,94 @@
     }
 
     // ==========================================================================
-    // CUSTOM IN-APP VOICE RECOGNITION (Zero Google Popup + Live Audio Orb)
+    // GEMINI-STYLE INLINE VOICE RECORDING (Manual Start & Manual Stop Only)
     // ==========================================================================
-    let liveVoiceTranscriptBuffer = '';
-    let hasDispatchedVoiceResult = false;
+    let accumulatedVoiceText = '';
+    let currentPartialVoiceText = '';
+    let currentVoiceRmsLevel = 0.15;
+    let geminiWaveAnimFrame = null;
 
-    window.toggleAiVoiceRecording = function() {
-        if (isAiListening) {
-            finishAiVoiceRecordingNow();
-        } else {
-            startAiVoiceRecording();
+    function getFullVoiceTranscript() {
+        const p1 = (accumulatedVoiceText || '').trim();
+        const p2 = (currentPartialVoiceText || '').trim();
+        if (p1 && p2) {
+            if (p1.toLowerCase().endsWith(p2.toLowerCase())) return p1;
+            return p1 + ' ' + p2;
         }
-    };
+        return p1 || p2;
+    }
 
-    function showCustomVoiceOverlay(active) {
-        const overlay = document.getElementById('ai-voice-custom-overlay');
+    function setGeminiVoiceBarMode(active) {
+        const inputEl = document.getElementById('ai-prompt-input');
+        const waveTrack = document.getElementById('ai-gemini-wave-track');
         const micBtn = document.getElementById('btn-ai-mic');
-        const transcriptEl = document.getElementById('ai-voice-live-transcript');
-        const statusEl = document.getElementById('ai-voice-live-status');
+        const micIcon = document.getElementById('btn-ai-mic-icon');
+        const stopSquare = document.getElementById('btn-ai-stop-square');
 
         if (micBtn) micBtn.classList.toggle('is-listening', active);
-        if (overlay) overlay.style.display = active ? 'flex' : 'none';
+        if (micIcon) micIcon.style.display = active ? 'none' : 'inline-block';
+        if (stopSquare) stopSquare.style.display = active ? 'inline-block' : 'none';
 
         if (active) {
-            if (statusEl) statusEl.innerText = 'Proxima ti ascolta...';
-            if (transcriptEl) {
-                transcriptEl.innerText = 'Parla pure (es. "Esercizi sulle funzioni per il 10 novembre")';
-                transcriptEl.classList.remove('has-live-words');
+            if (inputEl) inputEl.style.display = 'none';
+            if (waveTrack) waveTrack.style.display = 'flex';
+            startGeminiWaveAnimation();
+        } else {
+            stopGeminiWaveAnimation();
+            if (waveTrack) waveTrack.style.display = 'none';
+            if (inputEl) {
+                inputEl.style.display = 'block';
+                window.autoResizeAiPrompt(inputEl);
             }
         }
     }
 
-    function startAiVoiceRecording() {
-        isAiListening = true;
-        liveVoiceTranscriptBuffer = '';
-        hasDispatchedVoiceResult = false;
-        showCustomVoiceOverlay(true);
+    function startGeminiWaveAnimation() {
+        stopGeminiWaveAnimation();
+        const ticks = document.querySelectorAll('#ai-gemini-wave-track .gemini-wave-tick');
+        const animateFrame = () => {
+            if (!isAiListening) return;
+            const t = performance.now() / 115;
+            ticks.forEach((tick, idx) => {
+                const wave = Math.sin(t + idx * 0.55) * 0.5 + 0.5;
+                const wave2 = Math.cos(t * 0.7 - idx * 0.35) * 0.5 + 0.5;
+                const voiceBoost = Math.max(0.18, currentVoiceRmsLevel);
+                const h = Math.round(5 + (wave * 0.65 + wave2 * 0.35) * voiceBoost * 19);
+                tick.style.height = Math.min(24, Math.max(4, h)) + 'px';
+                tick.style.opacity = (0.45 + voiceBoost * 0.55).toFixed(2);
+            });
+            geminiWaveAnimFrame = requestAnimationFrame(animateFrame);
+        };
+        geminiWaveAnimFrame = requestAnimationFrame(animateFrame);
+    }
 
-        // Use AndroidNative (or Android alias) bridge on mobile APK (silent SpeechRecognizer, no Google dialog)
+    function stopGeminiWaveAnimation() {
+        if (geminiWaveAnimFrame) {
+            cancelAnimationFrame(geminiWaveAnimFrame);
+            geminiWaveAnimFrame = null;
+        }
+    }
+
+    window.toggleAiVoiceRecording = function() {
+        if (isAiListening) {
+            // User manually clicked the Stop square -> stop recording and place text in input box
+            stopAiVoiceRecordingToInput();
+        } else {
+            // User manually clicked the Mic icon -> start continuous recording
+            startAiVoiceRecording();
+        }
+    };
+
+    function startAiVoiceRecording() {
+        const inputEl = document.getElementById('ai-prompt-input');
+        // Preserve any text already typed in the input box before pressing Mic
+        accumulatedVoiceText = inputEl && inputEl.value.trim() ? inputEl.value.trim() : '';
+        currentPartialVoiceText = '';
+        currentVoiceRmsLevel = 0.22;
+        isAiListening = true;
+        setGeminiVoiceBarMode(true);
+
+        // Use AndroidNative (or Android alias) bridge on mobile APK (continuous listening until manual stop)
         const nativeBridge = window.AndroidNative || window.Android;
         if (nativeBridge && typeof nativeBridge.startNativeSpeechRecognition === 'function') {
             try {
@@ -3755,148 +3835,153 @@
             }
         }
 
-        // Web Speech API fallback (desktop / Chrome browser)
+        // Web Speech API fallback (desktop / Chrome browser) with continuous manual mode
         const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRec) {
             try {
                 const rec = new SpeechRec();
                 window._activeWebSpeechRec = rec;
                 rec.lang = 'it-IT';
-                rec.continuous = false;
+                rec.continuous = true;
                 rec.interimResults = true;
                 rec.onresult = (e) => {
-                    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
-                    window.onAndroidSpeechResult(transcript, e.results[0].isFinal);
+                    let finalChunk = '';
+                    let interimChunk = '';
+                    for (let i = e.resultIndex; i < e.results.length; i++) {
+                        if (e.results[i].isFinal) {
+                            finalChunk += e.results[i][0].transcript + ' ';
+                        } else {
+                            interimChunk += e.results[i][0].transcript;
+                        }
+                    }
+                    if (finalChunk.trim()) {
+                        window.onAndroidSpeechSegment(finalChunk.trim());
+                    }
+                    currentPartialVoiceText = interimChunk.trim();
+                    currentVoiceRmsLevel = 0.75;
                 };
-                rec.onerror = () => window.onAndroidSpeechError('web_error');
+                rec.onerror = () => {};
                 rec.onend = () => {
-                    if (isAiListening) finishAiVoiceRecordingNow();
+                    // Restart automatically if user hasn't manually pressed Stop
+                    if (isAiListening && window._activeWebSpeechRec) {
+                        try { window._activeWebSpeechRec.start(); } catch(e){}
+                    }
                 };
                 rec.start();
             } catch(e) {
-                stopAiVoiceRecording();
+                stopAiVoiceEngineOnly();
+                setGeminiVoiceBarMode(false);
                 showToast('Microfono non disponibile su questo browser');
             }
         } else {
-            stopAiVoiceRecording();
+            stopAiVoiceEngineOnly();
+            setGeminiVoiceBarMode(false);
             showToast('Riconoscimento vocale non supportato');
         }
     }
 
-    function stopAiVoiceRecording() {
+    function stopAiVoiceEngineOnly() {
         isAiListening = false;
-        showCustomVoiceOverlay(false);
-
         if (window._activeWebSpeechRec) {
-            try { window._activeWebSpeechRec.stop(); } catch(e){}
+            const r = window._activeWebSpeechRec;
             window._activeWebSpeechRec = null;
+            try { r.stop(); } catch(e){}
         }
-
         const nativeBridge = window.AndroidNative || window.Android;
         if (nativeBridge && typeof nativeBridge.stopNativeSpeechRecognition === 'function') {
             try { nativeBridge.stopNativeSpeechRecognition(); } catch(e){}
         }
     }
 
+    function stopAiVoiceRecordingToInput() {
+        const finalTranscript = getFullVoiceTranscript();
+        stopAiVoiceEngineOnly();
+        setGeminiVoiceBarMode(false);
+
+        const inputEl = document.getElementById('ai-prompt-input');
+        if (inputEl) {
+            inputEl.value = finalTranscript;
+            window.autoResizeAiPrompt(inputEl);
+            inputEl.focus();
+        }
+    }
+
     window.cancelAiVoiceRecording = function() {
-        isAiListening = false;
-        liveVoiceTranscriptBuffer = '';
-        hasDispatchedVoiceResult = true;
-        showCustomVoiceOverlay(false);
-        const input = document.getElementById('ai-prompt-input');
-        if (input) input.value = '';
-
-        if (window._activeWebSpeechRec) {
-            try { window._activeWebSpeechRec.abort(); } catch(e){}
-            window._activeWebSpeechRec = null;
-        }
-
-        const nativeBridge = window.AndroidNative || window.Android;
-        if (nativeBridge) {
-            if (typeof nativeBridge.cancelNativeSpeechRecognition === 'function') {
-                try { nativeBridge.cancelNativeSpeechRecognition(); } catch(e){}
-            } else if (typeof nativeBridge.stopNativeSpeechRecognition === 'function') {
-                try { nativeBridge.stopNativeSpeechRecognition(); } catch(e){}
-            }
-        }
-    };
-
-    window.finishAiVoiceRecordingNow = function() {
-        const textToSend = (liveVoiceTranscriptBuffer || document.getElementById('ai-prompt-input')?.value || '').trim();
-        stopAiVoiceRecording();
-        if (textToSend && !hasDispatchedVoiceResult) {
-            hasDispatchedVoiceResult = true;
-            liveVoiceTranscriptBuffer = '';
-            const input = document.getElementById('ai-prompt-input');
-            if (input) input.value = '';
-            appendChatMessage('user', textToSend);
-            processStudyAiCommand(textToSend);
-        }
+        accumulatedVoiceText = '';
+        currentPartialVoiceText = '';
+        stopAiVoiceEngineOnly();
+        setGeminiVoiceBarMode(false);
     };
 
     window.onAndroidSpeechStart = function() {
-        isAiListening = true;
-        showCustomVoiceOverlay(true);
+        if (!isAiListening) {
+            isAiListening = true;
+            setGeminiVoiceBarMode(true);
+        }
     };
 
     window.onAndroidSpeechRms = function(rmsdB) {
         if (!isAiListening) return;
-        const level = Math.max(0, Math.min(1, (parseFloat(rmsdB) + 2) / 12));
-        const ring1 = document.getElementById('proxima-orb-ring-1');
-        const ring2 = document.getElementById('proxima-orb-ring-2');
-        const core = document.getElementById('proxima-orb-core');
-        if (ring1) ring1.style.transform = `scale(${1 + level * 0.38})`;
-        if (ring2) ring2.style.transform = `scale(${1 + level * 0.56})`;
-        if (core) core.style.transform = `scale(${1 + level * 0.14})`;
-
-        const bars = document.querySelectorAll('#proxima-voice-eq .eq-bar');
-        bars.forEach((bar, i) => {
-            const centerFactor = 1 - Math.abs(i - 4) * 0.14;
-            const jitter = 0.75 + Math.sin(Date.now() / 90 + i) * 0.25;
-            const h = Math.max(6, Math.round((8 + level * 24) * centerFactor * jitter));
-            bar.style.height = h + 'px';
-        });
+        const level = Math.max(0.15, Math.min(1, (parseFloat(rmsdB) + 2) / 10));
+        currentVoiceRmsLevel = level;
     };
 
-    window.onAndroidSpeechResult = function(transcript, isFinal) {
-        if (hasDispatchedVoiceResult) return;
-        const clean = (transcript || '').trim();
-        if (clean) {
-            liveVoiceTranscriptBuffer = clean;
-            const input = document.getElementById('ai-prompt-input');
-            if (input) input.value = clean;
-            const transcriptEl = document.getElementById('ai-voice-live-transcript');
-            if (transcriptEl) {
-                transcriptEl.innerText = '"' + clean + '"';
-                transcriptEl.classList.add('has-live-words');
-            }
+    // Called by MainActivity when a speech segment completes while continuous manual listening is active
+    window.onAndroidSpeechSegment = function(segmentText) {
+        const clean = (segmentText || '').trim();
+        if (!clean) return;
+        if (accumulatedVoiceText) {
+            accumulatedVoiceText = accumulatedVoiceText.trim() + ' ' + clean;
+        } else {
+            accumulatedVoiceText = clean;
         }
+        currentPartialVoiceText = '';
+        const inputEl = document.getElementById('ai-prompt-input');
+        if (inputEl) {
+            inputEl.value = accumulatedVoiceText;
+        }
+    };
+
+    // Called by MainActivity for live partial words (or final words after manual stop)
+    window.onAndroidSpeechResult = function(transcript, isFinal) {
+        const clean = (transcript || '').trim();
+        if (!clean) return;
 
         if (isFinal) {
-            const finalToSend = (clean || liveVoiceTranscriptBuffer).trim();
-            stopAiVoiceRecording();
-            if (finalToSend && !hasDispatchedVoiceResult) {
-                hasDispatchedVoiceResult = true;
-                liveVoiceTranscriptBuffer = '';
-                const input = document.getElementById('ai-prompt-input');
-                if (input) input.value = '';
-                appendChatMessage('user', finalToSend);
-                processStudyAiCommand(finalToSend);
+            if (accumulatedVoiceText) {
+                if (!accumulatedVoiceText.toLowerCase().endsWith(clean.toLowerCase())) {
+                    accumulatedVoiceText = accumulatedVoiceText.trim() + ' ' + clean;
+                }
+            } else {
+                accumulatedVoiceText = clean;
+            }
+            currentPartialVoiceText = '';
+        } else {
+            currentPartialVoiceText = clean;
+        }
+
+        const inputEl = document.getElementById('ai-prompt-input');
+        if (inputEl) {
+            inputEl.value = getFullVoiceTranscript();
+            if (!isAiListening) {
+                window.autoResizeAiPrompt(inputEl);
             }
         }
     };
 
     window.onAndroidSpeechCancel = function() {
-        stopAiVoiceRecording();
+        if (!isAiListening) {
+            setGeminiVoiceBarMode(false);
+        }
     };
 
     window.onAndroidSpeechError = function(err) {
-        // If we already captured partial words before silence timeout, process them seamlessly!
-        if (liveVoiceTranscriptBuffer && liveVoiceTranscriptBuffer.trim().length > 1 && !hasDispatchedVoiceResult) {
-            window.finishAiVoiceRecordingNow();
-            return;
+        // Only stop if it's a permission error; silence timeouts are automatically restarted in MainActivity
+        if (err === 'permission_denied' || err === 'error_9') {
+            stopAiVoiceEngineOnly();
+            setGeminiVoiceBarMode(false);
+            showToast('Permesso microfono necessario');
         }
-        stopAiVoiceRecording();
     };
 
     window.speakAiVoice = function(text) {
@@ -4116,18 +4201,15 @@
 
             const existingRef = findLastDiscussedOrSavedTask(explicitSub);
             const targetSub = explicitSub || (existingRef ? existingRef.subject : (userSubjects[0] || 'Matematica'));
-            // Keep existing clean title unless the user explicitly specified a new topic with "riguardante / su / argomento"
-            let finalDetails = existingRef ? existingRef.details : ('Esercizi di ' + targetSub);
-            if (/\b(riguardant[ei]|relativ[oi]\s+a|sull['’]argomento|sulle|sui|sugli)\b/i.test(lower)) {
-                finalDetails = extractCleanTaskDetails(normText, targetSub);
-            }
+            // NEVER alter the existing task description when modifying/moving the date!
+            const preservedDetails = existingRef ? existingRef.details : ('Esercizi di ' + targetSub);
 
             return [{
                 type: 'modify_task',
                 todoId: existingRef && existingRef.todo ? existingRef.todo.id : null,
                 subject: targetSub,
                 date: globalTargetDate,
-                details: finalDetails
+                details: preservedDetails
             }];
         }
 
@@ -4175,7 +4257,11 @@
         }
 
         // 3. Check if it's Homework / Exercises / Study tasks (supports multiple subjects separated by " e " or ",")
-        const isTaskIntent = /\b(compito|compiti|esercizio|esercizi|studiare|completare|fare|svolgere|ripassare|leggere|pagine|pagina|es\.)\b/i.test(lower) || findSubjectInSegment(normText) !== null;
+        // Ignore conversational idioms like "fare in modo che", "fare una domanda", "cosa sai fare"
+        const cleanedForIntent = lower.replace(/\b(fare\s+in\s+modo|aver\s+a\s+che\s+fare|cosa\s+puoi\s+fare|cosa\s+sai\s+fare|come\s+si\s+fa|fare\s+una\s+domanda)\b/gi, '');
+        const hasExplicitSchoolKeyword = /\b(compito|compiti|esercizio|esercizi|studiare|ripassare|pagine|pagina|capitolo|paragrafo|versione|ricerca|tema|es\.)\b/i.test(cleanedForIntent);
+        const hasSubjectMention = findSubjectInSegment(normText) !== null;
+        const isTaskIntent = hasExplicitSchoolKeyword || hasSubjectMention;
         if (isTaskIntent) {
             const clauses = normText.split(/\s+e\s+|\s*,\s*/i);
             const multiTasks = [];
@@ -4321,11 +4407,12 @@ Messaggio dello studente: "${rawText}"`;
                                         }
                                         if (a.type === 'modify_task') {
                                             const prevRef = findLastDiscussedOrSavedTask(a.subject);
-                                            if (prevRef && (!a.details || /\b(modifica|sposta|cambia|quegli|quei|devo\s+fare)\b/i.test(a.details))) {
+                                            if (prevRef) {
+                                                // Always preserve the original clean task description when modifying the date!
                                                 a.details = prevRef.details;
-                                            }
-                                            if (prevRef && prevRef.todo) {
-                                                a.todoId = prevRef.todo.id;
+                                                if (prevRef.todo) {
+                                                    a.todoId = prevRef.todo.id;
+                                                }
                                             }
                                         } else if (a.type === 'add_task' && a.details) {
                                             if (/\b(devo\s+fare|vorrei|puoi|riguardant|per\s+il|per\s+l['’])\b/i.test(a.details)) {
@@ -4445,11 +4532,9 @@ Messaggio dello studente: "${rawText}"`;
                 }
 
                 if (targetTodo) {
+                    // Strictly update ONLY the date/deadline and keep targetTodo.title untouched!
                     targetTodo.deadline = newDeadline;
                     targetTodo.assignedDate = calculateAssignedDate(newDeadline, targetTodo.priority || 2, targetTodo.difficulty || 2, todayDateStr, targetTodo.excludedDays || []);
-                    if (actionObj.details && !/\b(modifica|sposta|cambia)\b/i.test(actionObj.details)) {
-                        targetTodo.title = actionObj.details;
-                    }
                     changedTodos = true;
                 } else {
                     // Task wasn't confirmed yet previously; add it now with the clean title and updated date

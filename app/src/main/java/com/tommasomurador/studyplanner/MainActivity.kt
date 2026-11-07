@@ -185,6 +185,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     
+    private var isManualListeningActive = false
+
+    private fun buildSpeechIntent(): Intent {
+        return Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "it-IT")
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 5000L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 4000L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 8000L)
+        }
+    }
+
     fun startNativeListening() {
         runOnUiThread {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -193,6 +208,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             try {
+                isManualListeningActive = true
                 speechRecognizer?.destroy()
                 speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
                     setRecognitionListener(object : RecognitionListener {
@@ -211,14 +227,39 @@ class MainActivity : AppCompatActivity() {
                         override fun onEndOfSpeech() {}
 
                         override fun onError(error: Int) {
-                            webView.evaluateJavascript("window.onAndroidSpeechError ? window.onAndroidSpeechError('$error') : null", null)
+                            if (isManualListeningActive && (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT || error == SpeechRecognizer.ERROR_CLIENT)) {
+                                webView.postDelayed({
+                                    if (isManualListeningActive) {
+                                        try {
+                                            speechRecognizer?.startListening(buildSpeechIntent())
+                                        } catch (e: Exception) {}
+                                    }
+                                }, 80)
+                            } else if (!isManualListeningActive) {
+                                webView.evaluateJavascript("window.onAndroidSpeechStopped ? window.onAndroidSpeechStopped() : null", null)
+                            } else {
+                                webView.evaluateJavascript("window.onAndroidSpeechError ? window.onAndroidSpeechError('$error') : null", null)
+                            }
                         }
 
                         override fun onResults(results: Bundle?) {
                             val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                             val text = matches?.firstOrNull() ?: ""
                             val escaped = text.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ").trim()
-                            webView.evaluateJavascript("window.onAndroidSpeechResult ? window.onAndroidSpeechResult('$escaped', true) : null", null)
+                            if (escaped.isNotEmpty()) {
+                                webView.evaluateJavascript("window.onAndroidSpeechSegment ? window.onAndroidSpeechSegment('$escaped') : null", null)
+                            }
+                            if (isManualListeningActive) {
+                                webView.postDelayed({
+                                    if (isManualListeningActive) {
+                                        try {
+                                            speechRecognizer?.startListening(buildSpeechIntent())
+                                        } catch (e: Exception) {}
+                                    }
+                                }, 60)
+                            } else {
+                                webView.evaluateJavascript("window.onAndroidSpeechStopped ? window.onAndroidSpeechStopped() : null", null)
+                            }
                         }
 
                         override fun onPartialResults(partialResults: Bundle?) {
@@ -234,20 +275,11 @@ class MainActivity : AppCompatActivity() {
                     })
                 }
 
-                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
-                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "it-IT")
-                    putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
-                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2200L)
-                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1800L)
-                }
-
-                speechRecognizer?.startListening(intent)
+                speechRecognizer?.startListening(buildSpeechIntent())
                 webView.evaluateJavascript("window.onAndroidSpeechStart ? window.onAndroidSpeechStart() : null", null)
             } catch (e: Exception) {
                 e.printStackTrace()
+                isManualListeningActive = false
                 webView.evaluateJavascript("window.onAndroidSpeechError ? window.onAndroidSpeechError('${e.message}') : null", null)
             }
         }
@@ -255,6 +287,7 @@ class MainActivity : AppCompatActivity() {
 
     fun stopNativeListening() {
         runOnUiThread {
+            isManualListeningActive = false
             try {
                 speechRecognizer?.stopListening()
             } catch (e: Exception) {
@@ -265,6 +298,7 @@ class MainActivity : AppCompatActivity() {
 
     fun cancelNativeListening() {
         runOnUiThread {
+            isManualListeningActive = false
             try {
                 speechRecognizer?.cancel()
                 speechRecognizer?.destroy()

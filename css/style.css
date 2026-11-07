@@ -1553,29 +1553,64 @@
 }
 
 /* ==========================================================================
-   PROXIMA AI VIEW (Image 2 Specification - System Monochrome Theme)
+   PROXIMA AI VIEW (Zero Bounce, Zero Overlap, Gemini Inline Voice Bar)
    ========================================================================== */
+html.ai-view-locked,
 body.ai-view-locked {
     overflow: hidden !important;
     height: 100dvh !important;
+    max-height: 100dvh !important;
+    position: fixed !important;
+    width: 100% !important;
+    inset: 0 !important;
+    overscroll-behavior: none !important;
+}
+
+body.ai-view-locked #app-container {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    min-height: 100dvh !important;
+    overflow: hidden !important;
+    padding-bottom: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+body.ai-view-locked header {
+    flex-shrink: 0 !important;
+    position: relative !important;
+    background: var(--bg-color) !important;
+    z-index: 30;
+    touch-action: none;
+}
+
+body.ai-view-locked .content-wrapper {
+    flex: 1 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom)) !important;
 }
 
 .ai-view {
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    height: calc(100dvh - 150px);
-    max-height: calc(100dvh - 150px);
     overflow: hidden;
     position: relative;
 }
 
-/* Dedicated Scrollable Viewport: ONLY messages scroll, input dock stays 100% fixed */
+/* Dedicated Scrollable Viewport: strictly bounded between header and input dock (NO overlap!) */
 .ai-scroll-viewport {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 110px;
+    overscroll-behavior-y: contain;
+    padding: 4px 2px 12px;
     scrollbar-width: none;
 }
 .ai-scroll-viewport::-webkit-scrollbar {
@@ -1586,11 +1621,11 @@ body.ai-view-locked {
 .proxima-welcome {
     display: flex;
     flex-direction: column;
-    padding: 12px 4px 20px;
+    padding: 8px 4px 16px;
     animation: viewFadeSlideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .proxima-greeting-block {
-    margin-bottom: 28px;
+    margin-bottom: 24px;
 }
 .proxima-hello-line {
     font-size: 2.1rem;
@@ -1670,11 +1705,11 @@ body.ai-view-locked {
     border-color: var(--theme-strong);
 }
 .proxima-bento-card.tall {
-    min-height: 196px;
+    min-height: 184px;
 }
 .proxima-bento-card.square {
     flex: 1;
-    min-height: 132px;
+    min-height: 122px;
 }
 .proxima-bento-text {
     font-size: 0.88rem;
@@ -1729,8 +1764,8 @@ body.ai-view-locked {
 .proxima-chat-thread {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    padding: 8px 4px 28px;
+    gap: 18px;
+    padding: 6px 4px 12px;
 }
 .proxima-turn {
     display: flex;
@@ -1890,189 +1925,19 @@ body.ai-view-locked {
 }
 
 /* ==========================================================================
-   CUSTOM IN-APP VOICE RECOGNITION ANIMATION CARD (Replaces Google Popup)
+   STATIONARY INPUT DOCK + GEMINI-STYLE INLINE VOICE WAVEFORM
    ========================================================================== */
-.proxima-voice-card {
-    position: fixed;
-    bottom: calc(152px + env(safe-area-inset-bottom));
-    left: 50%;
-    transform: translateX(-50%);
-    width: calc(100% - 32px);
-    max-width: 420px;
-    background: var(--surface-color);
-    border: 1.5px solid var(--border-color);
-    border-radius: 28px;
-    padding: 22px 20px 18px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
-    z-index: 135;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    animation: voiceCardPopIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-[data-theme="dark"] .proxima-voice-card {
-    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.65);
-}
-@keyframes voiceCardPopIn {
-    0% { opacity: 0; transform: translateX(-50%) translateY(16px) scale(0.94); }
-    100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-}
-
-.proxima-voice-orb-stage {
-    position: relative;
-    width: 84px;
-    height: 84px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 12px;
-}
-.proxima-orb-ring {
-    position: absolute;
-    border-radius: 50%;
-    border: 1.5px solid var(--theme-strong);
-    pointer-events: none;
-    transition: transform 0.1s ease-out, opacity 0.15s ease-out;
-}
-.proxima-orb-ring.ring-1 {
-    width: 68px;
-    height: 68px;
-    opacity: 0.25;
-    animation: orbRipple1 2s infinite ease-in-out;
-}
-.proxima-orb-ring.ring-2 {
-    width: 84px;
-    height: 84px;
-    opacity: 0.12;
-    animation: orbRipple2 2s infinite ease-in-out 0.4s;
-}
-@keyframes orbRipple1 {
-    0%, 100% { transform: scale(0.92); opacity: 0.28; }
-    50% { transform: scale(1.14); opacity: 0.12; }
-}
-@keyframes orbRipple2 {
-    0%, 100% { transform: scale(0.88); opacity: 0.16; }
-    50% { transform: scale(1.22); opacity: 0.05; }
-}
-.proxima-orb-core {
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
-    background: var(--theme-strong);
-    color: var(--bg-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
-    transition: transform 0.1s ease-out;
-}
-
-.proxima-voice-eq {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    height: 30px;
-    margin-bottom: 10px;
-}
-.proxima-voice-eq .eq-bar {
-    width: 4px;
-    height: 10px;
-    border-radius: 4px;
-    background: var(--theme-strong);
-    transition: height 0.09s ease-out, opacity 0.12s ease;
-    animation: eqIdleWave 1.1s infinite ease-in-out;
-}
-.proxima-voice-eq .eq-bar:nth-child(1) { animation-delay: 0.0s; }
-.proxima-voice-eq .eq-bar:nth-child(2) { animation-delay: 0.12s; }
-.proxima-voice-eq .eq-bar:nth-child(3) { animation-delay: 0.24s; }
-.proxima-voice-eq .eq-bar:nth-child(4) { animation-delay: 0.36s; }
-.proxima-voice-eq .eq-bar:nth-child(5) { animation-delay: 0.48s; height: 22px; }
-.proxima-voice-eq .eq-bar:nth-child(6) { animation-delay: 0.36s; }
-.proxima-voice-eq .eq-bar:nth-child(7) { animation-delay: 0.24s; }
-.proxima-voice-eq .eq-bar:nth-child(8) { animation-delay: 0.12s; }
-.proxima-voice-eq .eq-bar:nth-child(9) { animation-delay: 0.0s; }
-
-@keyframes eqIdleWave {
-    0%, 100% { transform: scaleY(0.45); opacity: 0.45; }
-    50% { transform: scaleY(1.25); opacity: 1; }
-}
-
-.proxima-voice-status {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--theme-strong);
-    letter-spacing: 0.2px;
-    margin-bottom: 4px;
-}
-.proxima-voice-transcript {
-    font-size: 0.92rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    line-height: 1.4;
-    min-height: 22px;
-    max-height: 66px;
-    overflow-y: auto;
-    margin-bottom: 14px;
-    padding: 0 8px;
-}
-.proxima-voice-transcript.has-live-words {
-    color: var(--text-main);
-    font-weight: 600;
-}
-
-.proxima-voice-actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-}
-.btn-voice-cancel {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    border: 1px solid var(--border-color);
-    background: var(--bg-color);
-    color: var(--text-muted);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: transform 0.15s ease;
-}
-.btn-voice-cancel:active {
-    transform: scale(0.9);
-}
-.btn-voice-finish {
-    background: var(--theme-strong);
-    color: var(--bg-color);
-    border: none;
-    border-radius: 20px;
-    padding: 9px 20px;
-    font-size: 0.84rem;
-    font-weight: 700;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    transition: transform 0.15s ease;
-}
-.btn-voice-finish:active {
-    transform: scale(0.94);
-}
-
-/* Floating Input Dock (Locked to Viewport, Never Scrolls) */
 .ai-input-dock {
-    position: fixed !important;
-    bottom: calc(88px + env(safe-area-inset-bottom)) !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: calc(100% - 32px);
-    max-width: 440px;
-    z-index: 125;
+    flex-shrink: 0;
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    width: 100%;
+    padding: 6px 0 8px 0;
+    background: var(--bg-color);
+    z-index: 35;
+    touch-action: none;
 }
 .ai-input-bar {
     display: flex;
@@ -2080,12 +1945,14 @@ body.ai-view-locked {
     background: var(--surface-color);
     border: 1.5px solid var(--border-color);
     border-radius: 28px;
-    padding: 6px 8px 6px 16px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+    padding: 7px 8px 7px 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
     gap: 8px;
+    min-height: 54px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 [data-theme="dark"] .ai-input-bar {
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.42);
 }
 .ai-prompt-field {
     flex: 1;
@@ -2094,13 +1961,55 @@ body.ai-view-locked {
     background: transparent;
     color: var(--text-main);
     font-family: var(--ui-font);
-    font-size: 0.92rem;
+    font-size: 0.93rem;
+    line-height: 1.38;
     outline: none;
-    padding: 8px 0;
+    padding: 6px 0;
+    resize: none;
+    max-height: 84px;
+    overflow-y: auto;
 }
 .ai-prompt-field::placeholder {
     color: var(--text-muted);
     opacity: 0.75;
+}
+
+.ai-input-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    align-self: flex-end;
+}
+
+/* Gemini-Style Horizontal Voice Waveform Inside the Input Bar */
+.ai-gemini-wave-track {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 8px;
+    overflow: hidden;
+}
+.gemini-wave-tick {
+    width: 2.5px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--theme-strong);
+    opacity: 0.85;
+    transition: height 0.08s ease-out, opacity 0.12s ease;
+}
+
+/* Rounded Square Stop Icon inside #btn-ai-mic (matches Gemini video) */
+.gemini-stop-square {
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--theme-strong);
+    border-radius: 3px;
+    display: inline-block;
+    box-sizing: border-box;
 }
 
 /* 100% Round Buttons (Never Oval) */
@@ -2129,10 +2038,9 @@ body.ai-view-locked {
     font-size: 1rem;
 }
 .btn-ai-circle-icon.is-listening {
-    background: var(--theme-strong) !important;
-    border-color: var(--theme-strong) !important;
-    color: var(--bg-color) !important;
-    animation: micPulseRing 1.2s infinite ease-in-out;
+    background: var(--bg-color) !important;
+    border: 1.5px solid var(--border-color) !important;
+    color: var(--theme-strong) !important;
 }
 .btn-ai-circle-send {
     background: var(--theme-strong);
