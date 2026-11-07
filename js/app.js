@@ -2600,31 +2600,35 @@
     }
 
     function init() {
-        document.body.addEventListener('click', initAudio, { once: true }); 
-        applySettingsUI(); 
-        initAllDatePickers();
-        calculateStreak(); 
-        updateDashboard(); 
-        initWeekSlider(); 
-        generateTasksForDate(selectedDateStr); 
-        renderRankedView(); 
-        renderSheetData(); 
-        renderHeatmap(); 
-        renderStreakCalendar(); 
-        renderMonthCalendar();
-        renderSubjectDonutChart();
-        initBottomSheetDrag();
-        initTaskSwipeNavigation();
-        syncAndroidWidget();
-        checkOnboarding(); renderGradesView(); updateGeminiKeyStatusUI();
+        try { document.body.addEventListener('click', initAudio, { once: true }); } catch(e){}
+        try { applySettingsUI(); } catch(e){}
+        try { initAllDatePickers(); } catch(e){}
+        try { calculateStreak(); } catch(e){}
+        try { updateDashboard(); } catch(e){}
+        try { initWeekSlider(); } catch(e){}
+        try { generateTasksForDate(selectedDateStr); } catch(e){}
+        try { renderRankedView(); } catch(e){}
+        try { renderSheetData(); } catch(e){}
+        try { renderHeatmap(); } catch(e){}
+        try { renderStreakCalendar(); } catch(e){}
+        try { renderMonthCalendar(); } catch(e){}
+        try { renderSubjectDonutChart(); } catch(e){}
+        try { initBottomSheetDrag(); } catch(e){}
+        try { initTaskSwipeNavigation(); } catch(e){}
+        try { syncAndroidWidget(); } catch(e){}
+        try { checkOnboarding(); } catch(e){}
+        try { renderGradesView(); } catch(e){}
+        try { updateGeminiKeyStatusUI(); } catch(e){}
         
-        setInterval(() => {
-            checkAndSendSmartNotification();
-        }, 60 * 1000);
+        try {
+            setInterval(() => {
+                checkAndSendSmartNotification();
+            }, 60 * 1000);
 
-        setTimeout(() => {
-            checkAndSendSmartNotification();
-        }, 1500);
+            setTimeout(() => {
+                checkAndSendSmartNotification();
+            }, 1500);
+        } catch(e){}
     }
 
     function checkOnboarding() {
@@ -2827,14 +2831,17 @@
     }
 
     window.switchView = function(view, element) {
-        // Deseleziona le icone del dock di navigazione
-        document.querySelectorAll('.dock-item, .dock-center-btn').forEach(el => {
+        if (element && element.tagName === 'I') {
+            element = element.closest('.dock-item, .dock-center-btn');
+        }
+
+        document.querySelectorAll('.dock-item, .dock-center-btn, .nav-item').forEach(el => {
             el.classList.remove('active');
             el.classList.remove('is-active-view');
         });
 
         if (element) {
-            if (element.classList.contains('dock-center-btn')) {
+            if (element.classList.contains('dock-center-btn') || element.id === 'nav-ai') {
                 element.classList.add('is-active-view');
             } else {
                 element.classList.add('active');
@@ -2847,7 +2854,6 @@
             }
         }
 
-        // Mostra o nasconde l'header standard in base alla vista: nella vista AI l'header dedicato occupa la cima dello schermo
         const mainHeader = document.querySelector('header');
         if (mainHeader) mainHeader.style.display = view === 'ai' ? 'none' : 'flex';
 
@@ -2867,9 +2873,7 @@
             try { renderMonthCalendar(); } catch(e){}
         }
         if (view === 'ranked') { 
-            try { renderSheetData(); } catch(e){}
-            try { renderSubjectDonutChart(); } catch(e){}
-            try { renderHeatmap(); } catch(e){}
+            try { renderSheetData(); renderSubjectDonutChart(); renderHeatmap(); } catch(e){}
         }
         if (view === 'grades') { 
             try { renderGradesView(); } catch(e){}
@@ -3153,7 +3157,7 @@
             activeModals.forEach(m => m.classList.remove('active'));
             return "true";
         }
-        const currentActive = document.querySelector('.bottom-nav .nav-item.active');
+        const currentActive = document.querySelector('.dock-navbar .dock-item.active, .bottom-nav .nav-item.active');
         if (currentActive && currentActive.id !== 'nav-study') {
             switchView('study', document.getElementById('nav-study'));
             return "true";
@@ -3988,6 +3992,20 @@ Richiesta dello studente: "${rawText}"`;
         appendChatMessage('ai', 'Fatto! Modifiche applicate con successo al tuo piano di studio.');
         speakAiVoice('Fatto! Modifiche applicate con successo.');
     };
+
+    
+    function updateGeminiKeyStatusUI() {
+        const statusEl = document.getElementById('gemini-key-status');
+        const input = document.getElementById('settings-gemini-key-input');
+        if (input && typeof geminiApiKey !== 'undefined' && geminiApiKey) input.value = geminiApiKey;
+        if (statusEl) {
+            if (typeof geminiApiKey !== 'undefined' && geminiApiKey) {
+                statusEl.innerHTML = '<span style="color:#10B981;"><i class="fa-solid fa-check"></i> Chiave Gemini attiva</span>';
+            } else {
+                statusEl.innerHTML = '<span>Motore locale offline attivo</span>';
+            }
+        }
+    }
 
     window.saveGeminiApiKeyFromSettings = function() {
         const input = document.getElementById('settings-gemini-key-input');

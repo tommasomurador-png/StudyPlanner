@@ -1405,16 +1405,16 @@
 
 
 /* ==========================================================================
-   CURVED NOTCHED DOCK NAVBAR (Image 2 Specification)
+   CURVED NOTCHED DOCK NAVBAR (Image 2 Specification - Pure Icons)
    ========================================================================== */
 .bottom-dock-wrapper {
     position: fixed;
-    bottom: calc(16px + env(safe-area-inset-bottom));
+    bottom: calc(18px + env(safe-area-inset-bottom));
     left: 50%;
     transform: translateX(-50%);
     z-index: 120;
     width: fit-content;
-    pointer-events: auto;
+    pointer-events: auto !important;
 }
 
 .dock-navbar {
@@ -1422,11 +1422,12 @@
     align-items: center;
     background: #FFFFFF;
     border: 1px solid var(--border-color);
-    border-radius: 36px;
-    padding: 6px 14px;
+    border-radius: 40px;
+    padding: 8px 16px;
     box-shadow: 0 14px 38px rgba(0, 0, 0, 0.08);
     position: relative;
-    gap: 4px;
+    gap: 12px;
+    pointer-events: auto !important;
 }
 [data-theme="dark"] .dock-navbar {
     background: #202020;
@@ -1436,53 +1437,52 @@
 
 .dock-item {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 56px;
+    width: 48px;
     height: 48px;
-    border-radius: 20px;
+    border-radius: 24px;
     color: var(--text-muted);
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    gap: 3px;
     user-select: none;
+    pointer-events: auto !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 .dock-item i {
-    font-size: 1.15rem;
+    font-size: 1.35rem;
+    pointer-events: none;
     transition: transform 0.2s ease, color 0.2s ease;
-}
-.dock-item .dock-label {
-    font-size: 0.62rem;
-    font-weight: 600;
-    line-height: 1;
-    letter-spacing: 0.2px;
 }
 .dock-item.active {
     color: var(--theme-strong);
+    background: rgba(0, 0, 0, 0.05);
+}
+[data-theme="dark"] .dock-item.active {
+    color: var(--theme-strong);
+    background: rgba(255, 255, 255, 0.08);
 }
 .dock-item.active i {
-    transform: scale(1.12);
-}
-.dock-item.active .dock-label {
-    font-weight: 800;
+    transform: scale(1.15);
 }
 .dock-item:active {
-    transform: scale(0.92);
+    transform: scale(0.9);
 }
 
-/* Center Notch & Floating Mic Button (Image 2) */
+/* Center Notch & Floating Mic Button */
 .dock-center-notch {
     position: relative;
-    width: 60px;
+    width: 58px;
     height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
+    pointer-events: auto !important;
 }
 .dock-center-btn {
     position: absolute;
-    top: -18px;
+    top: -16px;
     width: 54px;
     height: 54px;
     border-radius: 50%;
@@ -1493,10 +1493,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     cursor: pointer;
     transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s;
     outline: none;
+    pointer-events: auto !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+.dock-center-btn i {
+    pointer-events: none;
 }
 [data-theme="light"] .dock-center-btn {
     border-color: #FFFFFF;
@@ -1505,7 +1511,7 @@
     border-color: #202020;
 }
 .dock-center-btn:active {
-    transform: translateY(-14px) scale(0.92);
+    transform: translateY(-13px) scale(0.92);
 }
 .dock-center-btn.is-active-view {
     box-shadow: 0 0 0 3px var(--theme-strong), 0 8px 24px rgba(0,0,0,0.25);
