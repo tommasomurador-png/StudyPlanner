@@ -1047,7 +1047,16 @@
     });
 
     window.openChoiceModal = () => document.getElementById('choice-modal').classList.add('active');
-    window.closeModal = (id) => document.getElementById(id).classList.remove('active');
+    
+    window.openModal = function(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('active');
+    };
+    window.closeModal = function(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+    };
+
     
     window.openTodoModal = () => { 
         closeModal('choice-modal'); 
@@ -2818,32 +2827,55 @@
     }
 
     window.switchView = function(view, element) {
-        closeMallowVoiceOverlay();
-        // Deseleziona TUTTE le icone della barra di navigazione in modo pulito
-        document.querySelectorAll('.split-hotbar .nav-item, .bottom-nav .nav-item, .nav-item').forEach(el => el.classList.remove('active'));
-        if(element) element.classList.add('active');
+        // Deseleziona le icone del dock di navigazione
+        document.querySelectorAll('.dock-item, .dock-center-btn').forEach(el => {
+            el.classList.remove('active');
+            el.classList.remove('is-active-view');
+        });
 
-        // Mostra o nasconde l'header standard in base alla vista: nella vista 'grades' l'header rosso ClasseViva occupa la cima dello schermo
+        if (element) {
+            if (element.classList.contains('dock-center-btn')) {
+                element.classList.add('is-active-view');
+            } else {
+                element.classList.add('active');
+            }
+        } else {
+            const defaultNav = document.getElementById('nav-' + view);
+            if (defaultNav) {
+                if (defaultNav.classList.contains('dock-center-btn')) defaultNav.classList.add('is-active-view');
+                else defaultNav.classList.add('active');
+            }
+        }
+
+        // Mostra o nasconde l'header standard in base alla vista: nella vista AI l'header dedicato occupa la cima dello schermo
         const mainHeader = document.querySelector('header');
-        if (mainHeader) mainHeader.style.display = view === 'grades' ? 'none' : 'flex';
+        if (mainHeader) mainHeader.style.display = view === 'ai' ? 'none' : 'flex';
 
         const studyView = document.getElementById('study-view');
-        const rankedView = document.getElementById('ranked-view');
         const calendarView = document.getElementById('calendar-view');
+        const aiView = document.getElementById('ai-view');
         const gradesView = document.getElementById('grades-view');
+        const rankedView = document.getElementById('ranked-view');
 
         if (studyView) studyView.style.display = view === 'study' ? 'block' : 'none';
-        if (rankedView) rankedView.style.display = view === 'ranked' ? 'block' : 'none';
         if (calendarView) calendarView.style.display = view === 'calendar' ? 'block' : 'none';
+        if (aiView) aiView.style.display = view === 'ai' ? 'block' : 'none';
         if (gradesView) gradesView.style.display = view === 'grades' ? 'block' : 'none';
+        if (rankedView) rankedView.style.display = view === 'ranked' ? 'block' : 'none';
 
-        if(view === 'calendar') { 
-            try { renderSheetData(); } catch(e){}
+        if (view === 'calendar') { 
             try { renderMonthCalendar(); } catch(e){}
-            try { renderSubjectDonutChart(); } catch(e){}
         }
-        if(view === 'grades') { 
+        if (view === 'ranked') { 
+            try { renderSheetData(); } catch(e){}
+            try { renderSubjectDonutChart(); } catch(e){}
+            try { renderHeatmap(); } catch(e){}
+        }
+        if (view === 'grades') { 
             try { renderGradesView(); } catch(e){}
+        }
+        if (view === 'ai') { 
+            try { initAiView(); } catch(e){}
         }
     };
 
@@ -3237,31 +3269,25 @@
     };
 
     window.renderGradesView = function() {
-        const headerTitleEl = document.getElementById('grades-header-title');
-        const pillsBarEl = document.getElementById('grades-pills-bar');
+        const themeTitleEl = document.getElementById('grades-theme-title');
+        const backBtnEl = document.getElementById('btn-grades-back');
+        const newGradeBtnEl = document.getElementById('btn-new-grade-top');
         const summaryCardEl = document.getElementById('grades-summary-card');
         const tabContentEl = document.getElementById('grades-tab-content');
         if (!summaryCardEl || !tabContentEl) return;
 
-        // 1. HEADER & PILLS (Screenshot 1, 3, 4, 5)
+        // 1. HEADER (Title, Back button, Add button)
         if (currentDetailSubject) {
-            if (headerTitleEl) headerTitleEl.innerText = currentDetailSubject;
-            if (pillsBarEl) {
-                pillsBarEl.innerHTML = `
-                    <button type="button" class="grades-pill-btn ${currentSubjectTab === 'ultime' ? 'active' : ''}" onclick="selectSubjectTab('ultime')">Ultime valutazioni</button>
-                    <button type="button" class="grades-pill-btn ${currentSubjectTab === 'q1' ? 'active' : ''}" onclick="selectSubjectTab('q1')">1° Quadrimestre</button>
-                    <button type="button" class="grades-pill-btn ${currentSubjectTab === 'q2' ? 'active' : ''}" onclick="selectSubjectTab('q2')">2° Quadrimestre</button>
-                `;
+            if (themeTitleEl) themeTitleEl.innerText = currentDetailSubject;
+            if (backBtnEl) backBtnEl.style.display = 'flex';
+            if (newGradeBtnEl) {
+                newGradeBtnEl.onclick = () => openAddGradeModal(currentDetailSubject);
             }
         } else {
-            if (headerTitleEl) headerTitleEl.innerText = 'Valutazioni';
-            if (pillsBarEl) {
-                pillsBarEl.innerHTML = `
-                    <button type="button" class="grades-pill-btn ${currentGradesTab === 'ultime' ? 'active' : ''}" onclick="selectGradesTab('ultime')">Ultime valutazioni</button>
-                    <button type="button" class="grades-pill-btn ${currentGradesTab === 'materie' ? 'active' : ''}" onclick="selectGradesTab('materie')">Materie</button>
-                    <button type="button" class="grades-pill-btn ${currentGradesTab === 'q1' ? 'active' : ''}" onclick="selectGradesTab('q1')">1° Quadrimestre</button>
-                    <button type="button" class="grades-pill-btn ${currentGradesTab === 'q2' ? 'active' : ''}" onclick="selectGradesTab('q2')">2° Quadrimestre</button>
-                `;
+            if (themeTitleEl) themeTitleEl.innerText = 'Valutazioni';
+            if (backBtnEl) backBtnEl.style.display = 'none';
+            if (newGradeBtnEl) {
+                newGradeBtnEl.onclick = () => openAddGradeModal();
             }
         }
 
@@ -3283,7 +3309,6 @@
         let q1Avg = q1Grades.length > 0 ? (q1Grades.reduce((acc, g) => acc + (parseFloat(g.numericValue) || 0), 0) / q1Grades.length) : null;
         let q2Avg = q2Grades.length > 0 ? (q2Grades.reduce((acc, g) => acc + (parseFloat(g.numericValue) || 0), 0) / q2Grades.length) : null;
 
-        // Card color style: good (>=6, verde da screenshot 4), warning (<6, arancione caldo da screenshot 3), neutral
         let cardColorClass = 'neutral';
         let ringValText = '-';
         if (avgOverall !== null) {
@@ -3297,12 +3322,12 @@
         if (!currentDetailSubject) {
             quadrimestriHtml = `
                 <div class="grades-quadrimestri-row">
-                    <div class="grades-q-pill" onclick="selectGradesTab('q1')">
+                    <div class="grades-q-pill">
                         <span class="grades-q-pill-label">1° Quadrimestre</span>
                         <span class="grades-q-pill-count">${q1Grades.length} valutazioni</span>
                         <span class="grades-q-pill-val">${q1Avg !== null ? (q1Avg % 1 === 0 ? q1Avg.toFixed(0) : q1Avg.toFixed(2)) : '0'}</span>
                     </div>
-                    <div class="grades-q-pill" onclick="selectGradesTab('q2')">
+                    <div class="grades-q-pill">
                         <span class="grades-q-pill-label">2° Quadrimestre</span>
                         <span class="grades-q-pill-count">${q2Grades.length} valutazioni</span>
                         <span class="grades-q-pill-val">${q2Avg !== null ? (q2Avg % 1 === 0 ? q2Avg.toFixed(0) : q2Avg.toFixed(2)) : '0'}</span>
@@ -3328,25 +3353,19 @@
 
         // 3. CONTENUTO TAB
         if (currentDetailSubject) {
-            // DETTAGLIO MATERIA (Screenshots 1, 4, 5)
+            // DETTAGLIO MATERIA (Image 4)
             let subGrades = myGrades.filter(g => g.subject.toLowerCase() === currentDetailSubject.toLowerCase());
-            if (currentSubjectTab === 'q1') {
-                subGrades = subGrades.filter(g => (g.quadrimestre || getQuadrimestreForDate(g.date)) === '1° Quadrimestre');
-            } else if (currentSubjectTab === 'q2') {
-                subGrades = subGrades.filter(g => (g.quadrimestre || getQuadrimestreForDate(g.date)) === '2° Quadrimestre');
-            }
 
             if (subGrades.length === 0) {
-                // Empty state con icona identica allo Screenshot 1!
                 tabContentEl.innerHTML = `
                     <div class="grades-empty-state">
                         <svg class="grades-empty-icon" width="80" height="80" viewBox="0 0 80 80" fill="none">
-                            <path d="M18 16 V62 H64" stroke="#8E8E93" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-                            <line x1="32" y1="28" x2="56" y2="28" stroke="#8E8E93" stroke-width="7" stroke-linecap="round"/>
-                            <line x1="32" y1="40" x2="50" y2="40" stroke="#8E8E93" stroke-width="7" stroke-linecap="round"/>
-                            <line x1="32" y1="52" x2="60" y2="52" stroke="#8E8E93" stroke-width="7" stroke-linecap="round"/>
+                            <path d="M18 16 V62 H64" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+                            <line x1="32" y1="28" x2="56" y2="28" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+                            <line x1="32" y1="40" x2="50" y2="40" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+                            <line x1="32" y1="52" x2="60" y2="52" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
                         </svg>
-                        <div class="grades-empty-text">Voti non trovati per questo periodo</div>
+                        <div class="grades-empty-text">Voti non trovati per questa materia</div>
                     </div>
                 `;
             } else {
@@ -3357,9 +3376,9 @@
                     rowsHtml += `
                         <div class="grade-item-row" onclick="promptEditOrDeleteGrade('${g.id}')">
                             <div class="grade-item-left">
-                                <div class="grade-val-badge ${badgeClass}">${g.displayValue}</div>
+                                <div class="grade-badge-num ${badgeClass}">${g.displayValue}</div>
                                 <div class="grade-item-info">
-                                    <div class="grade-item-subject">${g.subject}</div>
+                                    <div class="grade-item-sub-title">${g.subject.toUpperCase()}</div>
                                     <div class="grade-item-meta">
                                         <span><i class="fa-regular fa-calendar"></i> ${formatDateShort(g.date)}</span>
                                         <span><i class="fa-solid fa-pen-nib"></i> ${g.type || 'Unico'}</span>
@@ -3374,87 +3393,43 @@
                 tabContentEl.innerHTML = `<div class="grades-list-container">${rowsHtml}</div>`;
             }
         } else {
-            // PANORAMICA (Screenshot 3 o Ultime Valutazioni)
-            if (currentGradesTab === 'materie' || currentGradesTab === 'q1' || currentGradesTab === 'q2') {
-                let filterQ = currentGradesTab === 'q1' ? '1° Quadrimestre' : (currentGradesTab === 'q2' ? '2° Quadrimestre' : null);
-                let allUniqueSubjects = Array.from(new Set([...userSubjects, ...myGrades.map(g => g.subject)])).sort();
+            // PANORAMICA MATERIE (Image 3)
+            let allUniqueSubjects = Array.from(new Set([...userSubjects, ...myGrades.map(g => g.subject)])).sort();
 
-                let gridCardsHtml = '';
-                allUniqueSubjects.forEach(sub => {
-                    let subGrades = myGrades.filter(g => g.subject.toLowerCase() === sub.toLowerCase());
-                    if (filterQ) {
-                        subGrades = subGrades.filter(g => (g.quadrimestre || getQuadrimestreForDate(g.date)) === filterQ);
-                    }
-                    let count = subGrades.length;
-                    let avg = null;
-                    if (count > 0) {
-                        let sum = subGrades.reduce((acc, g) => acc + (parseFloat(g.numericValue) || 0), 0);
-                        avg = Math.round((sum / count) * 100) / 100;
-                    }
-
-                    let ringClass = 'none';
-                    let ringText = '-';
-                    if (avg !== null) {
-                        ringText = avg % 1 === 0 ? avg.toFixed(0) : avg.toFixed(2);
-                        if (avg >= 6.0) ringClass = 'good';
-                        else if (avg >= 5.5) ringClass = 'warning';
-                        else ringClass = 'danger';
-                    }
-
-                    gridCardsHtml += `
-                        <div class="materia-card" onclick="openSubjectDetail('${sub.replace(/'/g, "\\'")}')">
-                            <div class="materia-card-header">
-                                <div>
-                                    <div class="materia-card-name">${sub}</div>
-                                    <div class="materia-card-count">${count} valutazioni</div>
-                                </div>
-                                <div class="materia-card-chevron"><i class="fa-solid fa-chevron-right"></i></div>
-                            </div>
-                            <div class="materia-avg-ring ${ringClass}">${ringText}</div>
-                        </div>
-                    `;
-                });
-
-                tabContentEl.innerHTML = `<div class="grades-materie-grid">${gridCardsHtml}</div>`;
-            } else {
-                // Ultime Valutazioni generali
-                if (myGrades.length === 0) {
-                    tabContentEl.innerHTML = `
-                        <div class="grades-empty-state">
-                            <svg class="grades-empty-icon" width="80" height="80" viewBox="0 0 80 80" fill="none">
-                                <path d="M18 16 V62 H64" stroke="#8E8E93" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-                                <line x1="32" y1="28" x2="56" y2="28" stroke="#8E8E93" stroke-width="7" stroke-linecap="round"/>
-                                <line x1="32" y1="40" x2="50" y2="40" stroke="#8E8E93" stroke-width="7" stroke-linecap="round"/>
-                                <line x1="32" y1="52" x2="60" y2="52" stroke="#8E8E93" stroke-width="7" stroke-linecap="round"/>
-                            </svg>
-                            <div class="grades-empty-text">Nessun voto registrato. Tocca <b>+ Nuovo Voto</b> per iniziare!</div>
-                        </div>
-                    `;
-                } else {
-                    let rowsHtml = '';
-                    myGrades.slice().reverse().forEach(g => {
-                        let num = parseFloat(g.numericValue) || 0;
-                        let badgeClass = num >= 6.0 ? 'good' : (num >= 5.0 ? 'warning' : 'danger');
-                        rowsHtml += `
-                            <div class="grade-item-row" onclick="promptEditOrDeleteGrade('${g.id}')">
-                                <div class="grade-item-left">
-                                    <div class="grade-val-badge ${badgeClass}">${g.displayValue}</div>
-                                    <div class="grade-item-info">
-                                        <div class="grade-item-subject">${g.subject}</div>
-                                        <div class="grade-item-meta">
-                                            <span><i class="fa-regular fa-calendar"></i> ${formatDateShort(g.date)}</span>
-                                            <span><i class="fa-solid fa-pen-nib"></i> ${g.type || 'Unico'}</span>
-                                            <span>(${g.quadrimestre || getQuadrimestreForDate(g.date)})</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="grade-item-chevron"><i class="fa-solid fa-chevron-right"></i></div>
-                            </div>
-                        `;
-                    });
-                    tabContentEl.innerHTML = `<div class="grades-list-container">${rowsHtml}</div>`;
+            let gridCardsHtml = '';
+            allUniqueSubjects.forEach(sub => {
+                let subGrades = myGrades.filter(g => g.subject.toLowerCase() === sub.toLowerCase());
+                let count = subGrades.length;
+                let avg = null;
+                if (count > 0) {
+                    let sum = subGrades.reduce((acc, g) => acc + (parseFloat(g.numericValue) || 0), 0);
+                    avg = Math.round((sum / count) * 100) / 100;
                 }
-            }
+
+                let ringClass = 'none';
+                let ringText = '-';
+                if (avg !== null) {
+                    ringText = avg % 1 === 0 ? avg.toFixed(0) : avg.toFixed(2);
+                    if (avg >= 6.0) ringClass = 'good';
+                    else if (avg >= 5.0) ringClass = 'warning';
+                    else ringClass = 'danger';
+                }
+
+                gridCardsHtml += `
+                    <div class="materia-card" onclick="openSubjectDetail('${sub.replace(/'/g, "\\'")}')">
+                        <div class="materia-card-header">
+                            <div>
+                                <div class="materia-card-name">${sub}</div>
+                                <div class="materia-card-count">${count} valutazioni</div>
+                            </div>
+                            <div class="materia-card-chevron"><i class="fa-solid fa-chevron-right"></i></div>
+                        </div>
+                        <div class="materia-avg-ring ${ringClass}">${ringText}</div>
+                    </div>
+                `;
+            });
+
+            tabContentEl.innerHTML = `<div class="grades-materie-grid">${gridCardsHtml}</div>`;
         }
     };
 
@@ -3582,598 +3557,436 @@
 
     // ==========================================================================
         // ==========================================================================
-    // MALLOW VOICE AI ASSISTANT & MULTI-EMOTION ENGINE
+    // STUDY AI CHATBOT ENGINE (Mobile App UI UX - Image 1 Spec)
     // ==========================================================================
     let isAiListening = false;
-    let speechRecognitionInstance = null;
-    let micAudioCtx = null;
-    let analyser = null;
-    let micStream = null;
-    let audioAnimFrameId = null;
     let pendingAiAction = null;
+    let aiChatHistory = JSON.parse(localStorage.getItem('studylog_ai_chat') || '[]');
 
-    // Gestione Emozioni Dinamiche di Mallow (da mallow.mascot.json)
-    window.setMallowEmotion = function(emotion) {
-        const box = document.getElementById('mallow-mascot-box');
-        if (!box) return;
-        box.classList.remove('emotion-neutral', 'emotion-listening', 'emotion-thinking', 'emotion-beaming', 'emotion-surprised', 'emotion-curious', 'emotion-shy');
-        box.classList.add('emotion-' + emotion);
+    function getAiTimeGreeting() {
+        const h = new Date().getHours();
+        if (h >= 5 && h < 13) return 'Buongiorno';
+        if (h >= 13 && h < 18) return 'Buon pomeriggio';
+        return 'Buonasera';
+    }
+
+    function getUserName() {
+        return localStorage.getItem('studylog_user_name') || 'Studente';
+    }
+
+    window.promptChangeUserName = function() {
+        const cur = getUserName();
+        showCustomPrompt('Come ti chiami?', cur, (newName) => {
+            if (newName && newName.trim()) {
+                localStorage.setItem('studylog_user_name', newName.trim());
+                initAiView();
+                showToast('Nome aggiornato: ' + newName.trim());
+            }
+        });
     };
 
-    window.openMallowVoiceOverlay = function() {
-        const overlay = document.getElementById('mallow-voice-overlay');
-        const hotbar = document.getElementById('split-hotbar');
-        const speechText = document.getElementById('mallow-speech-text');
-        const transcriptLabel = document.getElementById('mallow-transcript-label');
-        const pendingCard = document.getElementById('pending-action-card');
+    window.initAiView = function() {
+        const greetingEl = document.getElementById('ai-greeting-text');
+        const nameEl = document.getElementById('ai-user-name');
+        const welcomeEl = document.getElementById('ai-welcome-container');
+        const threadEl = document.getElementById('ai-chat-thread');
 
-        // 1. Unisci la hotbar senza cuciture
-        if (hotbar) hotbar.classList.add('is-merged');
+        if (greetingEl) greetingEl.innerText = getAiTimeGreeting();
+        if (nameEl) nameEl.innerText = getUserName();
 
-        // 2. Apri la schermata vocale minimal
-        if (overlay) overlay.classList.add('open');
-        if (pendingCard) pendingCard.style.display = 'none';
-        pendingAiAction = null;
-
-        setMallowEmotion('neutral');
-
-        let name = localStorage.getItem('studylog_user_name') || 'Studente';
-        if (speechText) {
-            // SOLO TESTO NORMALE, NO GRASSETTO
-            speechText.innerText = `Ciao ${name}! Sono Mallow. Dimmi pure cosa vuoi aggiungere, togliere o modificare nei tuoi compiti, verifiche e voti.`;
-        }
-        if (transcriptLabel) transcriptLabel.innerText = 'Tocca Mallow per parlare...';
-
-        startVoiceListening();
-    };
-
-    window.closeMallowVoiceOverlay = function() {
-        const overlay = document.getElementById('mallow-voice-overlay');
-        const hotbar = document.getElementById('split-hotbar');
-        const pendingCard = document.getElementById('pending-action-card');
-
-        stopVoiceListening();
-        setMallowEmotion('neutral');
-        if (pendingCard) pendingCard.style.display = 'none';
-        pendingAiAction = null;
-
-        if (overlay) overlay.classList.remove('open');
-        if (hotbar) hotbar.classList.remove('is-merged');
-    };
-
-    window.toggleVoiceListening = function() {
-        if (isAiListening) {
-            stopVoiceListening();
+        if (aiChatHistory.length > 0) {
+            if (welcomeEl) welcomeEl.style.display = 'none';
+            renderAiChatThread();
         } else {
-            startVoiceListening();
+            if (welcomeEl) welcomeEl.style.display = 'flex';
+            if (threadEl) threadEl.innerHTML = '';
         }
     };
 
-    // Callback per Android Native Bridge (MainActivity.kt)
+    function renderAiChatThread() {
+        const threadEl = document.getElementById('ai-chat-thread');
+        const welcomeEl = document.getElementById('ai-welcome-container');
+        if (!threadEl) return;
+
+        if (aiChatHistory.length > 0 && welcomeEl) {
+            welcomeEl.style.display = 'none';
+        }
+
+        threadEl.innerHTML = '';
+        aiChatHistory.forEach(item => {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'ai-msg ' + (item.sender === 'user' ? 'ai-msg-user' : 'ai-msg-ai');
+            msgDiv.innerText = item.text;
+
+            if (item.actionCard) {
+                const card = document.createElement('div');
+                card.className = 'ai-action-card';
+                card.innerHTML = `
+                    <div class="ai-action-header"><i class="fa-solid fa-bolt"></i> Azione Suggerita</div>
+                    <div class="ai-action-desc">${item.actionCard.desc}</div>
+                    <div class="ai-action-btn-row">
+                        <button type="button" class="btn-ai-action-confirm" onclick="executePendingAiAction(${JSON.stringify(item.actionCard.action).replace(/"/g, '&quot;')})">
+                            <i class="fa-solid fa-check"></i> Conferma ed Esegui
+                        </button>
+                    </div>
+                `;
+                msgDiv.appendChild(card);
+            }
+            threadEl.appendChild(msgDiv);
+        });
+
+        // Scroll to bottom
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    window.resetAiChatConversation = function() {
+        aiChatHistory = [];
+        localStorage.removeItem('studylog_ai_chat');
+        initAiView();
+        showToast('Conversazione azzerata');
+    };
+
+    window.sendAiChatMessage = function() {
+        const input = document.getElementById('ai-prompt-input');
+        if (!input) return;
+        const text = input.value.trim();
+        if (!text) return;
+
+        input.value = '';
+        appendChatMessage('user', text);
+        processStudyAiCommand(text);
+    };
+
+    function appendChatMessage(sender, text, actionCard = null) {
+        aiChatHistory.push({ sender, text, actionCard, time: Date.now() });
+        // Keep last 30 messages
+        if (aiChatHistory.length > 30) aiChatHistory.shift();
+        localStorage.setItem('studylog_ai_chat', JSON.stringify(aiChatHistory));
+        renderAiChatThread();
+    }
+
+    // Waveform and Voice Recognition
+    window.toggleAiVoiceRecording = function() {
+        if (isAiListening) {
+            stopAiVoiceRecording();
+        } else {
+            startAiVoiceRecording();
+        }
+    };
+
+    function startAiVoiceRecording() {
+        isAiListening = true;
+        const micBtn = document.getElementById('btn-ai-mic');
+        const waveContainer = document.getElementById('ai-waveform-container');
+        if (micBtn) micBtn.classList.add('is-listening');
+        if (waveContainer) waveContainer.style.display = 'flex';
+
+        // Android Native Bridge
+        if (window.Android && typeof window.Android.startNativeSpeechRecognition === 'function') {
+            window.Android.startNativeSpeechRecognition();
+            return;
+        }
+
+        // Web Speech API fallback
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRec) {
+            try {
+                const rec = new SpeechRec();
+                rec.lang = 'it-IT';
+                rec.continuous = false;
+                rec.interimResults = true;
+                rec.onresult = (e) => {
+                    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+                    const input = document.getElementById('ai-prompt-input');
+                    if (input) input.value = transcript;
+                    if (e.results[0].isFinal) {
+                        stopAiVoiceRecording();
+                        appendChatMessage('user', transcript);
+                        processStudyAiCommand(transcript);
+                    }
+                };
+                rec.onerror = () => stopAiVoiceRecording();
+                rec.onend = () => stopAiVoiceRecording();
+                rec.start();
+            } catch(e) {
+                stopAiVoiceRecording();
+            }
+        }
+    }
+
+    function stopAiVoiceRecording() {
+        isAiListening = false;
+        const micBtn = document.getElementById('btn-ai-mic');
+        const waveContainer = document.getElementById('ai-waveform-container');
+        if (micBtn) micBtn.classList.remove('is-listening');
+        if (waveContainer) waveContainer.style.display = 'none';
+        if (window.Android && typeof window.Android.stopNativeSpeechRecognition === 'function') {
+            window.Android.stopNativeSpeechRecognition();
+        }
+    }
+
+    // Android Speech Callbacks
     window.onAndroidSpeechStart = function() {
         isAiListening = true;
-        setMallowEmotion('listening');
-        const mascotBox = document.getElementById('mallow-mascot-box');
-        const stateSubtitle = document.getElementById('mallow-state-subtitle');
-        const transcriptLabel = document.getElementById('mallow-transcript-label');
-        if (mascotBox) mascotBox.classList.add('is-listening');
-        if (stateSubtitle) stateSubtitle.innerText = 'In ascolto...';
-        if (transcriptLabel) transcriptLabel.innerText = 'Ti sto ascoltando...';
+        const micBtn = document.getElementById('btn-ai-mic');
+        const waveContainer = document.getElementById('ai-waveform-container');
+        if (micBtn) micBtn.classList.add('is-listening');
+        if (waveContainer) waveContainer.style.display = 'flex';
     };
 
-    window.onAndroidSpeechResult = function(text, isFinal) {
-        const transcriptLabel = document.getElementById('mallow-transcript-label');
-        if (transcriptLabel && text) transcriptLabel.innerText = `"${text}"`;
-        if (isFinal && text && text.trim().length > 0) {
-            stopVoiceListening();
-            setMallowEmotion('thinking');
-            processMallowAiCommand(text);
+    window.onAndroidSpeechResult = function(transcript, isFinal) {
+        const input = document.getElementById('ai-prompt-input');
+        if (input) input.value = transcript;
+        if (isFinal) {
+            stopAiVoiceRecording();
+            appendChatMessage('user', transcript);
+            processStudyAiCommand(transcript);
         }
     };
 
     window.onAndroidSpeechCancel = function() {
-        stopVoiceListening();
-        setMallowEmotion('neutral');
-        const transcriptLabel = document.getElementById('mallow-transcript-label');
-        if (transcriptLabel) transcriptLabel.innerText = 'Tocca Mallow quando vuoi parlare.';
+        stopAiVoiceRecording();
     };
 
     window.onAndroidSpeechError = function(err) {
-        stopVoiceListening();
-        setMallowEmotion('shy');
-        const transcriptLabel = document.getElementById('mallow-transcript-label');
-        if (transcriptLabel) transcriptLabel.innerText = 'Non ho sentito bene, tocca Mallow per riprovare.';
+        stopAiVoiceRecording();
     };
 
-    window.onMicrophonePermissionGranted = function() {
-        showToast('Permesso microfono concesso');
-        startVoiceListening();
-    };
-
-    function startVoiceListening() {
-        setMallowEmotion('listening');
-        const mascotBox = document.getElementById('mallow-mascot-box');
-        const stateSubtitle = document.getElementById('mallow-state-subtitle');
-        const transcriptLabel = document.getElementById('mallow-transcript-label');
-
-        if (mascotBox) mascotBox.classList.add('is-listening');
-        if (stateSubtitle) stateSubtitle.innerText = 'In ascolto... parla ora';
-        if (transcriptLabel) transcriptLabel.innerText = 'Ti sto ascoltando...';
-
-        // 1. Android Native Speech Recognizer (Google speech popup)
-        if (window.AndroidNative && typeof window.AndroidNative.startNativeSpeechRecognition === 'function') {
-            isAiListening = true;
-            window.AndroidNative.startNativeSpeechRecognition();
-            return;
-        }
-
-        // 2. Web Speech API per Browser / PWA
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        startAudioReactivity();
-
-        if (!SpeechRecognition) {
-            if (transcriptLabel) transcriptLabel.innerText = 'Tocca Mallow o scrivi sotto un comando.';
-            return;
-        }
-
-        try {
-            if (speechRecognitionInstance) {
-                try { speechRecognitionInstance.stop(); } catch(e){}
-            }
-            speechRecognitionInstance = new SpeechRecognition();
-            speechRecognitionInstance.lang = 'it-IT';
-            speechRecognitionInstance.continuous = false;
-            speechRecognitionInstance.interimResults = true;
-
-            speechRecognitionInstance.onstart = function() {
-                isAiListening = true;
-            };
-
-            speechRecognitionInstance.onresult = function(event) {
-                let current = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    current += event.results[i][0].transcript;
-                }
-                if (transcriptLabel) transcriptLabel.innerText = `"${current}"`;
-                if (event.results[0].isFinal) {
-                    stopVoiceListening();
-                    setMallowEmotion('thinking');
-                    processMallowAiCommand(current);
-                }
-            };
-
-            speechRecognitionInstance.onerror = function() {
-                stopVoiceListening();
-                setMallowEmotion('shy');
-                if (transcriptLabel) transcriptLabel.innerText = 'Non ho sentito bene, tocca Mallow per riprovare.';
-            };
-
-            speechRecognitionInstance.onend = function() {
-                stopVoiceListening();
-            };
-
-            speechRecognitionInstance.start();
-        } catch(e) {
-            console.error('Speech recognition error:', e);
-            stopVoiceListening();
-        }
-    }
-
-    function stopVoiceListening() {
-        isAiListening = false;
-        if (speechRecognitionInstance) {
-            try { speechRecognitionInstance.stop(); } catch(e){}
-            speechRecognitionInstance = null;
-        }
-        stopAudioReactivity();
-
-        const mascotBox = document.getElementById('mallow-mascot-box');
-        const stateSubtitle = document.getElementById('mallow-state-subtitle');
-
-        if (mascotBox) mascotBox.classList.remove('is-listening');
-        if (stateSubtitle) stateSubtitle.innerText = 'Tocca Mallow per parlare';
-    }
-
-    // Audio-Reattività in Tempo Reale
-    async function startAudioReactivity() {
-        try {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
-            if (micStream) return;
-
-            micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            micAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            analyser = micAudioCtx.createAnalyser();
-            analyser.fftSize = 256;
-            analyser.smoothingTimeConstant = 0.45;
-            const source = micAudioCtx.createMediaStreamSource(micStream);
-            source.connect(analyser);
-
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-            const mascotSvg = document.getElementById('mallow-screen-mascot');
-            let currentScale = 1.0;
-
-            function renderAudioPulse() {
-                if (!isAiListening) return;
-                analyser.getByteFrequencyData(dataArray);
-                let sum = 0;
-                for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-                let avg = sum / dataArray.length;
-
-                let targetScale = 1.0;
-                if (avg > 7) {
-                    let norm = Math.min((avg - 7) / 30, 1.4);
-                    targetScale = 1.0 + norm * 0.35;
-                } else {
-                    targetScale = 1.0;
-                }
-
-                currentScale += (targetScale - currentScale) * 0.35;
-                if (mascotSvg) mascotSvg.style.transform = `scale(${currentScale.toFixed(3)})`;
-
-                audioAnimFrameId = requestAnimationFrame(renderAudioPulse);
-            }
-            renderAudioPulse();
-        } catch(err) {
-            console.warn('Audio analyser fallback:', err);
-        }
-    }
-
-    function stopAudioReactivity() {
-        if (audioAnimFrameId) cancelAnimationFrame(audioAnimFrameId);
-        audioAnimFrameId = null;
-        if (micStream) {
-            micStream.getTracks().forEach(track => track.stop());
-            micStream = null;
-        }
-        if (micAudioCtx) {
-            try { micAudioCtx.close(); } catch(e){}
-            micAudioCtx = null;
-        }
-        const mascotSvg = document.getElementById('mallow-screen-mascot');
-        if (mascotSvg) mascotSvg.style.transform = 'scale(1)';
-    }
-
-    window.submitVoiceManualInput = function() {
-        const input = document.getElementById('voice-manual-input');
-        if (!input) return;
-        let val = input.value.trim();
-        if (!val) return;
-        input.value = '';
-        setMallowEmotion('thinking');
-        processMallowAiCommand(val);
-    };
-
-    window.speakMallowVoice = function(text) {
+    // Text to Speech
+    window.speakAiVoice = function(text) {
         if (!('speechSynthesis' in window)) return;
         try {
             window.speechSynthesis.cancel();
-            let clean = text.replace(/<[^>]*>/g, '').replace(/[★•📝📅🎯💡✏️🗑️]/g, '');
-            let utterance = new SpeechSynthesisUtterance(clean);
-            utterance.lang = 'it-IT';
-            utterance.rate = 1.02;
-            utterance.pitch = 1.02;
-            window.speechSynthesis.speak(utterance);
-        } catch(e) {}
+            const cleanText = text.replace(/<[^>]*>/g, '').replace(/[#*_]/g, '');
+            const utter = new SpeechSynthesisUtterance(cleanText);
+            utter.lang = 'it-IT';
+            utter.rate = 1.05;
+            utter.pitch = 1.0;
+            window.speechSynthesis.speak(utter);
+        } catch(e){}
     };
 
-    // Interprete Comandi Vocali (SOLO TESTO NORMALE, NO GRASSETTO)
-    window.processMallowAiCommand = async function(rawText) {
-        const speechText = document.getElementById('mallow-speech-text');
-        const transcriptLabel = document.getElementById('mallow-transcript-label');
-        const pendingCard = document.getElementById('pending-action-card');
+    // Study AI Natural Language & Scientific Study Engine
+    window.processStudyAiCommand = async function(rawText) {
+        const text = rawText.toLowerCase().trim();
 
-        if (transcriptLabel) transcriptLabel.innerText = `"${rawText}"`;
-        if (speechText) speechText.innerText = 'Mallow sta elaborando la richiesta...';
-        if (pendingCard) pendingCard.style.display = 'none';
-        pendingAiAction = null;
-
-        let text = rawText.toLowerCase().trim();
-
-        // 1. ELIMINAZIONE / TOGLIERE
-        if (text.includes('togli') || text.includes('elimina') || text.includes('cancella') || text.includes('rimuovi')) {
-            if (text.includes('voto') || text.includes('voti')) {
-                let sub = extractSubjectFromText(text);
-                let targetGrade = myGrades.slice().reverse().find(g => g.subject.toLowerCase() === sub.toLowerCase()) || myGrades[myGrades.length - 1];
-                if (targetGrade) {
-                    let intro = 'Ho trovato il voto da rimuovere:';
-                    let desc = `Eliminerò il voto ${targetGrade.displayValue} in ${targetGrade.subject} del ${formatDateShort(targetGrade.date)}.`;
-                    setupPendingAction('ELIMINA VOTO', 'delete_grade', targetGrade.id, null, intro, desc);
-                    return;
-                } else {
-                    respondNoAction('Non ho trovato nessun voto registrato da eliminare.');
-                    return;
-                }
-            }
-            if (text.includes('verifica') || text.includes('interrogazione') || text.includes('esame')) {
-                let sub = extractSubjectFromText(text);
-                let targetExam = myExams.find(e => e.subject.toLowerCase() === sub.toLowerCase()) || myExams[0];
-                if (targetExam) {
-                    let intro = 'Rimuoverò questa verifica dal tuo piano:';
-                    let desc = `Eliminerò la verifica di ${targetExam.subject} del ${formatDateShort(targetExam.date)} (${targetExam.pages} pagine).`;
-                    setupPendingAction('ELIMINA VERIFICA', 'delete_exam', targetExam.id, null, intro, desc);
-                    return;
-                } else {
-                    respondNoAction(`Non ho trovato nessuna verifica di ${sub} da eliminare.`);
-                    return;
-                }
-            }
-            if (text.includes('compito') || text.includes('compiti') || text.includes('esercizi') || text.includes('task')) {
-                let sub = extractSubjectFromText(text);
-                let targetTodo = myTodos.find(t => t.subject.toLowerCase() === sub.toLowerCase()) || myTodos[0];
-                if (targetTodo) {
-                    let intro = 'Ho trovato il compito da rimuovere:';
-                    let desc = `Eliminerò il compito di ${targetTodo.subject}: "${targetTodo.title}".`;
-                    setupPendingAction('ELIMINA COMPITO', 'delete_todo', targetTodo.id, null, intro, desc);
-                    return;
-                } else {
-                    respondNoAction(`Nessun compito di ${sub} trovato da rimuovere.`);
-                    return;
-                }
-            }
+        // Loading message
+        const threadEl = document.getElementById('ai-chat-thread');
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'ai-msg ai-msg-ai';
+        loadingDiv.id = 'ai-msg-loading';
+        loadingDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sto elaborando...';
+        if (threadEl) {
+            threadEl.appendChild(loadingDiv);
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
-        // 2. MODIFICARE
-        if (text.includes('modifica') || text.includes('cambia') || text.includes('sposta') || text.includes('aggiorna')) {
-            if (text.includes('voto')) {
-                let sub = extractSubjectFromText(text);
-                let targetGrade = myGrades.find(g => g.subject.toLowerCase() === sub.toLowerCase()) || myGrades[myGrades.length - 1];
-                let numMatch = text.match(/([0-9]+(?:[\.,][0-9]+)?|[0-9]+\+| [0-9]+\-| [0-9]+\s+e\s+mezzo)/);
-                if (targetGrade && numMatch) {
-                    let newVal = numMatch[1];
-                    let newNumeric = parseGradeNumeric(newVal);
-                    let intro = 'Ho preparato la correzione del voto:';
-                    let desc = `Modificherò il voto di ${targetGrade.subject} portandolo da ${targetGrade.displayValue} a ${newVal}.`;
-                    setupPendingAction('MODIFICA VOTO', 'edit_grade', targetGrade.id, { numericValue: newNumeric, displayValue: newVal }, intro, desc);
-                    return;
-                }
-            }
-            if (text.includes('verifica') || text.includes('interrogazione') || text.includes('esame')) {
-                let sub = extractSubjectFromText(text);
-                let targetExam = myExams.find(e => e.subject.toLowerCase() === sub.toLowerCase()) || myExams[0];
-                if (targetExam) {
-                    let pagesMatch = text.match(/([0-9]+)\s*(?:pagine|pag|pg)/);
-                    let newPages = pagesMatch ? parseInt(pagesMatch[1]) : targetExam.pages;
-                    let newDate = extractDateFromItalianText(text) || targetExam.date;
-                    let intro = 'Ho ricalcolato il piano di studio per questa verifica:';
-                    let desc = `Aggiornerò la verifica di ${targetExam.subject}: pagine ${newPages}, data ${formatDateShort(newDate)}.`;
-                    setupPendingAction('MODIFICA VERIFICA', 'edit_exam', targetExam.id, { pages: newPages, date: newDate }, intro, desc);
-                    return;
-                }
-            }
-            if (text.includes('compito') || text.includes('esercizi') || text.includes('task')) {
-                let sub = extractSubjectFromText(text);
-                let targetTodo = myTodos.find(t => t.subject.toLowerCase() === sub.toLowerCase()) || myTodos[0];
-                if (targetTodo) {
-                    let newDate = extractDateFromItalianText(text) || targetTodo.deadline;
-                    let intro = 'Ho preparato la modifica del compito:';
-                    let desc = `Sposterò il compito di ${targetTodo.subject} ("${targetTodo.title}") al ${formatDateShort(newDate)}.`;
-                    setupPendingAction('MODIFICA COMPITO', 'edit_todo', targetTodo.id, { deadline: newDate, assignedDate: newDate }, intro, desc);
-                    return;
-                }
-            }
-        }
-
-        // 3. AGGIUNGERE
-        // A) Voto
-        let gradeMatch = text.match(/(?:ho\s+preso|preso|voto)\s+([0-9]+(?:[\.,][0-9]+)?|[0-9]+\+| [0-9]+\-| [0-9]+\s+e\s+mezzo)(?:\s+(?:in|a|per|di))?\s+([a-zA-ZÀ-ſ\s]+)/i);
-        if (gradeMatch) {
-            let gradeVal = gradeMatch[1];
-            let gradeSub = findBestSubjectMatch(gradeMatch[2].trim());
-            let numVal = parseGradeNumeric(gradeVal);
-            if (numVal !== null) {
-                let intro = 'Congratulazioni per la prova!';
-                let desc = `Registrerò il voto ${gradeVal} in ${gradeSub} (Scritto) nel Registro Voti.`;
-                let gradeData = {
-                    id: 'gr_' + generateId(),
-                    subject: gradeSub,
-                    displayValue: gradeVal,
-                    numericValue: numVal,
-                    type: 'Scritto',
-                    quadrimestre: getQuadrimestreForDate(todayDateStr),
-                    date: todayDateStr,
-                    examId: null,
-                    notes: 'Aggiunto con Mallow'
-                };
-                setupPendingAction('NUOVO VOTO', 'add_grade', null, gradeData, intro, desc);
-                return;
-            }
-        }
-
-        // B) Verifica
-        if (text.includes('verifica') || text.includes('interrogazione') || text.includes('esame') || text.includes('versione')) {
-            let isInterrogazione = text.includes('interrogazione');
-            let isVersione = text.includes('versione');
-            let type = isInterrogazione ? 'Interrogazione' : (isVersione ? 'Versione' : 'Verifica');
-            let pagesMatch = text.match(/([0-9]+)\s*(?:pagine|pag|pg)/);
-            let pages = pagesMatch ? parseInt(pagesMatch[1]) : 25;
-            let targetDate = extractDateFromItalianText(text);
-            let sub = extractSubjectFromText(text);
-
-            let intro = 'Ottimo, organizziamo lo studio con il metodo scientifico:';
-            let desc = `Pianificherò la ${type} di ${sub} per il ${formatDateShort(targetDate)} (${pages} pagine) con studio spaziato Dunlosky.`;
-            let examData = {
-                id: 'ex_' + generateId(),
-                type: type,
-                subject: sub,
-                date: targetDate,
-                startDate: todayDateStr,
-                pages: pages,
-                specificInterrogazioneDates: [],
-                progress: {},
-                excludedDays: [],
-                snoozedDays: []
-            };
-            setupPendingAction('NUOVA VERIFICA', 'add_exam', null, examData, intro, desc);
-            return;
-        }
-
-        // C) Compito
-        if (text.includes('compito') || text.includes('compiti') || text.includes('esercizi') || text.includes('studiare') || text.includes('da fare')) {
-            let sub = extractSubjectFromText(text);
-            let targetDate = extractDateFromItalianText(text);
-            let title = rawText.replace(/(?:metti|aggiungi|ho|da fare|il|i|un|compito|compiti)\s+/gi, '').trim();
-            if (!title || title.length < 3) title = `Compito di ${sub}`;
-            if (title.length > 55) title = title.slice(0, 55) + '...';
-
-            let intro = 'Ho registrato il tuo compito:';
-            let desc = `Aggiungerò il compito di ${sub} per il ${formatDateShort(targetDate)}: "${title}".`;
-            let todoData = {
-                id: 'td_' + generateId(),
-                subject: sub,
-                title: title,
-                priority: 2,
-                difficulty: 1,
-                deadline: targetDate,
-                assignedDate: targetDate,
-                repeat: 'none',
-                isAutoScheduled: false
-            };
-            setupPendingAction('NUOVO COMPITO', 'add_todo', null, todoData, intro, desc);
-            return;
-        }
-
-        // Fallback minimale (SOLO TESTO NORMALE, NO GRASSETTO)
-        setMallowEmotion('curious');
-        respondNoAction(`Ho ascoltato: "${rawText}". Puoi dirmi di aggiungere, togliere o modificare un compito, una verifica o un voto.`);
-    };
-
-    function setupPendingAction(badgeText, actionType, targetId, actionData, introText, descText) {
-        setMallowEmotion('beaming');
-        const speechText = document.getElementById('mallow-speech-text');
-        const pendingCard = document.getElementById('pending-action-card');
-        const pendingBadge = document.getElementById('pending-action-badge');
-        const pendingDesc = document.getElementById('pending-action-desc');
-
-        pendingAiAction = {
-            badge: badgeText,
-            action: actionType,
-            id: targetId,
-            data: actionData,
-            intro: introText,
-            desc: descText
+        const removeLoading = () => {
+            const el = document.getElementById('ai-msg-loading');
+            if (el) el.remove();
         };
 
-        // SOLO TESTO NORMALE (SENZA <b> o <strong>)
-        let cleanIntro = introText.replace(/<[^>]*>/g, '');
-        let cleanDesc = descText.replace(/<[^>]*>/g, '');
+        // Check if Gemini API key is configured
+        if (geminiApiKey) {
+            try {
+                const promptContext = `Sei Study AI, un assistente accademico esperto e tutor di studio basato su evidenze scientifiche (Dunlosky 2013: spacing effect, active recall).
+Rispondi in italiano con un tono calmo, chiaro, normale e senza usare MAI formattazione in grassetto o asterischi.
+I dati attuali dello studente:
+Materie: ${userSubjects.join(', ')}
+Task aperti: ${myTodos.map(t => t.title + ' (' + t.subject + ')').join('; ')}
+Verifiche: ${myExams.map(e => e.subject + ' il ' + e.date + ' (' + (e.pagesTotal || '') + ' pag)').join('; ')}
+Voti: ${myGrades.map(g => g.subject + ': ' + g.displayValue).join('; ')}
 
-        if (speechText) {
-            speechText.innerText = `${cleanIntro} Premi Conferma ed Esegui per applicare, oppure tocca Mallow per parlare di nuovo.`;
-        }
-        if (pendingBadge) pendingBadge.innerHTML = `<i class="fa-solid fa-bolt"></i> ${badgeText}`;
-        if (pendingDesc) pendingDesc.innerText = cleanDesc;
-        if (pendingCard) pendingCard.style.display = 'block';
+Se l'utente ti chiede di aggiungere, togliere o modificare un compito, verifica o voto, includi alla fine della tua risposta questo blocco JSON esatto:
+###JSON_ACTION: {"type": "add_task"|"remove_task"|"modify_task"|"add_exam"|"remove_exam"|"modify_exam"|"add_grade"|"remove_grade", "subject": "...", "date": "YYYY-MM-DD", "details": "...", "value": "..."}###
 
-        speakMallowVoice(`${cleanIntro} ${cleanDesc}. Premi conferma per applicare.`);
-    }
+Richiesta dello studente: "${rawText}"`;
 
-    function respondNoAction(messageText) {
-        const speechText = document.getElementById('mallow-speech-text');
-        const pendingCard = document.getElementById('pending-action-card');
-        if (pendingCard) pendingCard.style.display = 'none';
-        pendingAiAction = null;
-        if (speechText) speechText.innerText = messageText.replace(/<[^>]*>/g, '');
-        speakMallowVoice(messageText.replace(/<[^>]*>/g, ''));
-    }
+                const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: promptContext }] }] })
+                });
 
-    window.executePendingAiAction = function() {
-        if (!pendingAiAction) return;
+                if (resp.ok) {
+                    const data = await resp.json();
+                    let reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    removeLoading();
 
-        const { action, id, data } = pendingAiAction;
-        const speechText = document.getElementById('mallow-speech-text');
-        const pendingCard = document.getElementById('pending-action-card');
+                    let actionCard = null;
+                    if (reply.includes('###JSON_ACTION:')) {
+                        const parts = reply.split('###JSON_ACTION:');
+                        reply = parts[0].trim();
+                        const jsonStr = parts[1].split('###')[0].trim();
+                        try {
+                            const actionObj = JSON.parse(jsonStr);
+                            actionCard = {
+                                desc: formatActionDescription(actionObj),
+                                action: actionObj
+                            };
+                        } catch(e){}
+                    }
 
-        switch(action) {
-            case 'add_todo':
-                myTodos.push(data);
-                localStorage.setItem('studylog_todos', JSON.stringify(myTodos));
-                addXP(15);
-                showToast(`Compito di ${data.subject} aggiunto! +15 XP`);
-                break;
-
-            case 'delete_todo':
-                myTodos = myTodos.filter(t => t.id !== id);
-                localStorage.setItem('studylog_todos', JSON.stringify(myTodos));
-                showToast('Compito rimosso!');
-                break;
-
-            case 'edit_todo':
-                let todo = myTodos.find(t => t.id === id);
-                if (todo) {
-                    Object.assign(todo, data);
-                    localStorage.setItem('studylog_todos', JSON.stringify(myTodos));
-                    showToast('Compito aggiornato!');
+                    // Remove any bold asterisks
+                    reply = reply.replace(/\*\*/g, '').replace(/\*/g, '');
+                    appendChatMessage('ai', reply, actionCard);
+                    speakAiVoice(reply);
+                    return;
                 }
-                break;
-
-            case 'add_exam':
-                myExams.push(data);
-                localStorage.setItem('studylog_exams', JSON.stringify(myExams));
-                addXP(25);
-                showToast(`Verifica di ${data.subject} pianificata! +25 XP`);
-                break;
-
-            case 'delete_exam':
-                myExams = myExams.filter(e => e.id !== id);
-                localStorage.setItem('studylog_exams', JSON.stringify(myExams));
-                showToast('Verifica eliminata dal calendario!');
-                break;
-
-            case 'edit_exam':
-                let exam = myExams.find(e => e.id === id);
-                if (exam) {
-                    Object.assign(exam, data);
-                    localStorage.setItem('studylog_exams', JSON.stringify(myExams));
-                    showToast('Verifica modificata!');
-                }
-                break;
-
-            case 'add_grade':
-                myGrades.push(data);
-                localStorage.setItem('studylog_grades', JSON.stringify(myGrades));
-                addXP(20);
-                showToast(`Voto ${data.displayValue} in ${data.subject} registrato! +20 XP`);
-                triggerMallowGradeFeedback(data);
-                break;
-
-            case 'delete_grade':
-                myGrades = myGrades.filter(g => g.id !== id);
-                localStorage.setItem('studylog_grades', JSON.stringify(myGrades));
-                showToast('Voto rimosso dal registro!');
-                break;
-
-            case 'edit_grade':
-                let gr = myGrades.find(g => g.id === id);
-                if (gr) {
-                    Object.assign(gr, data);
-                    localStorage.setItem('studylog_grades', JSON.stringify(myGrades));
-                    showToast('Voto aggiornato!');
-                }
-                break;
+            } catch(e) {
+                console.warn('Gemini API call failed, falling back to local NLP engine:', e);
+            }
         }
 
-        updateAllDots();
-        generateTasksForDate(selectedDateStr);
-        renderStreakCalendar();
-        renderMonthCalendar();
-        renderGradesView();
+        // Offline Local NLP Rule Engine
+        removeLoading();
+        let matchedSubject = userSubjects.find(s => text.includes(s.toLowerCase())) || 'Generale';
 
-        setMallowEmotion('beaming');
-        if (speechText) {
-            speechText.innerText = 'Fatto! Modifiche applicate con successo al tuo piano di studio.';
+        // 1. Aggiungi Compito
+        if (text.includes('compito') || text.includes('compiti') || text.includes('esercizio') || text.includes('studiare')) {
+            let targetDate = parseDateFromText(text);
+            let actionObj = {
+                type: 'add_task',
+                subject: matchedSubject,
+                date: targetDate,
+                details: extractDetailsFromText(rawText) || ('Studio di ' + matchedSubject)
+            };
+            let reply = 'Posso aggiungere questo compito di ' + matchedSubject + ' per ' + formatDateShort(targetDate) + '. Confermi?';
+            appendChatMessage('ai', reply, { desc: actionObj.details + ' per ' + formatDateShort(targetDate), action: actionObj });
+            speakAiVoice(reply);
+            return;
         }
-        if (pendingCard) pendingCard.style.display = 'none';
-        speakMallowVoice('Fatto! Modifiche applicate con successo.');
-        pendingAiAction = null;
+
+        // 2. Aggiungi Verifica
+        if (text.includes('verifica') || text.includes('interrogazione') || text.includes('esame')) {
+            let targetDate = parseDateFromText(text);
+            let pages = extractPagesFromText(text) || 20;
+            let actionObj = {
+                type: 'add_exam',
+                subject: matchedSubject,
+                date: targetDate,
+                pages: pages
+            };
+            let reply = 'Ho programmato la verifica di ' + matchedSubject + ' per ' + formatDateShort(targetDate) + ' con ' + pages + ' pagine. Confermi l\'inserimento?';
+            appendChatMessage('ai', reply, { desc: 'Verifica ' + matchedSubject + ': ' + pages + ' pagine per ' + formatDateShort(targetDate), action: actionObj });
+            speakAiVoice(reply);
+            return;
+        }
+
+        // 3. Aggiungi Voto
+        if (text.includes('voto') || text.includes('preso') || text.includes('registra')) {
+            let gradeMatch = text.match(/\b([1-9]|10)(\.[0-9]+|\,[0-9]+|\+|\-|\/2|\/10| e mezzo)?\b/);
+            let gradeVal = gradeMatch ? gradeMatch[0].replace(',', '.') : '7';
+            let actionObj = {
+                type: 'add_grade',
+                subject: matchedSubject,
+                value: gradeVal,
+                date: todayDateStr
+            };
+            let reply = 'Ottimo! Vuoi che registri il voto ' + gradeVal + ' in ' + matchedSubject + ' nel tuo registro voti?';
+            appendChatMessage('ai', reply, { desc: 'Voto ' + gradeVal + ' in ' + matchedSubject, action: actionObj });
+            speakAiVoice(reply);
+            return;
+        }
+
+        // 4. Domande generali di studio
+        let reply = 'Posso aiutarti a gestire compiti, verifiche e voti. Dimmi ad esempio: "Aggiungi compito di matematica per domani", "Verifica di storia il 15 novembre 30 pagine" oppure "Ho preso 8 in fisica".';
+        appendChatMessage('ai', reply);
+        speakAiVoice(reply);
     };
 
-    window.cancelPendingAiAction = function() {
-        setMallowEmotion('neutral');
-        const speechText = document.getElementById('mallow-speech-text');
-        const pendingCard = document.getElementById('pending-action-card');
-        pendingAiAction = null;
-        if (pendingCard) pendingCard.style.display = 'none';
-        if (speechText) speechText.innerText = 'Azione annullata. Dimmi pure un altro comando o tocca Mallow per parlare!';
+    function formatActionDescription(act) {
+        if (!act) return 'Azione rilevata';
+        if (act.type === 'add_task') return 'Aggiungi compito: ' + (act.details || act.subject) + ' per ' + formatDateShort(act.date || todayDateStr);
+        if (act.type === 'add_exam') return 'Aggiungi verifica di ' + act.subject + ' (' + (act.pages || 20) + ' pag) per ' + formatDateShort(act.date || todayDateStr);
+        if (act.type === 'add_grade') return 'Registra voto ' + act.value + ' in ' + act.subject;
+        return 'Modifica piano di studio';
+    }
+
+    function parseDateFromText(txt) {
+        let now = new Date();
+        if (txt.includes('domani')) {
+            let d = new Date(now);
+            d.setDate(d.getDate() + 1);
+            return formatDateStr(d);
+        }
+        if (txt.includes('dopodomani')) {
+            let d = new Date(now);
+            d.setDate(d.getDate() + 2);
+            return formatDateStr(d);
+        }
+        return tomorrowStr;
+    }
+
+    function extractPagesFromText(txt) {
+        let m = txt.match(/(\d+)\s*(pag|pagine)/);
+        return m ? parseInt(m[1]) : 20;
+    }
+
+    function extractDetailsFromText(txt) {
+        let clean = txt.replace(/aggiungi|compito|verifica|per|domani|dopodomani/gi, '').trim();
+        return clean.length > 3 ? clean : '';
+    }
+
+    window.executePendingAiAction = function(actionObj) {
+        if (!actionObj) return;
+
+        if (actionObj.type === 'add_task') {
+            const newTodo = {
+                _id: 'todo_' + Date.now(),
+                title: actionObj.details || ('Compito di ' + (actionObj.subject || 'Studio')),
+                subject: actionObj.subject || userSubjects[0] || 'Matematica',
+                deadline: actionObj.date || tomorrowStr,
+                priority: 'media',
+                difficulty: 'media',
+                assignedDate: todayDateStr,
+                createdAt: todayDateStr,
+                isDone: false,
+                excludedDays: []
+            };
+            myTodos.push(newTodo);
+            localStorage.setItem('studylog_todos', JSON.stringify(myTodos));
+            renderTimeline();
+            addXP(25);
+            showToast('Compito aggiunto! +25 XP');
+        } else if (actionObj.type === 'add_exam') {
+            const newExam = {
+                id: 'exam_' + Date.now(),
+                subject: actionObj.subject || userSubjects[0] || 'Storia',
+                date: actionObj.date || tomorrowStr,
+                pagesTotal: parseInt(actionObj.pages) || 20,
+                type: 'Scritto',
+                startDate: todayDateStr,
+                excludedDays: []
+            };
+            myExams.push(newExam);
+            localStorage.setItem('studylog_exams', JSON.stringify(myExams));
+            generateTasksFromExam(newExam);
+            renderTimeline();
+            addXP(40);
+            showToast('Verifica programmata! +40 XP');
+        } else if (actionObj.type === 'add_grade') {
+            const rawVal = String(actionObj.value || '7');
+            const newGrade = {
+                id: 'grade_' + Date.now(),
+                subject: actionObj.subject || userSubjects[0] || 'Matematica',
+                rawInput: rawVal,
+                displayValue: rawVal,
+                numericValue: parseGradeNumeric(rawVal) || 7.0,
+                type: 'Scritto',
+                quadrimestre: getQuadrimestreForDate(todayDateStr),
+                date: todayDateStr,
+                notes: 'Registrato con Study AI'
+            };
+            myGrades.push(newGrade);
+            localStorage.setItem('studylog_grades', JSON.stringify(myGrades));
+            renderGradesView();
+            addXP(20);
+            showToast('Voto ' + rawVal + ' registrato! +20 XP');
+        }
+
+        appendChatMessage('ai', 'Fatto! Modifiche applicate con successo al tuo piano di studio.');
+        speakAiVoice('Fatto! Modifiche applicate con successo.');
     };
 
     window.saveGeminiApiKeyFromSettings = function() {
@@ -4185,6 +3998,11 @@
         showToast(val ? 'Chiave Gemini salvata' : 'Chiave Gemini rimossa');
     };
 
-    window.executeHardReset = function() { localStorage.clear(); localStorage.setItem('studylog_record_streak', '0'); window.location.reload(true); }
+    window.executeHardReset = function() { 
+        localStorage.clear(); 
+        localStorage.setItem('studylog_record_streak', '0'); 
+        window.location.reload(true); 
+    };
 
     init();
+

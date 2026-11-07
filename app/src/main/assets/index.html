@@ -16,7 +16,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js?v=2.4.2').then(function(reg) {
+          navigator.serviceWorker.register('sw.js?v=2.4.3').then(function(reg) {
             reg.update();
             reg.onupdatefound = function() {
               const newWorker = reg.installing;
@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.4.2">
+    <link rel="stylesheet" href="css/style.css?v=2.4.3">
 </head>
 <body>
 
@@ -58,7 +58,7 @@
     <div class="xp-toast" id="xp-toast"><i class="fa-solid fa-pen-nib" id="xp-toast-icon"></i> <span id="xp-toast-text">+50 XP</span></div>
 
     <div class="content-wrapper">
-        <div id="study-view">
+<div id="study-view">
             
             <div class="dashboard-grid">
                 <div class="dash-widget" onclick="openBottomSheet('streak-sheet')">
@@ -98,25 +98,8 @@
             <div class="exercises-list" id="exercises-container"></div>
         </div>
 
-        <div id="ranked-view" class="ranked-view">
-            <div class="rank-showcase" id="rank-showcase">
-                <div class="rank-title" id="rank-title">Matricola</div>
-                <div class="rank-xp-text" id="rank-xp-text">XP: 0 / 200</div>
-                <div class="xp-bar-bg"><div class="xp-bar-fill" id="xp-bar-fill"></div></div>
-            </div>
-            <div class="inline-rank-list" id="inline-rank-list"></div>
-        </div>
-
-        <div id="calendar-view" class="calendar-view">
-            
-            <div class="xp-gen-widget" onclick="openBottomSheet('andamento-sheet')">
-                <div class="xp-gen-header">
-                    <div class="widget-label" style="font-size: 0.85rem;">Settimana</div>
-                    <i class="fa-solid fa-bolt" style="color: var(--theme-strong);"></i>
-                </div>
-                <div class="widget-value" id="week-xp-total-widget">0</div>
-            </div>
-
+        <!-- CALENDAR VIEW (Pure Calendar) -->
+        <div id="calendar-view" class="calendar-view" style="display: none;">
             <div class="anim-card">
                 <div class="anim-card-header">
                     <div class="anim-card-title"><i class="fa-regular fa-calendar-days"></i> Calendario</div>
@@ -136,8 +119,111 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- GRAFICO A TORTA/DONUT STUDIO PER MATERIA -->
+        <!-- AI CHAT VIEW (Modern Chatbot UI - Image 1) -->
+        <div id="ai-view" class="ai-view" style="display: none;">
+            <!-- AI Header -->
+            <div class="ai-view-header">
+                <div class="ai-brand-badge">
+                    <svg class="ai-spark-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/>
+                    </svg>
+                    <span>Study AI</span>
+                </div>
+                <button type="button" class="btn-ai-header-action" onclick="resetAiChatConversation()" title="Nuova conversazione">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+
+            <!-- Welcome Centerpiece (Shown when chat has no messages) -->
+            <div class="ai-welcome-container" id="ai-welcome-container">
+                <div class="ai-hero-logo">
+                    <svg width="68" height="68" viewBox="0 0 64 64" fill="none">
+                        <rect x="8" y="8" width="48" height="48" rx="24" fill="var(--theme-strong)" opacity="0.08"/>
+                        <path d="M22 36 L32 18 L42 36 L32 29 Z" fill="var(--theme-strong)"/>
+                        <path d="M22 39 L32 46 L42 39 L32 41.5 Z" fill="var(--theme-strong)" opacity="0.75"/>
+                        <circle cx="32" cy="32.5" r="3" fill="var(--bg-color)"/>
+                    </svg>
+                </div>
+                <div class="ai-welcome-greeting" id="ai-welcome-greeting">
+                    <span id="ai-greeting-text">Buongiorno</span>, <span id="ai-user-name" onclick="promptChangeUserName()" title="Tocca per cambiare nome">Studente</span>
+                </div>
+                <div class="ai-welcome-sub">Come posso aiutarti oggi con lo studio?</div>
+            </div>
+
+            <!-- Chat Message Thread -->
+            <div class="ai-chat-thread" id="ai-chat-thread"></div>
+
+            <!-- Floating Input Dock (Image 1) -->
+            <div class="ai-input-dock">
+                <div class="ai-input-bar">
+                    <button type="button" class="btn-ai-dock-action" onclick="openChoiceModal()" title="Aggiungi compito o verifica">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                    <input type="text" id="ai-prompt-input" class="ai-prompt-field" placeholder="Come posso aiutarti oggi?" onkeydown="if(event.key==='Enter'){ sendAiChatMessage(); event.preventDefault(); }">
+                    
+                    <!-- Voice Waveform Animation Indicator -->
+                    <div class="ai-waveform-container" id="ai-waveform-container" style="display: none;">
+                        <span class="ai-wave-bar"></span>
+                        <span class="ai-wave-bar"></span>
+                        <span class="ai-wave-bar"></span>
+                        <span class="ai-wave-bar"></span>
+                    </div>
+
+                    <!-- Voice Mic Button -->
+                    <button type="button" class="btn-ai-mic" id="btn-ai-mic" onclick="toggleAiVoiceRecording()" title="Parla con l'AI">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+
+                    <!-- Send Button -->
+                    <button type="button" class="btn-ai-send" id="btn-ai-send" onclick="sendAiChatMessage()" title="Invia">
+                        <i class="fa-solid fa-arrow-up"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRADES VIEW (REGISTRO VOTI) - Theme Aligned (Images 3 & 4) -->
+        <div id="grades-view" class="grades-view" style="display: none;">
+            <!-- Clean In-Theme Top Bar -->
+            <div class="grades-theme-top-bar" id="grades-theme-top-bar">
+                <div class="grades-theme-title-area">
+                    <button type="button" class="btn-grades-back" id="btn-grades-back" onclick="handleGradesBack()" title="Indietro" style="display: none;">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <h2 class="grades-theme-title" id="grades-theme-title">Valutazioni</h2>
+                </div>
+                <button type="button" class="btn-new-grade-top" id="btn-new-grade-top" onclick="openAddGradeModal()" title="Nuovo Voto">
+                    <i class="fa-solid fa-plus"></i> Nuovo Voto
+                </button>
+            </div>
+
+            <!-- General / Subject Average Card -->
+            <div class="grades-card-container" id="grades-summary-card"></div>
+
+            <!-- Main Tab Content: Materie 2-col Grid or Grade Cards List -->
+            <div id="grades-tab-content" class="grades-tab-content"></div>
+        </div>
+
+        <!-- RANKED & STATS VIEW (Trophy Tab - All analytics & XP) -->
+        <div id="ranked-view" class="ranked-view" style="display: none;">
+            <div class="rank-showcase" id="rank-showcase">
+                <div class="rank-title" id="rank-title">Matricola</div>
+                <div class="rank-xp-text" id="rank-xp-text">XP: 0 / 200</div>
+                <div class="xp-bar-bg"><div class="xp-bar-fill" id="xp-bar-fill"></div></div>
+            </div>
+
+            <!-- Settimana Widget -->
+            <div class="xp-gen-widget" onclick="openBottomSheet('andamento-sheet')">
+                <div class="xp-gen-header">
+                    <div class="widget-label" style="font-size: 0.85rem;">Settimana</div>
+                    <i class="fa-solid fa-bolt" style="color: var(--theme-strong);"></i>
+                </div>
+                <div class="widget-value" id="week-xp-total-widget">0</div>
+            </div>
+
+            <!-- Donut Chart Studio per Materia -->
             <div class="anim-card">
                 <div class="anim-card-header">
                     <div class="anim-card-title"><i class="fa-solid fa-chart-pie"></i> Materie</div>
@@ -159,9 +245,10 @@
                 </div>
             </div>
 
+            <!-- Heatmap Attività 90 giorni -->
             <div class="anim-card">
                 <div class="anim-card-header">
-                    <div class="anim-card-title"><i class="fa-solid fa-border-all"></i> Attività</div>
+                    <div class="anim-card-title"><i class="fa-solid fa-border-all"></i> Attivita'</div>
                 </div>
                 <div class="anim-card-content">
                     <div style="margin-top:5px;">
@@ -176,84 +263,42 @@
                                 <div class="heat-cell lvl-2" style="width: 14px; min-height: 14px; border-radius:3px;"></div>
                                 <div class="heat-cell lvl-3" style="width: 14px; min-height: 14px; border-radius:3px;"></div>
                             </div>
-                            <span>Più</span>
+                            <span>Piu'</span>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <button class="btn-hard-reset" onclick="promptHardReset()"><i class="fa-solid fa-eraser"></i> Reset dati</button>
+
+            <!-- Lista Livelli / Ranghi -->
+            <div class="inline-rank-list" id="inline-rank-list"></div>
         </div>
-
-        <!-- GRADES VIEW (REGISTRO VOTI) -->
-        <div id="grades-view" class="grades-view" style="display: none;">
-            <!-- Red Screen Header Bar (Screenshots 1, 3, 4, 5) -->
-            <div class="grades-screen-header" id="grades-screen-header">
-                <div class="grades-header-top-row">
-                    <button type="button" class="btn-grades-back" id="btn-grades-back" onclick="handleGradesBack()" title="Indietro">
-                        <i class="fa-solid fa-chevron-left"></i>
-                    </button>
-                    <div class="grades-header-title" id="grades-header-title">Valutazioni</div>
-                    <button type="button" class="btn-grades-header-add" onclick="openAddGradeModal()" title="Aggiungi Voto">
-                        <i class="fa-solid fa-plus"></i>
-                    </button>
-                </div>
-                <!-- Sliding Pill Tabs -->
-                <div class="grades-pills-scroll" id="grades-pills-bar">
-                    <!-- Rendered dynamically by renderGradesView() -->
-                </div>
-            </div>
-
-            <!-- Action Sub-bar -->
-            <div class="grades-action-bar">
-                <button type="button" class="btn-grades-action-pill" onclick="refreshGradesUI()">
-                    <i class="fa-solid fa-arrows-rotate"></i> Ricarica
-                </button>
-                <button type="button" class="btn-grades-action-pill add-btn" onclick="openAddGradeModal()">
-                    <i class="fa-solid fa-plus"></i> Nuovo Voto
-                </button>
-            </div>
-
-            <!-- General / Subject Average Card -->
-            <div class="grades-card-container" id="grades-summary-card">
-                <!-- Rendered dynamically by renderGradesView() -->
-            </div>
-
-            <!-- Main Tab Content: Materie 2-col Grid or Grade Cards List -->
-            <div id="grades-tab-content" class="grades-tab-content">
-                <!-- Rendered dynamically by renderGradesView() -->
-            </div>
-
-            <!-- Dedicated Floating Button for Adding Grades inside Valutazioni -->
-            <button type="button" class="fab-grades-float" onclick="openAddGradeModal()" title="Aggiungi Voto">
-                <i class="fa-solid fa-plus"></i>
-            </button>
-        </div>
-
     </div>
 
-            <div class="bottom-nav-wrapper" id="bottom-nav-wrapper">
-        <nav class="split-hotbar" id="split-hotbar">
-            <!-- Left Wing: Libro e Calendario -->
-            <div class="hotbar-wing hotbar-left">
-                <div class="nav-item active" onclick="switchView('study', this)" id="nav-study" title="Studio"><i class="fa-solid fa-book-open"></i></div>
-                <div class="nav-item" onclick="switchView('calendar', this)" id="nav-calendar" title="Statistiche & Calendario"><i class="fa-solid fa-calendar-days"></i></div>
+    <div class="bottom-dock-wrapper" id="bottom-dock-wrapper">
+        <nav class="dock-navbar" id="dock-navbar">
+            <div class="dock-item active" onclick="switchView('study', this)" id="nav-study" title="Studio">
+                <i class="fa-solid fa-book-open"></i>
+                <span class="dock-label">Studio</span>
+            </div>
+            <div class="dock-item" onclick="switchView('calendar', this)" id="nav-calendar" title="Calendario">
+                <i class="fa-regular fa-calendar-days"></i>
+                <span class="dock-label">Calendario</span>
             </div>
 
-            <!-- Bot Slot (si chiude e il bot scivola in alto) -->
-            <div class="hotbar-bot-slot" id="hotbar-bot-slot">
-                <button type="button" class="hotbar-bot-btn" id="hotbar-bot-btn" onclick="openMallowVoiceOverlay()" title="Mallow Bot">
-                    <div class="bot-face-mini">
-                        <span class="bot-eye-mini left"></span>
-                        <span class="bot-eye-mini right"></span>
-                    </div>
+            <!-- Raised Center Notch & Button with Microphone (Image 2) -->
+            <div class="dock-center-notch">
+                <button type="button" class="dock-center-btn" id="nav-ai" onclick="switchView('ai', this)" title="AI Chat & Voce">
+                    <i class="fa-solid fa-microphone"></i>
                 </button>
             </div>
 
-            <!-- Right Wing: Registro Voti e Gradi/Coppa -->
-            <div class="hotbar-wing hotbar-right">
-                <div class="nav-item" onclick="switchView('grades', this)" id="nav-grades" title="Registro Voti"><i class="fa-solid fa-graduation-cap"></i></div>
-                <div class="nav-item" onclick="switchView('ranked', this)" id="nav-ranked" title="XP e Gradi"><i class="fa-solid fa-trophy"></i></div>
+            <div class="dock-item" onclick="switchView('grades', this)" id="nav-grades" title="Valutazioni">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span class="dock-label">Voti</span>
+            </div>
+            <div class="dock-item" onclick="switchView('ranked', this)" id="nav-ranked" title="Progressi">
+                <i class="fa-solid fa-trophy"></i>
+                <span class="dock-label">XP</span>
             </div>
         </nav>
     </div>
@@ -306,6 +351,16 @@
                         <button type="button" class="btn-submit compact" onclick="saveGeminiApiKeyFromSettings()">Salva</button>
                     </div>
                     <div id="gemini-key-status" style="font-size: 0.78rem; margin-top: 6px; color: var(--text-muted);"></div>
+                                <div class="settings-card danger-card" style="border: 1px solid rgba(239, 68, 68, 0.25);">
+                    <div class="settings-card-header">
+                        <span class="settings-card-title" style="color: var(--danger-color);"><i class="fa-solid fa-triangle-exclamation"></i> Gestione Dati</span>
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+                        Ripristina l'applicazione alle condizioni iniziali. Tutti i dati, compiti, verifiche e voti salvati verranno cancellati.
+                    </p>
+                    <button type="button" class="btn-hard-reset" style="margin: 0; width: 100%;" onclick="closeBottomSheet('settings-sheet'); promptHardReset();">
+                        <i class="fa-solid fa-eraser"></i> Reset Completo Dati
+                    </button>
                 </div>
             </div>
         </div>
@@ -653,85 +708,8 @@
     </div>
 
     
-    <!-- MALLOW VOICE AI OVERLAY SCREEN (Minimal & Multi-Emotion) -->
-    <div class="mallow-voice-overlay" id="mallow-voice-overlay">
-        <div class="mallow-voice-container">
-            <!-- Minimal Header: solo tasto X per chiudere (NO dot online) -->
-            <div class="mallow-voice-header">
-                <div class="mallow-voice-title">
-                    <span id="voice-header-label">Mallow</span>
-                </div>
-                <button type="button" class="btn-close-voice" onclick="closeMallowVoiceOverlay()" title="Chiudi assistente">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <!-- Central Mascot Stage con SVG Vettoriale Emozionale -->
-            <div class="mallow-stage-wrapper">
-                <div class="mallow-mascot-box" id="mallow-mascot-box" onclick="toggleVoiceListening()">
-                    <div class="voice-glow-ring ring-1"></div>
-                    <div class="voice-glow-ring ring-2"></div>
-                    <div class="voice-glow-ring ring-3"></div>
-                    
-                    <svg class="mallow-interactive-svg" id="mallow-screen-mascot" viewBox="0 0 560 560" role="img" aria-label="Mallow">
-                        <defs>
-                            <filter id="mallow-shadow-blur" x="-30%" y="-180%" width="160%" height="460%">
-                                <feGaussianBlur stdDeviation="13"/>
-                            </filter>
-                        </defs>
-                        <ellipse cx="280" cy="480" rx="109.8" ry="17" fill="#000000" opacity="0.2" filter="url(#mallow-shadow-blur)" id="mallow-shadow"/>
-                        <g id="mallow-body-group" style="transform-origin: 280px 280px; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);">
-                            <!-- Blob Body -->
-                            <path id="mallow-blob" d="M 417.793 277.089 Q 417.957 281.904, 417.794 286.694 Q 417.63 291.485, 417.143 296.228 Q 416.655 300.971, 415.85 305.644 Q 415.044 310.318, 413.927 314.901 Q 412.811 319.483, 411.392 323.955 Q 409.972 328.427, 408.26 332.769 Q 406.548 337.112, 404.553 341.306 Q 402.559 345.501, 400.293 349.531 Q 398.027 353.561, 395.501 357.412 Q 392.976 361.262, 390.204 364.918 Q 387.432 368.574, 384.425 372.021 Q 381.419 375.469, 378.192 378.696 Q 374.966 381.923, 371.532 384.917 Q 368.099 387.911, 364.473 390.66 Q 360.847 393.41, 357.043 395.905 Q 353.239 398.4, 349.272 400.631 Q 345.304 402.861, 341.19 404.818 Q 337.075 406.775, 332.829 408.449 Q 328.582 410.124, 324.221 411.508 Q 319.859 412.892, 315.4 413.979 Q 310.94 415.066, 306.4 415.848 Q 301.86 416.631, 297.258 417.104 Q 292.656 417.577, 288.012 417.735 Q 283.367 417.894, 278.699 417.734 Q 274.031 417.575, 269.361 417.095 Q 264.691 416.614, 260.039 415.812 Q 255.388 415.01, 250.777 413.886 Q 246.166 412.762, 241.619 411.319 Q 237.071 409.875, 232.609 408.116 Q 228.147 406.356, 223.794 404.285 Q 219.44 402.215, 215.219 399.841 Q 210.997 397.467, 206.93 394.8 Q 202.863 392.132, 198.973 389.182 Q 195.083 386.232, 191.392 383.014 Q 187.701 379.795, 184.229 376.323 Q 180.758 372.851, 177.525 369.144 Q 174.293 365.437, 171.317 361.513 Q 168.342 357.59, 165.641 353.471 Q 162.939 349.352, 160.526 345.061 Q 158.113 340.769, 156.001 336.328 Q 153.889 331.887, 152.088 327.321 Q 150.287 322.755, 148.806 318.089 Q 147.325 313.422, 146.17 308.681 Q 145.014 303.94, 144.188 299.15 Q 143.362 294.359, 142.867 289.544 Q 142.372 284.729, 142.207 279.915 Q 142.043 275.1, 142.206 270.309 Q 142.37 265.519, 142.857 260.776 Q 143.345 256.032, 144.15 251.359 Q 144.956 246.685, 146.073 242.103 Q 147.189 237.52, 148.608 233.048 Q 150.028 228.576, 151.74 224.234 Q 153.452 219.892, 155.447 215.697 Q 157.441 211.503, 159.707 207.472 Q 161.973 203.442, 164.499 199.592 Q 167.024 195.741, 169.796 192.085 Q 172.568 188.43, 175.575 184.982 Q 178.581 181.534, 181.808 178.307 Q 185.034 175.081, 188.468 172.087 Q 191.901 169.093, 195.527 166.343 Q 199.153 163.593, 202.957 161.098 Q 206.761 158.603, 210.728 156.373 Q 214.696 154.142, 218.81 152.185 Q 222.925 150.228, 227.171 148.554 Q 231.418 146.879, 235.779 145.495 Q 240.141 144.111, 244.6 143.024 Q 249.06 141.938, 253.6 141.155 Q 258.14 140.372, 262.742 139.899 Q 267.344 139.426, 271.988 139.268 Q 276.633 139.109, 281.301 139.269 Q 285.969 139.428, 290.639 139.909 Q 295.309 140.389, 299.961 141.191 Q 304.612 141.993, 309.223 143.117 Q 313.834 144.241, 318.381 145.684 Q 322.929 147.128, 327.391 148.888 Q 331.853 150.647, 336.206 152.718 Q 340.56 154.788, 344.781 157.162 Q 349.003 159.536, 353.07 162.204 Q 357.137 164.871, 361.027 167.821 Q 364.917 170.771, 368.608 173.99 Q 372.299 177.208, 375.771 180.68 Q 379.242 184.152, 382.475 187.859 Q 385.707 191.566, 388.683 195.49 Q 391.658 199.413, 394.359 203.532 Q 397.061 207.651, 399.474 211.942 Q 401.887 216.234, 403.999 220.675 Q 406.111 225.116, 407.912 229.682 Q 409.713 234.248, 411.194 238.915 Q 412.675 243.581, 413.83 248.322 Q 414.986 253.063, 415.812 257.853 Q 416.638 262.644, 417.133 267.459 Q 417.628 272.274, 417.793 277.089 Z" fill="#000000"/>
-                            <!-- Left Eye -->
-                            <g id="mallow-left-eye" style="transform-origin: 284px 242px; transition: transform 0.25s ease;">
-                                <path d="M 277.891 210.799 Q 277.891 210.799, 280.299 210.891 Q 282.707 210.984, 285.026 211.764 Q 287.345 212.544, 289.352 213.936 Q 291.359 215.329, 292.86 217.202 Q 294.362 219.074, 295.211 221.247 Q 296.06 223.42, 299.188 240.026 Q 302.317 256.632, 302.325 259.019 Q 302.332 261.405, 301.595 263.653 Q 300.858 265.901, 299.445 267.791 Q 298.032 269.681, 296.079 271.026 Q 294.126 272.371, 291.822 273.037 Q 289.518 273.703, 289.518 273.703 Q 289.518 273.703, 287.089 273.622 Q 284.66 273.541, 282.347 272.719 Q 280.033 271.896, 278.065 270.412 Q 276.096 268.928, 274.668 266.93 Q 273.24 264.931, 272.493 262.617 Q 271.747 260.302, 268.724 243.568 Q 265.701 226.835, 265.613 224.563 Q 265.525 222.291, 266.191 220.167 Q 266.857 218.043, 268.208 216.273 Q 269.559 214.503, 271.46 213.256 Q 273.362 212.009, 275.626 211.404 Q 277.891 210.799, 277.891 210.799 Z" fill="#ffffff"/>
-                            </g>
-                            <!-- Right Eye -->
-                            <g id="mallow-right-eye" style="transform-origin: 339px 237px; transition: transform 0.25s ease;">
-                                <path d="M 333.056 206.522 Q 333.056 206.522, 335.164 206.778 Q 337.271 207.034, 339.327 207.941 Q 341.382 208.848, 343.191 210.315 Q 344.999 211.783, 346.39 213.67 Q 347.78 215.558, 348.618 217.687 Q 349.457 219.816, 352.776 235.925 Q 356.095 252.035, 356.167 254.333 Q 356.239 256.632, 355.661 258.761 Q 355.084 260.889, 353.908 262.642 Q 352.733 264.394, 351.07 265.598 Q 349.406 266.801, 347.413 267.334 Q 345.42 267.867, 345.42 267.867 Q 345.42 267.867, 343.291 267.671 Q 341.163 267.476, 339.11 266.565 Q 337.057 265.655, 335.285 264.117 Q 333.513 262.579, 332.202 260.565 Q 330.891 258.551, 330.172 256.263 Q 329.454 253.974, 326.232 237.569 Q 323.01 221.163, 322.84 218.961 Q 322.669 216.758, 323.17 214.75 Q 323.671 212.742, 324.788 211.125 Q 325.905 209.509, 327.523 208.439 Q 329.141 207.37, 331.099 206.946 Q 333.056 206.522, 333.056 206.522 Z" fill="#ffffff"/>
-                            </g>
-                        </g>
-                    </svg>
-                </div>
-                <div class="mallow-name-label">Mallow</div>
-                <div class="mallow-state-subtitle" id="mallow-state-subtitle">Tocca Mallow o parla per iniziare</div>
-            </div>
-
-            <!-- Dialogue & Transcript Bubble (SOLO TESTO NORMALE, NO GRASSETTO) -->
-            <div class="mallow-speech-card" id="mallow-speech-card">
-                <div class="mallow-speech-text" id="mallow-speech-text">
-                    Ciao! Dimmi cosa hai da fare: posso aggiungere, togliere o modificare compiti, verifiche e voti.
-                </div>
-                <div class="mallow-transcript-sub" id="mallow-transcript-sub">
-                    <i class="fa-solid fa-microphone" style="opacity: 0.6; margin-right: 5px;"></i>
-                    <span id="mallow-transcript-label">In attesa della tua voce...</span>
-                </div>
-            </div>
-
-            <!-- Pending Action Proposal & Confirmation Card -->
-            <div class="pending-action-card" id="pending-action-card" style="display: none;">
-                <div class="pending-action-badge" id="pending-action-badge"><i class="fa-solid fa-bolt"></i> Azione Rilevata</div>
-                <div class="pending-action-desc" id="pending-action-desc">Aggiungerò il compito di Matematica per domani</div>
-                <div class="pending-action-buttons">
-                    <button type="button" class="btn-confirm-action" id="btn-confirm-action" onclick="executePendingAiAction()">
-                        <i class="fa-solid fa-check"></i> Conferma ed Esegui
-                    </button>
-                    <button type="button" class="btn-cancel-action" onclick="cancelPendingAiAction()">
-                        Annulla
-                    </button>
-                </div>
-            </div>
-
-            <!-- Fallback text input row -->
-            <div class="voice-text-fallback">
-                <input type="text" id="voice-manual-input" class="form-control" placeholder="Oppure scrivi un comando qui..." onkeydown="if(event.key==='Enter'){ submitVoiceManualInput(); event.preventDefault(); }">
-                <button type="button" class="btn-submit compact" style="margin-top:0;" onclick="submitVoiceManualInput()"><i class="fa-solid fa-paper-plane"></i></button>
-            </div>
-        </div>
-    </div>
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.4.2" defer></script>
+    <script src="js/app.js?v=2.4.3" defer></script>
 
 </body>
 </html>
