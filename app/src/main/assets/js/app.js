@@ -369,6 +369,7 @@
         let onChange = options.onChange || function(){};
         let iconClass = options.icon || "fa-solid fa-list";
         let isSubject = options.isSubject || false;
+        let gridCols = options.columns || 2;
 
         container.innerHTML = `
             <div class="popover-container" id="pop_opt_wrap_${containerId}">
@@ -377,7 +378,7 @@
                     <i class="${iconClass}"></i>
                 </button>
                 <div class="popover-popup-content" id="pop_opt_content_${containerId}">
-                    <div class="option-selector-grid" id="pop_opt_grid_${containerId}"></div>
+                    <div class="option-selector-grid ${gridCols === 4 ? 'cols-4' : ''}" id="pop_opt_grid_${containerId}"></div>
                 </div>
             </div>
         `;
@@ -481,6 +482,9 @@
     let todoSubjectPicker = null;
     let examSubjectPicker = null;
     let examTypePicker = null;
+    let gradeSubjectPicker = null;
+    let gradeValuePicker = null;
+    const ITALIAN_GRADE_OPTIONS = ["2","2+","2.5","3-","3","3+","3.5","4-","4","4+","4.5","5-","5","5+","5.5","6-","6","6+","6.5","7-","7","7+","7.5","8-","8","8+","8.5","9-","9","9+","9.5","10-","10"];
 
     let editTodoDatePicker = null;
     let editTodoSubjectPicker = null;
@@ -585,6 +589,21 @@
             onChange: (type) => {
                 onExamTypeChanged(type);
             }
+        });
+
+        gradeSubjectPicker = initOptionPopover('grade-subject-popover-container', {
+            items: userSubjects,
+            defaultItem: userSubjects[0] || 'Matematica',
+            icon: 'fa-solid fa-book-bookmark',
+            isSubject: true
+        });
+
+        gradeValuePicker = initOptionPopover('grade-value-popover-container', {
+            items: ITALIAN_GRADE_OPTIONS,
+            defaultItem: '7',
+            icon: 'fa-solid fa-award',
+            isSubject: false,
+            columns: 4
         });
     }
 
@@ -750,6 +769,7 @@
                 if (todoSubjectPicker) todoSubjectPicker.setItems(userSubjects);
                 if (editTodoSubjectPicker) editTodoSubjectPicker.setItems(userSubjects);
                 if (examSubjectPicker) examSubjectPicker.setItems(userSubjects);
+        if (gradeSubjectPicker) gradeSubjectPicker.setItems(userSubjects);
                 showToast("Materia aggiunta!");
             } else {
                 customAlert("Questa materia è già presente nella lista!", "Materia esistente");
@@ -2854,20 +2874,31 @@
             }
         }
 
+        // Main Header (Study Planner, Impostazioni, +) is ALWAYS visible at the exact same height
         const mainHeader = document.querySelector('header');
-        if (mainHeader) mainHeader.style.display = view === 'ai' ? 'none' : 'flex';
+        if (mainHeader) mainHeader.style.display = 'flex';
 
-        const studyView = document.getElementById('study-view');
-        const calendarView = document.getElementById('calendar-view');
-        const aiView = document.getElementById('ai-view');
-        const gradesView = document.getElementById('grades-view');
-        const rankedView = document.getElementById('ranked-view');
+        const viewsMap = {
+            study: document.getElementById('study-view'),
+            calendar: document.getElementById('calendar-view'),
+            ai: document.getElementById('ai-view'),
+            grades: document.getElementById('grades-view'),
+            ranked: document.getElementById('ranked-view')
+        };
 
-        if (studyView) studyView.style.display = view === 'study' ? 'block' : 'none';
-        if (calendarView) calendarView.style.display = view === 'calendar' ? 'block' : 'none';
-        if (aiView) aiView.style.display = view === 'ai' ? 'block' : 'none';
-        if (gradesView) gradesView.style.display = view === 'grades' ? 'block' : 'none';
-        if (rankedView) rankedView.style.display = view === 'ranked' ? 'block' : 'none';
+        Object.keys(viewsMap).forEach(k => {
+            const vEl = viewsMap[k];
+            if (!vEl) return;
+            if (k === view) {
+                vEl.style.display = 'block';
+                vEl.classList.remove('view-animate-in');
+                void vEl.offsetWidth; // reflow for smooth animation restart
+                vEl.classList.add('view-animate-in');
+            } else {
+                vEl.style.display = 'none';
+                vEl.classList.remove('view-animate-in');
+            }
+        });
 
         if (view === 'calendar') { 
             try { renderMonthCalendar(); } catch(e){}
@@ -3179,11 +3210,24 @@
     let currentSubjectTab = 'ultime'; // 'ultime', 'q1', 'q2'
 
     function getQuadrimestreForDate(dateStr) {
-        if (!dateStr) return '1° Quadrimestre';
-        let parts = dateStr.split('-');
+        let dStr = dateStr || formatDateStr(new Date());
+        let parts = dStr.split('-');
         let m = parseInt(parts[1], 10);
-        if (m >= 9 || m === 1) return '1° Quadrimestre';
-        return '2° Quadrimestre';
+        // Da Settembre (9) a Dicembre (12) compreso = 1° Trimestre
+        // Da Gennaio (1) a fine scuola (8) = 2° Pentamestre
+        if (m >= 9 && m <= 12) return '1° Trimestre';
+        return '2° Pentamestre';
+    }
+
+    function isFirstPeriodGrade(g) {
+        const p = g.quadrimestre || getQuadrimestreForDate(g.date);
+        if (p === '1° Trimestre') return true;
+        // Per voti vecchi salvati con la dicitura precedente, ricalcola dal mese della data
+        if (g.date) {
+            const m = parseInt(g.date.split('-')[1], 10);
+            return (m >= 9 && m <= 12);
+        }
+        return p === '1° Quadrimestre';
     }
 
     window.selectGradesTab = function(tab) {
@@ -3220,16 +3264,10 @@
         renderGradesView();
     };
 
-    window.selectGradeQuadrimestre = function(q, btnEl) {
-        selectedGradeQuadrimestre = q;
-        document.querySelectorAll('#grade-quadrimestre-segment .segment-btn').forEach(b => b.classList.remove('active'));
-        if (btnEl) btnEl.classList.add('active');
-    };
-
     function parseGradeNumeric(valStr) {
         if (!valStr) return null;
         valStr = String(valStr).trim().toLowerCase().replace(',', '.');
-        if (valStr.includes('e mezzo')) {
+        if (valStr.includes('e mezzo') || valStr.includes('mezzo')) {
             let base = parseFloat(valStr.split(' ')[0]);
             return isNaN(base) ? null : base + 0.5;
         }
@@ -3254,8 +3292,10 @@
     window.getSubjectGradeAverage = function(subject, period = null) {
         if (!subject) return null;
         let subGrades = myGrades.filter(g => g.subject.toLowerCase() === subject.toLowerCase());
-        if (period) {
-            subGrades = subGrades.filter(g => (g.quadrimestre || getQuadrimestreForDate(g.date)) === period);
+        if (period === '1° Trimestre') {
+            subGrades = subGrades.filter(g => isFirstPeriodGrade(g));
+        } else if (period === '2° Pentamestre') {
+            subGrades = subGrades.filter(g => !isFirstPeriodGrade(g));
         }
         if (subGrades.length === 0) return null;
         let sum = subGrades.reduce((acc, g) => acc + (parseFloat(g.numericValue) || 0), 0);
@@ -3264,8 +3304,10 @@
 
     window.getAllGradesAverage = function(period = null) {
         let grades = myGrades;
-        if (period) {
-            grades = grades.filter(g => (g.quadrimestre || getQuadrimestreForDate(g.date)) === period);
+        if (period === '1° Trimestre') {
+            grades = grades.filter(g => isFirstPeriodGrade(g));
+        } else if (period === '2° Pentamestre') {
+            grades = grades.filter(g => !isFirstPeriodGrade(g));
         }
         if (grades.length === 0) return null;
         let sum = grades.reduce((acc, g) => acc + (parseFloat(g.numericValue) || 0), 0);
@@ -3295,7 +3337,7 @@
             }
         }
 
-        // 2. CALCOLO MEDIE E CONTEGGI
+        // 2. CALCOLO MEDIE E CONTEGGI (1° Trimestre Set-Dic, 2° Pentamestre Gen-Giu)
         let gradesForSummary = currentDetailSubject 
             ? myGrades.filter(g => g.subject.toLowerCase() === currentDetailSubject.toLowerCase())
             : myGrades;
@@ -3307,14 +3349,15 @@
             avgOverall = Math.round((sum / totalCount) * 100) / 100;
         }
 
-        let q1Grades = gradesForSummary.filter(g => (g.quadrimestre || getQuadrimestreForDate(g.date)) === '1° Quadrimestre');
-        let q2Grades = gradesForSummary.filter(g => (g.quadrimestre || getQuadrimestreForDate(g.date)) === '2° Quadrimestre');
+        let q1Grades = gradesForSummary.filter(g => isFirstPeriodGrade(g));
+        let q2Grades = gradesForSummary.filter(g => !isFirstPeriodGrade(g));
 
         let q1Avg = q1Grades.length > 0 ? (q1Grades.reduce((acc, g) => acc + (parseFloat(g.numericValue) || 0), 0) / q1Grades.length) : null;
         let q2Avg = q2Grades.length > 0 ? (q2Grades.reduce((acc, g) => acc + (parseFloat(g.numericValue) || 0), 0) / q2Grades.length) : null;
 
         let cardColorClass = 'neutral';
-        let ringValText = '-';
+        // Cerchio vuoto senza trattino quando non ci sono voti
+        let ringValText = '';
         if (avgOverall !== null) {
             ringValText = avgOverall % 1 === 0 ? avgOverall.toFixed(0) : avgOverall.toFixed(2);
             if (avgOverall >= 6.0) cardColorClass = 'good';
@@ -3322,47 +3365,45 @@
             else cardColorClass = 'danger';
         }
 
-        let quadrimestriHtml = '';
+        let periodiHtml = '';
         if (!currentDetailSubject) {
-            quadrimestriHtml = `
+            periodiHtml = `
                 <div class="grades-quadrimestri-row">
                     <div class="grades-q-pill">
-                        <span class="grades-q-pill-label">1° Quadrimestre</span>
+                        <span class="grades-q-pill-label">1° Trimestre</span>
                         <span class="grades-q-pill-count">${q1Grades.length} valutazioni</span>
-                        <span class="grades-q-pill-val">${q1Avg !== null ? (q1Avg % 1 === 0 ? q1Avg.toFixed(0) : q1Avg.toFixed(2)) : '0'}</span>
+                        <span class="grades-q-pill-val">${q1Avg !== null ? (q1Avg % 1 === 0 ? q1Avg.toFixed(0) : q1Avg.toFixed(2)) : ''}</span>
                     </div>
                     <div class="grades-q-pill">
-                        <span class="grades-q-pill-label">2° Quadrimestre</span>
+                        <span class="grades-q-pill-label">2° Pentamestre</span>
                         <span class="grades-q-pill-count">${q2Grades.length} valutazioni</span>
-                        <span class="grades-q-pill-val">${q2Avg !== null ? (q2Avg % 1 === 0 ? q2Avg.toFixed(0) : q2Avg.toFixed(2)) : '0'}</span>
+                        <span class="grades-q-pill-val">${q2Avg !== null ? (q2Avg % 1 === 0 ? q2Avg.toFixed(0) : q2Avg.toFixed(2)) : ''}</span>
                     </div>
                 </div>
             `;
         }
 
+        // Senza icona occhio accanto a Media voti generale
         summaryCardEl.innerHTML = `
             <div class="grades-media-card ${cardColorClass}">
                 <div class="grades-media-card-top">
                     <div class="grades-media-title-area">
-                        <div class="grades-media-title">
-                            Media voti generale <i class="fa-regular fa-eye"></i>
-                        </div>
+                        <div class="grades-media-title">Media voti generale</div>
                         <div class="grades-media-count">${totalCount} valutazioni</div>
                     </div>
                     <div class="grades-media-ring">${ringValText}</div>
                 </div>
-                ${quadrimestriHtml}
+                ${periodiHtml}
             </div>
         `;
 
-        // 3. CONTENUTO TAB
+        // 3. CONTENUTO TAB (con animazione fluida a cascata)
         if (currentDetailSubject) {
-            // DETTAGLIO MATERIA (Image 4)
             let subGrades = myGrades.filter(g => g.subject.toLowerCase() === currentDetailSubject.toLowerCase());
 
             if (subGrades.length === 0) {
                 tabContentEl.innerHTML = `
-                    <div class="grades-empty-state">
+                    <div class="grades-empty-state view-animate-in">
                         <svg class="grades-empty-icon" width="80" height="80" viewBox="0 0 80 80" fill="none">
                             <path d="M18 16 V62 H64" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
                             <line x1="32" y1="28" x2="56" y2="28" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
@@ -3374,19 +3415,20 @@
                 `;
             } else {
                 let rowsHtml = '';
-                subGrades.slice().reverse().forEach(g => {
+                subGrades.slice().reverse().forEach((g, idx) => {
                     let num = parseFloat(g.numericValue) || 0;
                     let badgeClass = num >= 6.0 ? 'good' : (num >= 5.0 ? 'warning' : 'danger');
+                    let periodLabel = isFirstPeriodGrade(g) ? '1° Trimestre' : '2° Pentamestre';
+                    let delayMs = Math.min(idx * 40, 280);
                     rowsHtml += `
-                        <div class="grade-item-row" onclick="promptEditOrDeleteGrade('${g.id}')">
+                        <div class="grade-item-row" style="animation-delay: ${delayMs}ms;" onclick="promptEditOrDeleteGrade('${g.id}')">
                             <div class="grade-item-left">
                                 <div class="grade-badge-num ${badgeClass}">${g.displayValue}</div>
                                 <div class="grade-item-info">
                                     <div class="grade-item-sub-title">${g.subject.toUpperCase()}</div>
                                     <div class="grade-item-meta">
                                         <span><i class="fa-regular fa-calendar"></i> ${formatDateShort(g.date)}</span>
-                                        <span><i class="fa-solid fa-pen-nib"></i> ${g.type || 'Unico'}</span>
-                                        ${g.notes ? `<span>• ${g.notes}</span>` : ''}
+                                        <span>• ${periodLabel}</span>
                                     </div>
                                 </div>
                             </div>
@@ -3397,11 +3439,10 @@
                 tabContentEl.innerHTML = `<div class="grades-list-container">${rowsHtml}</div>`;
             }
         } else {
-            // PANORAMICA MATERIE (Image 3)
             let allUniqueSubjects = Array.from(new Set([...userSubjects, ...myGrades.map(g => g.subject)])).sort();
 
             let gridCardsHtml = '';
-            allUniqueSubjects.forEach(sub => {
+            allUniqueSubjects.forEach((sub, idx) => {
                 let subGrades = myGrades.filter(g => g.subject.toLowerCase() === sub.toLowerCase());
                 let count = subGrades.length;
                 let avg = null;
@@ -3411,7 +3452,8 @@
                 }
 
                 let ringClass = 'none';
-                let ringText = '-';
+                // Cerchio vuoto senza trattino quando non ci sono voti
+                let ringText = '';
                 if (avg !== null) {
                     ringText = avg % 1 === 0 ? avg.toFixed(0) : avg.toFixed(2);
                     if (avg >= 6.0) ringClass = 'good';
@@ -3419,8 +3461,9 @@
                     else ringClass = 'danger';
                 }
 
+                let delayMs = Math.min(idx * 30, 300);
                 gridCardsHtml += `
-                    <div class="materia-card" onclick="openSubjectDetail('${sub.replace(/'/g, "\\'")}')">
+                    <div class="materia-card" style="animation-delay: ${delayMs}ms;" onclick="openSubjectDetail('${sub.replace(/'/g, "\\'")}')">
                         <div class="materia-card-header">
                             <div>
                                 <div class="materia-card-name">${sub}</div>
@@ -3437,84 +3480,41 @@
         }
     };
 
-    window.openAddGradeModal = function(preselectedSubject = null, examId = null) {
-        const subSelect = document.getElementById('grade-subject-select');
-        const examSelect = document.getElementById('grade-exam-select');
-        const dateInput = document.getElementById('grade-date-input');
-        const valInput = document.getElementById('grade-val-input');
-        const notesInput = document.getElementById('grade-notes-input');
+    window.openAddGradeModal = function(preselectedSubject = null) {
+        let targetSub = preselectedSubject || currentDetailSubject || userSubjects[0] || 'Matematica';
 
-        let targetSub = preselectedSubject || currentDetailSubject;
-
-        if (subSelect) {
-            subSelect.innerHTML = '';
-            userSubjects.forEach(s => {
-                let opt = document.createElement('option');
-                opt.value = s;
-                opt.innerText = s;
-                if (targetSub && s.toLowerCase() === targetSub.toLowerCase()) opt.selected = true;
-                subSelect.appendChild(opt);
-            });
+        if (gradeSubjectPicker) {
+            gradeSubjectPicker.setItems(userSubjects);
+            gradeSubjectPicker.setValue(targetSub);
         }
-
-        if (examSelect) {
-            examSelect.innerHTML = '<option value="">Nessuna verifica collegata</option>';
-            myExams.forEach(e => {
-                let opt = document.createElement('option');
-                opt.value = e.id;
-                opt.innerText = `${e.subject} (${e.type || 'Verifica'}) - ${formatDateShort(e.date)}`;
-                if (examId && e.id === examId) opt.selected = true;
-                examSelect.appendChild(opt);
-            });
+        if (gradeValuePicker) {
+            gradeValuePicker.setValue('7');
         }
-
-        if (dateInput) dateInput.value = todayDateStr;
-        if (valInput) valInput.value = '';
-        if (notesInput) notesInput.value = '';
-        selectedGradeType = 'Scritto';
-        selectedGradeQuadrimestre = getQuadrimestreForDate(todayDateStr);
-
-        document.querySelectorAll('#grade-type-segment .segment-btn').forEach((b, idx) => {
-            b.classList.toggle('active', idx === 0);
-        });
-        document.querySelectorAll('#grade-quadrimestre-segment .segment-btn').forEach((b) => {
-            b.classList.toggle('active', b.innerText === selectedGradeQuadrimestre);
-        });
 
         openModal('add-grade-modal');
     };
 
-    window.selectGradeType = function(type, btnEl) {
-        selectedGradeType = type;
-        document.querySelectorAll('#grade-type-segment .segment-btn').forEach(b => b.classList.remove('active'));
-        if (btnEl) btnEl.classList.add('active');
-    };
-
     window.saveGradeFromModal = function() {
-        const subSelect = document.getElementById('grade-subject-select');
-        const valInput = document.getElementById('grade-val-input');
-        const dateInput = document.getElementById('grade-date-input');
-        const examSelect = document.getElementById('grade-exam-select');
-        const notesInput = document.getElementById('grade-notes-input');
+        const subjectVal = gradeSubjectPicker ? gradeSubjectPicker.getValue() : (userSubjects[0] || 'Matematica');
+        const rawVal = gradeValuePicker ? gradeValuePicker.getValue() : '7';
+        const numVal = parseGradeNumeric(rawVal);
 
-        let rawVal = valInput.value.trim();
-        let numVal = parseGradeNumeric(rawVal);
-        if (numVal === null || numVal < 1 || numVal > 10) {
-            showCustomAlert('Inserisci un voto valido compreso tra 1 e 10 (es. 8, 7.5, 6+).');
+        if (numVal === null || numVal < 2 || numVal > 10) {
+            customAlert('Seleziona un voto valido dalla lista (da 2 a 10).');
             return;
         }
 
-        let dateVal = dateInput.value || todayDateStr;
+        // Calcolo automatico della data corrente dal telefono e del periodo scolastico italiano
+        const nowDateStr = formatDateStr(new Date());
+        const autoPeriodo = getQuadrimestreForDate(nowDateStr);
+
         let newGrade = {
             id: 'gr_' + generateId(),
-            subject: subSelect.value || 'Generale',
+            subject: subjectVal,
             displayValue: rawVal,
             numericValue: numVal,
-            type: selectedGradeType || 'Scritto',
-            quadrimestre: selectedGradeQuadrimestre || getQuadrimestreForDate(dateVal),
-            date: dateVal,
-            examId: examSelect.value || null,
-            notes: notesInput.value.trim()
+            quadrimestre: autoPeriodo,
+            date: nowDateStr
         };
 
         myGrades.push(newGrade);
@@ -3522,15 +3522,14 @@
         closeModal('add-grade-modal');
         renderGradesView();
         addXP(20);
-        showToast(`Voto registrato: ${rawVal} in ${newGrade.subject}! +20 XP`);
-
-        triggerMallowGradeFeedback(newGrade);
+        showToast(`Voto ${rawVal} in ${newGrade.subject} salvato (${autoPeriodo})! +20 XP`);
     };
 
     window.promptEditOrDeleteGrade = function(gradeId) {
         let g = myGrades.find(x => x.id === gradeId);
         if (!g) return;
-        showCustomConfirm(`Voto: ${g.displayValue} in ${g.subject} (${g.type || 'Unico'}) del ${formatDateShort(g.date)}.\n\nVuoi eliminare questo voto dal registro?`, () => {
+        let periodLabel = isFirstPeriodGrade(g) ? '1° Trimestre' : '2° Pentamestre';
+        showCustomConfirm(`Voto: ${g.displayValue} in ${g.subject} (${periodLabel}) del ${formatDateShort(g.date)}.\n\nVuoi eliminare questo voto dal registro?`, () => {
             myGrades = myGrades.filter(x => x.id !== gradeId);
             localStorage.setItem('studylog_grades', JSON.stringify(myGrades));
             renderGradesView();
@@ -3542,37 +3541,18 @@
         window.promptEditOrDeleteGrade(gradeId);
     };
 
-    function triggerMallowGradeFeedback(gradeObj) {
-        let num = gradeObj.numericValue;
-        let sub = gradeObj.subject;
-        let advice = '';
-
-        if (num >= 8.0) {
-            advice = `Ottimo risultato! Hai preso ${gradeObj.displayValue} in ${sub}. Il tuo metodo di studio per questa materia è efficace. Continua ad applicare il richiamo attivo e la sintesi concettuale!`;
-        } else if (num >= 6.0) {
-            advice = `Hai preso ${gradeObj.displayValue} in ${sub}, una buona sufficienza. Per salire verso l'8, aumenta i quiz di autoverifica prima della prova.`;
-        } else {
-            advice = `Ho registrato ${gradeObj.displayValue} in ${sub}. Ho già adattato il tuo piano di studio per questa materia: per le prossime verifiche riserveremo più giorni di ripasso spaziato (35%) e blocchi giornalieri ridotti del 25% per evitare il sovraccarico cognitivo. Non mollare!`;
-        }
-
-        const bubble = document.getElementById('ai-speech-bubble');
-        if (bubble) bubble.innerHTML = `🎓 <b>Nuovo Voto Registrato:</b><br>${advice}`;
-    }
-
     // ==========================================================================
-        // ==========================================================================
-    // STUDY AI CHATBOT ENGINE (Mobile App UI UX - Image 1 Spec)
+    // PROXIMA AI ENGINE (Image 2 UI + Multi-Task Offline NLU + Gemini 2.5 Flash)
     // ==========================================================================
     let isAiListening = false;
-    let pendingAiAction = null;
     let aiChatHistory = JSON.parse(localStorage.getItem('studylog_ai_chat') || '[]');
+    window.pendingAiActionsStore = {};
 
-    function getAiTimeGreeting() {
-        const h = new Date().getHours();
-        if (h >= 5 && h < 13) return 'Buongiorno';
-        if (h >= 13 && h < 18) return 'Buon pomeriggio';
-        return 'Buonasera';
-    }
+    const PROXIMA_CUBE_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <polygon points="12,2 21,7 12,12 3,7" fill="currentColor"/>
+        <polygon points="3,7 12,12 12,22 3,17" fill="currentColor" opacity="0.72"/>
+        <polygon points="21,7 12,12 12,22 21,17" stroke="currentColor" stroke-width="1.8" fill="currentColor" fill-opacity="0.2"/>
+    </svg>`;
 
     function getUserName() {
         return localStorage.getItem('studylog_user_name') || 'Studente';
@@ -3589,13 +3569,18 @@
         });
     };
 
+    window.fillAiQuickPrompt = function(promptText) {
+        const input = document.getElementById('ai-prompt-input');
+        if (!input) return;
+        input.value = promptText;
+        input.focus();
+    };
+
     window.initAiView = function() {
-        const greetingEl = document.getElementById('ai-greeting-text');
         const nameEl = document.getElementById('ai-user-name');
         const welcomeEl = document.getElementById('ai-welcome-container');
         const threadEl = document.getElementById('ai-chat-thread');
 
-        if (greetingEl) greetingEl.innerText = getAiTimeGreeting();
         if (nameEl) nameEl.innerText = getUserName();
 
         if (aiChatHistory.length > 0) {
@@ -3604,6 +3589,16 @@
         } else {
             if (welcomeEl) welcomeEl.style.display = 'flex';
             if (threadEl) threadEl.innerHTML = '';
+        }
+    };
+
+    window.copyAiTurnText = function(idx) {
+        const item = aiChatHistory[idx];
+        if (!item || !item.text) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(item.text).then(() => showToast('Risposta copiata'));
+        } else {
+            showToast('Risposta copiata');
         }
     };
 
@@ -3617,29 +3612,60 @@
         }
 
         threadEl.innerHTML = '';
-        aiChatHistory.forEach(item => {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'ai-msg ' + (item.sender === 'user' ? 'ai-msg-user' : 'ai-msg-ai');
-            msgDiv.innerText = item.text;
+        const uName = getUserName();
+        const uInitial = (uName.charAt(0) || 'U').toUpperCase();
 
-            if (item.actionCard) {
-                const card = document.createElement('div');
-                card.className = 'ai-action-card';
-                card.innerHTML = `
-                    <div class="ai-action-header"><i class="fa-solid fa-bolt"></i> Azione Suggerita</div>
-                    <div class="ai-action-desc">${item.actionCard.desc}</div>
-                    <div class="ai-action-btn-row">
-                        <button type="button" class="btn-ai-action-confirm" onclick="executePendingAiAction(${JSON.stringify(item.actionCard.action).replace(/"/g, '&quot;')})">
-                            <i class="fa-solid fa-check"></i> Conferma ed Esegui
-                        </button>
+        aiChatHistory.forEach((item, idx) => {
+            const turnDiv = document.createElement('div');
+            turnDiv.className = 'proxima-turn';
+
+            if (item.sender === 'user') {
+                turnDiv.innerHTML = `
+                    <div class="proxima-turn-header">
+                        <div class="proxima-user-avatar">${uInitial}</div>
+                        <span class="proxima-turn-name">You</span>
+                    </div>
+                    <div class="proxima-turn-body"></div>
+                `;
+                turnDiv.querySelector('.proxima-turn-body').innerText = item.text;
+            } else {
+                turnDiv.innerHTML = `
+                    <div class="proxima-turn-header">
+                        <div class="proxima-ai-avatar">${PROXIMA_CUBE_SVG}</div>
+                        <span class="proxima-turn-name">Proxima</span>
+                    </div>
+                    <div class="proxima-turn-body"></div>
+                    <div class="proxima-turn-toolbar">
+                        <button type="button" class="proxima-tool-btn" onclick="showToast('Grazie per il feedback!')" title="Utile"><i class="fa-regular fa-thumbs-up"></i></button>
+                        <button type="button" class="proxima-tool-btn" onclick="showToast('Feedback registrato')" title="Non utile"><i class="fa-regular fa-thumbs-down"></i></button>
+                        <button type="button" class="proxima-tool-btn" onclick="copyAiTurnText(${idx})" title="Copia"><i class="fa-regular fa-copy"></i></button>
+                        <button type="button" class="proxima-tool-btn" onclick="resetAiChatConversation()" title="Nuova chat"><i class="fa-solid fa-rotate-right"></i></button>
                     </div>
                 `;
-                msgDiv.appendChild(card);
+                turnDiv.querySelector('.proxima-turn-body').innerText = item.text;
+
+                if (item.actionCard) {
+                    const actionId = 'act_' + idx;
+                    window.pendingAiActionsStore[actionId] = item.actionCard.action;
+                    const card = document.createElement('div');
+                    card.className = 'ai-action-card';
+                    card.innerHTML = `
+                        <div class="ai-action-header"><i class="fa-solid fa-bolt"></i> Piano d'Azione Rilevato</div>
+                        <div class="ai-action-desc"></div>
+                        <div class="ai-action-btn-row">
+                            <button type="button" class="btn-ai-action-confirm" onclick="executePendingAiActionById('${actionId}')">
+                                <i class="fa-solid fa-check"></i> Conferma ed Esegui
+                            </button>
+                        </div>
+                    `;
+                    card.querySelector('.ai-action-desc').innerText = item.actionCard.desc;
+                    turnDiv.insertBefore(card, turnDiv.querySelector('.proxima-turn-toolbar'));
+                }
             }
-            threadEl.appendChild(msgDiv);
+
+            threadEl.appendChild(turnDiv);
         });
 
-        // Scroll to bottom
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
@@ -3663,13 +3689,14 @@
 
     function appendChatMessage(sender, text, actionCard = null) {
         aiChatHistory.push({ sender, text, actionCard, time: Date.now() });
-        // Keep last 30 messages
         if (aiChatHistory.length > 30) aiChatHistory.shift();
         localStorage.setItem('studylog_ai_chat', JSON.stringify(aiChatHistory));
         renderAiChatThread();
     }
 
-    // Waveform and Voice Recognition
+    // ==========================================================================
+    // VOICE RECOGNITION (Fixed AndroidNative Bridge + Web Fallback)
+    // ==========================================================================
     window.toggleAiVoiceRecording = function() {
         if (isAiListening) {
             stopAiVoiceRecording();
@@ -3685,17 +3712,23 @@
         if (micBtn) micBtn.classList.add('is-listening');
         if (waveContainer) waveContainer.style.display = 'flex';
 
-        // Android Native Bridge
-        if (window.Android && typeof window.Android.startNativeSpeechRecognition === 'function') {
-            window.Android.startNativeSpeechRecognition();
-            return;
+        // Use AndroidNative (or Android alias) bridge on mobile APK
+        const nativeBridge = window.AndroidNative || window.Android;
+        if (nativeBridge && typeof nativeBridge.startNativeSpeechRecognition === 'function') {
+            try {
+                nativeBridge.startNativeSpeechRecognition();
+                return;
+            } catch (err) {
+                console.warn('Native speech start error:', err);
+            }
         }
 
-        // Web Speech API fallback
+        // Web Speech API fallback (desktop / Chrome browser)
         const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRec) {
             try {
                 const rec = new SpeechRec();
+                window._activeWebSpeechRec = rec;
                 rec.lang = 'it-IT';
                 rec.continuous = false;
                 rec.interimResults = true;
@@ -3705,8 +3738,12 @@
                     if (input) input.value = transcript;
                     if (e.results[0].isFinal) {
                         stopAiVoiceRecording();
-                        appendChatMessage('user', transcript);
-                        processStudyAiCommand(transcript);
+                        if (transcript.trim()) {
+                            const inp = document.getElementById('ai-prompt-input');
+                            if (inp) inp.value = '';
+                            appendChatMessage('user', transcript.trim());
+                            processStudyAiCommand(transcript.trim());
+                        }
                     }
                 };
                 rec.onerror = () => stopAiVoiceRecording();
@@ -3714,7 +3751,11 @@
                 rec.start();
             } catch(e) {
                 stopAiVoiceRecording();
+                showToast('Microfono non disponibile su questo browser');
             }
+        } else {
+            stopAiVoiceRecording();
+            showToast('Riconoscimento vocale non supportato');
         }
     }
 
@@ -3724,12 +3765,18 @@
         const waveContainer = document.getElementById('ai-waveform-container');
         if (micBtn) micBtn.classList.remove('is-listening');
         if (waveContainer) waveContainer.style.display = 'none';
-        if (window.Android && typeof window.Android.stopNativeSpeechRecognition === 'function') {
-            window.Android.stopNativeSpeechRecognition();
+
+        if (window._activeWebSpeechRec) {
+            try { window._activeWebSpeechRec.stop(); } catch(e){}
+            window._activeWebSpeechRec = null;
+        }
+
+        const nativeBridge = window.AndroidNative || window.Android;
+        if (nativeBridge && typeof nativeBridge.stopNativeSpeechRecognition === 'function') {
+            try { nativeBridge.stopNativeSpeechRecognition(); } catch(e){}
         }
     }
 
-    // Android Speech Callbacks
     window.onAndroidSpeechStart = function() {
         isAiListening = true;
         const micBtn = document.getElementById('btn-ai-mic');
@@ -3741,10 +3788,11 @@
     window.onAndroidSpeechResult = function(transcript, isFinal) {
         const input = document.getElementById('ai-prompt-input');
         if (input) input.value = transcript;
-        if (isFinal) {
+        if (isFinal && transcript && transcript.trim()) {
             stopAiVoiceRecording();
-            appendChatMessage('user', transcript);
-            processStudyAiCommand(transcript);
+            if (input) input.value = '';
+            appendChatMessage('user', transcript.trim());
+            processStudyAiCommand(transcript.trim());
         }
     };
 
@@ -3756,7 +3804,6 @@
         stopAiVoiceRecording();
     };
 
-    // Text to Speech
     window.speakAiVoice = function(text) {
         if (!('speechSynthesis' in window)) return;
         try {
@@ -3770,16 +3817,221 @@
         } catch(e){}
     };
 
-    // Study AI Natural Language & Scientific Study Engine
+    // ==========================================================================
+    // NATURAL LANGUAGE PARSING (Multi-Task Offline + Gemini 2.5/2.0 Flash)
+    // ==========================================================================
+    const ITALIAN_NUM_WORDS = {
+        'un': 1, 'uno': 1, 'una': 1, 'due': 2, 'tre': 3, 'quattro': 4,
+        'cinque': 5, 'sei': 6, 'sette': 7, 'otto': 8, 'nove': 9, 'dieci': 10,
+        'undici': 11, 'dodici': 12, 'tredici': 13, 'quattordici': 14, 'quindici': 15,
+        'sedici': 16, 'diciassette': 17, 'diciotto': 18, 'diciannove': 19, 'venti': 20,
+        'trenta': 30, 'quaranta': 40, 'cinquanta': 50
+    };
+
+    function normalizeNumberWords(str) {
+        let out = str;
+        Object.keys(ITALIAN_NUM_WORDS).forEach(word => {
+            const reg = new RegExp('\\b' + word + '\\b', 'gi');
+            out = out.replace(reg, String(ITALIAN_NUM_WORDS[word]));
+        });
+        return out;
+    }
+
+    function findSubjectInSegment(segText) {
+        const lower = segText.toLowerCase();
+        // Sort subjects by length descending so "Scienze motorie" matches before "Scienze"
+        const sortedSubs = [...userSubjects].sort((a, b) => b.length - a.length);
+        for (const sub of sortedSubs) {
+            if (lower.includes(sub.toLowerCase())) return sub;
+        }
+        // Common aliases
+        if (lower.includes('mate')) return userSubjects.find(s => s.toLowerCase().includes('mat')) || 'Matematica';
+        if (lower.includes('ita')) return userSubjects.find(s => s.toLowerCase().includes('ita')) || 'Italiano';
+        if (lower.includes('ingl')) return userSubjects.find(s => s.toLowerCase().includes('ing')) || 'Inglese';
+        if (lower.includes('filo')) return userSubjects.find(s => s.toLowerCase().includes('fil')) || 'Filosofia';
+        return null;
+    }
+
+    function parseDateFromText(txt) {
+        const lower = normalizeNumberWords(txt.toLowerCase());
+        const now = new Date();
+
+        if (lower.includes('dopodomani')) {
+            let d = new Date(now);
+            d.setDate(d.getDate() + 2);
+            return formatDateStr(d);
+        }
+        if (lower.includes('domani')) {
+            let d = new Date(now);
+            d.setDate(d.getDate() + 1);
+            return formatDateStr(d);
+        }
+        const traGiorni = lower.match(/tra\s+(\d+)\s+giorn/);
+        if (traGiorni) {
+            let d = new Date(now);
+            d.setDate(d.getDate() + Math.max(1, parseInt(traGiorni[1], 10)));
+            return formatDateStr(d);
+        }
+
+        // Italian month names (e.g. "15 novembre")
+        const monthsMap = {
+            'gennaio': 1, 'febbraio': 2, 'marzo': 3, 'aprile': 4, 'maggio': 5, 'giugno': 6,
+            'luglio': 7, 'agosto': 8, 'settembre': 9, 'ottobre': 10, 'novembre': 11, 'dicembre': 12
+        };
+        for (const [mName, mIdx] of Object.entries(monthsMap)) {
+            const mReg = new RegExp('(\\d{1,2})\\s+' + mName);
+            const mMatch = lower.match(mReg);
+            if (mMatch) {
+                const day = parseInt(mMatch[1], 10);
+                let year = now.getFullYear();
+                let candidate = new Date(year, mIdx - 1, day);
+                if (formatDateStr(candidate) <= todayDateStr) {
+                    candidate = new Date(year + 1, mIdx - 1, day);
+                }
+                return formatDateStr(candidate);
+            }
+        }
+
+        return tomorrowStr;
+    }
+
+    function extractCleanTaskDetails(segmentRaw, subjectName) {
+        let norm = normalizeNumberWords(segmentRaw);
+        // Remove conversational prefixes
+        norm = norm.replace(/^((aggiungi|allora|guarda|senti|vorrei|dovrei|devo|ho da|bisogna|completare|fare|svolgere|studiare|ripassare|leggere)\s+)+/gi, '');
+
+        // Remove "di <Materia>" or "in <Materia>"
+        if (subjectName) {
+            const subReg = new RegExp('\\b(di|in|per)\\s+' + subjectName + '\\b', 'gi');
+            norm = norm.replace(subReg, '');
+            const subPlain = new RegExp('\\b' + subjectName + '\\b', 'gi');
+            norm = norm.replace(subPlain, '');
+        }
+
+        norm = norm.replace(/\b(per\s+domani|domani|dopodomani)\b/gi, '').replace(/\s+/g, ' ').trim();
+
+        // If it starts with a number (e.g., "7 riguardante i mitocondri" where "esercizi" was in the first clause)
+        if (/^\d+\s+(riguardant|su|sull|relativ|pag|es)/i.test(norm) && !/eserciz|pagin/i.test(norm)) {
+            norm = norm.replace(/^(\d+)/, '$1 esercizi');
+        } else if (/^\d+$/.test(norm)) {
+            norm = norm + ' esercizi';
+        }
+
+        if (!norm || norm.length < 2) {
+            return 'Esercizi di ' + (subjectName || 'studio');
+        }
+        return norm.charAt(0).toUpperCase() + norm.slice(1);
+    }
+
+    function parseLocalStudyActions(rawText) {
+        const normText = normalizeNumberWords(rawText.trim());
+        const lower = normText.toLowerCase();
+        const globalTargetDate = parseDateFromText(normText);
+
+        // 1. Check if it's a Grade registration ("ho preso 8 in fisica", "voto 7.5 in matematica")
+        const isGradeIntent = /\b(voto|preso|ottenuto|registrare\s+voto|registra\s+\d)\b/i.test(lower);
+        if (isGradeIntent) {
+            const sub = findSubjectInSegment(normText) || userSubjects[0] || 'Matematica';
+            const gMatch = normText.match(/\b([2-9]|10)(\.5|\,5|\+|\-|\s*e\s*mezzo)?\b/i);
+            let gradeVal = gMatch ? gMatch[0].replace(',', '.').replace(/\s*e\s*mezzo/i, '.5') : '7';
+            return [{
+                type: 'add_grade',
+                subject: sub,
+                value: gradeVal,
+                date: formatDateStr(new Date())
+            }];
+        }
+
+        // 2. Check if it's an Exam / Interrogazione ("verifica di storia 30 pagine", "interrogazione di filosofia")
+        const isExamIntent = /\b(verifica|verifiche|interrogazione|interrogazioni|esame|compito in classe)\b/i.test(lower);
+        if (isExamIntent) {
+            const sub = findSubjectInSegment(normText) || userSubjects[0] || 'Storia';
+            const pagMatch = normText.match(/(\d+)\s*(pag|pagine|esercizi)/i);
+            const pages = pagMatch ? parseInt(pagMatch[1], 10) : 20;
+            const exType = lower.includes('interrogazion') ? 'Interrogazione' : 'Verifica';
+            return [{
+                type: 'add_exam',
+                examType: exType,
+                subject: sub,
+                date: globalTargetDate,
+                pages: pages
+            }];
+        }
+
+        // 3. Check if it's Homework / Exercises / Study tasks (supports multiple subjects separated by " e " or ",")
+        const isTaskIntent = /\b(compito|compiti|esercizio|esercizi|studiare|completare|fare|svolgere|ripassare|leggere|pagine|pagina|es\.)\b/i.test(lower) || findSubjectInSegment(normText) !== null;
+        if (isTaskIntent) {
+            // Split by " e " or "," to see if multiple subjects are mentioned
+            const clauses = normText.split(/\s+e\s+|\s*,\s*/i);
+            const multiTasks = [];
+
+            clauses.forEach(clause => {
+                const sub = findSubjectInSegment(clause);
+                if (sub) {
+                    const details = extractCleanTaskDetails(clause, sub);
+                    const clauseDate = (clause.toLowerCase().includes('domani') || clause.toLowerCase().includes('tra '))
+                        ? parseDateFromText(clause)
+                        : globalTargetDate;
+                    multiTasks.push({
+                        type: 'add_task',
+                        subject: sub,
+                        date: clauseDate,
+                        details: details
+                    });
+                }
+            });
+
+            if (multiTasks.length > 0) {
+                return multiTasks;
+            }
+
+            // Fallback single task if no explicit subject matched
+            const fallbackSub = userSubjects[0] || 'Matematica';
+            return [{
+                type: 'add_task',
+                subject: fallbackSub,
+                date: globalTargetDate,
+                details: extractCleanTaskDetails(normText, fallbackSub)
+            }];
+        }
+
+        return null;
+    }
+
+    function formatActionDescription(actionOrArray) {
+        if (!actionOrArray) return 'Azione rilevata';
+        const list = Array.isArray(actionOrArray) ? actionOrArray : [actionOrArray];
+        return list.map(act => {
+            if (act.type === 'add_task') {
+                return '• Compito di ' + act.subject + ': "' + (act.details || 'Studio') + '" (scadenza ' + formatDateShort(act.date || tomorrowStr) + ')';
+            }
+            if (act.type === 'add_exam') {
+                return '• ' + (act.examType || 'Verifica') + ' di ' + act.subject + ': ' + (act.pages || 20) + ' pag. per il ' + formatDateShort(act.date || tomorrowStr);
+            }
+            if (act.type === 'add_grade') {
+                return '• Voto ' + act.value + ' in ' + act.subject + ' (' + getQuadrimestreForDate(formatDateStr(new Date())) + ')';
+            }
+            return '• Modifica piano di studio';
+        }).join('\n');
+    }
+
     window.processStudyAiCommand = async function(rawText) {
         const text = rawText.toLowerCase().trim();
 
-        // Loading message
         const threadEl = document.getElementById('ai-chat-thread');
+        const welcomeEl = document.getElementById('ai-welcome-container');
+        if (welcomeEl) welcomeEl.style.display = 'none';
+
         const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'ai-msg ai-msg-ai';
+        loadingDiv.className = 'proxima-turn';
         loadingDiv.id = 'ai-msg-loading';
-        loadingDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sto elaborando...';
+        loadingDiv.innerHTML = `
+            <div class="proxima-turn-header">
+                <div class="proxima-ai-avatar">${PROXIMA_CUBE_SVG}</div>
+                <span class="proxima-turn-name">Proxima</span>
+            </div>
+            <div class="proxima-turn-body"><i class="fa-solid fa-circle-notch fa-spin"></i> Elaborazione in corso...</div>
+        `;
         if (threadEl) {
             threadEl.appendChild(loadingDiv);
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
@@ -3790,219 +4042,198 @@
             if (el) el.remove();
         };
 
-        // Check if Gemini API key is configured
-        if (geminiApiKey) {
-            try {
-                const promptContext = `Sei Study AI, un assistente accademico esperto e tutor di studio basato su evidenze scientifiche (Dunlosky 2013: spacing effect, active recall).
-Rispondi in italiano con un tono calmo, chiaro, normale e senza usare MAI formattazione in grassetto o asterischi.
-I dati attuali dello studente:
-Materie: ${userSubjects.join(', ')}
-Task aperti: ${myTodos.map(t => t.title + ' (' + t.subject + ')').join('; ')}
-Verifiche: ${myExams.map(e => e.subject + ' il ' + e.date + ' (' + (e.pagesTotal || '') + ' pag)').join('; ')}
-Voti: ${myGrades.map(g => g.subject + ': ' + g.displayValue).join('; ')}
+        // 1. If Gemini API Key is present, call Gemini 2.5 Flash (with fallback to 2.0 Flash)
+        if (geminiApiKey && geminiApiKey.trim().length > 10) {
+            const systemPrompt = `Sei Proxima, l'assistente AI integrato in Study Planner.
+Rispondi sempre in italiano in modo conciso, chiaro, naturale e senza MAI usare grassetto o asterischi (**).
+Oggi è ${todayDateStr} e domani è ${tomorrowStr}.
+Materie dello studente: ${userSubjects.join(', ')}.
+Compiti attuali: ${myTodos.map(t => t.title + ' (' + t.subject + ', scadenza ' + t.deadline + ')').join('; ') || 'Nessuno'}.
+Verifiche attuali: ${myExams.map(e => e.subject + ' il ' + e.date + ' (' + (e.pages || 20) + ' pag)').join('; ') || 'Nessuna'}.
+Voti registrati: ${myGrades.map(g => g.subject + ': ' + g.displayValue).join('; ') || 'Nessuno'}.
 
-Se l'utente ti chiede di aggiungere, togliere o modificare un compito, verifica o voto, includi alla fine della tua risposta questo blocco JSON esatto:
-###JSON_ACTION: {"type": "add_task"|"remove_task"|"modify_task"|"add_exam"|"remove_exam"|"modify_exam"|"add_grade"|"remove_grade", "subject": "...", "date": "YYYY-MM-DD", "details": "...", "value": "..."}###
+IMPORTANTE: Se lo studente menziona uno o più compiti/esercizi da fare, verifiche da programmare o voti presi, rispondi confermando cosa stai per aggiungere e inserisci OBBLIGATORIAMENTE in fondo alla risposta questo blocco esatto (può contenere una singola azione o un array di più azioni):
+###JSON_ACTION: [{"type": "add_task", "subject": "NomeMateria", "date": "YYYY-MM-DD", "details": "Descrizione esercizi/argomento"}]###
+Oppure per verifiche: {"type": "add_exam", "subject": "NomeMateria", "date": "YYYY-MM-DD", "pages": 25}
+Oppure per voti: {"type": "add_grade", "subject": "NomeMateria", "value": "8"}
 
-Richiesta dello studente: "${rawText}"`;
+Messaggio dello studente: "${rawText}"`;
 
-                const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: promptContext }] }] })
-                });
+            const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+            for (const modelName of modelsToTry) {
+                try {
+                    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey.trim()}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
+                    });
 
-                if (resp.ok) {
-                    const data = await resp.json();
-                    let reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                    removeLoading();
-
-                    let actionCard = null;
-                    if (reply.includes('###JSON_ACTION:')) {
-                        const parts = reply.split('###JSON_ACTION:');
-                        reply = parts[0].trim();
-                        const jsonStr = parts[1].split('###')[0].trim();
-                        try {
-                            const actionObj = JSON.parse(jsonStr);
-                            actionCard = {
-                                desc: formatActionDescription(actionObj),
-                                action: actionObj
-                            };
-                        } catch(e){}
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        let reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                        if (reply) {
+                            removeLoading();
+                            let actionCard = null;
+                            if (reply.includes('###JSON_ACTION:')) {
+                                const parts = reply.split('###JSON_ACTION:');
+                                reply = parts[0].trim();
+                                const jsonStr = parts[1].split('###')[0].trim();
+                                try {
+                                    const parsedActions = JSON.parse(jsonStr);
+                                    actionCard = {
+                                        desc: formatActionDescription(parsedActions),
+                                        action: parsedActions
+                                    };
+                                } catch(e){}
+                            }
+                            reply = reply.replace(/\*\*/g, '').replace(/\*/g, '');
+                            appendChatMessage('ai', reply, actionCard);
+                            speakAiVoice(reply);
+                            return;
+                        }
                     }
-
-                    // Remove any bold asterisks
-                    reply = reply.replace(/\*\*/g, '').replace(/\*/g, '');
-                    appendChatMessage('ai', reply, actionCard);
-                    speakAiVoice(reply);
-                    return;
+                } catch (err) {
+                    console.warn('Gemini model ' + modelName + ' error:', err);
                 }
-            } catch(e) {
-                console.warn('Gemini API call failed, falling back to local NLP engine:', e);
             }
         }
 
-        // Offline Local NLP Rule Engine
+        // 2. Smart Local NLU Engine (Offline / No API Key needed for tasks, exams, grades)
         removeLoading();
-        let matchedSubject = userSubjects.find(s => text.includes(s.toLowerCase())) || 'Generale';
+        const detectedActions = parseLocalStudyActions(rawText);
 
-        // 1. Aggiungi Compito
-        if (text.includes('compito') || text.includes('compiti') || text.includes('esercizio') || text.includes('studiare')) {
-            let targetDate = parseDateFromText(text);
-            let actionObj = {
-                type: 'add_task',
-                subject: matchedSubject,
-                date: targetDate,
-                details: extractDetailsFromText(rawText) || ('Studio di ' + matchedSubject)
-            };
-            let reply = 'Posso aggiungere questo compito di ' + matchedSubject + ' per ' + formatDateShort(targetDate) + '. Confermi?';
-            appendChatMessage('ai', reply, { desc: actionObj.details + ' per ' + formatDateShort(targetDate), action: actionObj });
+        if (detectedActions && detectedActions.length > 0) {
+            const descText = formatActionDescription(detectedActions);
+            let reply = '';
+            if (detectedActions.length > 1) {
+                reply = `Ho preparato ${detectedActions.length} attività da aggiungere al tuo piano di studio. Premi conferma qui sotto per salvarle tutte.`;
+            } else {
+                const first = detectedActions[0];
+                if (first.type === 'add_task') {
+                    reply = `Ho preparato il compito di ${first.subject} ("${first.details}") per il ${formatDateShort(first.date)}. Premi conferma per aggiungerlo.`;
+                } else if (first.type === 'add_exam') {
+                    reply = `Ho preparato la ${first.examType || 'verifica'} di ${first.subject} (${first.pages} pagine) per il ${formatDateShort(first.date)}. Premi conferma per pianificarla.`;
+                } else if (first.type === 'add_grade') {
+                    reply = `Ho preparato la registrazione del voto ${first.value} in ${first.subject}. Premi conferma per salvarlo nel registro.`;
+                }
+            }
+
+            appendChatMessage('ai', reply, { desc: descText, action: detectedActions });
             speakAiVoice(reply);
             return;
         }
 
-        // 2. Aggiungi Verifica
-        if (text.includes('verifica') || text.includes('interrogazione') || text.includes('esame')) {
-            let targetDate = parseDateFromText(text);
-            let pages = extractPagesFromText(text) || 20;
-            let actionObj = {
-                type: 'add_exam',
-                subject: matchedSubject,
-                date: targetDate,
-                pages: pages
-            };
-            let reply = 'Ho programmato la verifica di ' + matchedSubject + ' per ' + formatDateShort(targetDate) + ' con ' + pages + ' pagine. Confermi l\'inserimento?';
-            appendChatMessage('ai', reply, { desc: 'Verifica ' + matchedSubject + ': ' + pages + ' pagine per ' + formatDateShort(targetDate), action: actionObj });
-            speakAiVoice(reply);
+        // 3. Conversational greeting or general message
+        if (/^(ciao|ehi|buongiorno|buonasera|salve|hello|hey)\b/i.test(text)) {
+            const greetReply = `Ciao ${getUserName()}! Sono Proxima. Dimmi pure quali esercizi o compiti hai da fare (anche di più materie insieme), quali verifiche devi preparare o che voto hai preso.`;
+            appendChatMessage('ai', greetReply);
+            speakAiVoice(greetReply);
             return;
         }
 
-        // 3. Aggiungi Voto
-        if (text.includes('voto') || text.includes('preso') || text.includes('registra')) {
-            let gradeMatch = text.match(/\b([1-9]|10)(\.[0-9]+|\,[0-9]+|\+|\-|\/2|\/10| e mezzo)?\b/);
-            let gradeVal = gradeMatch ? gradeMatch[0].replace(',', '.') : '7';
-            let actionObj = {
-                type: 'add_grade',
-                subject: matchedSubject,
-                value: gradeVal,
-                date: todayDateStr
-            };
-            let reply = 'Ottimo! Vuoi che registri il voto ' + gradeVal + ' in ' + matchedSubject + ' nel tuo registro voti?';
-            appendChatMessage('ai', reply, { desc: 'Voto ' + gradeVal + ' in ' + matchedSubject, action: actionObj });
-            speakAiVoice(reply);
-            return;
-        }
-
-        // 4. Domande generali di studio
-        let reply = 'Posso aiutarti a gestire compiti, verifiche e voti. Dimmi ad esempio: "Aggiungi compito di matematica per domani", "Verifica di storia il 15 novembre 30 pagine" oppure "Ho preso 8 in fisica".';
-        appendChatMessage('ai', reply);
-        speakAiVoice(reply);
+        const fallbackReply = `Puoi dirmi ad esempio: "5 esercizi di matematica sulle funzioni e 7 di scienze sui mitocondri", "Verifica di storia il 20 novembre 30 pagine" oppure "Ho preso 8 in fisica". Per domande libere su qualsiasi argomento, inserisci la tua chiave gratuita Gemini nelle Impostazioni.`;
+        appendChatMessage('ai', fallbackReply);
+        speakAiVoice(fallbackReply);
     };
 
-    function formatActionDescription(act) {
-        if (!act) return 'Azione rilevata';
-        if (act.type === 'add_task') return 'Aggiungi compito: ' + (act.details || act.subject) + ' per ' + formatDateShort(act.date || todayDateStr);
-        if (act.type === 'add_exam') return 'Aggiungi verifica di ' + act.subject + ' (' + (act.pages || 20) + ' pag) per ' + formatDateShort(act.date || todayDateStr);
-        if (act.type === 'add_grade') return 'Registra voto ' + act.value + ' in ' + act.subject;
-        return 'Modifica piano di studio';
-    }
+    window.executePendingAiActionById = function(actionId) {
+        const actionPayload = window.pendingAiActionsStore[actionId];
+        if (!actionPayload) return;
+        window.executePendingAiAction(actionPayload);
+    };
 
-    function parseDateFromText(txt) {
-        let now = new Date();
-        if (txt.includes('domani')) {
-            let d = new Date(now);
-            d.setDate(d.getDate() + 1);
-            return formatDateStr(d);
-        }
-        if (txt.includes('dopodomani')) {
-            let d = new Date(now);
-            d.setDate(d.getDate() + 2);
-            return formatDateStr(d);
-        }
-        return tomorrowStr;
-    }
+    window.executePendingAiAction = function(actionOrArray) {
+        if (!actionOrArray) return;
+        const actions = Array.isArray(actionOrArray) ? actionOrArray : [actionOrArray];
+        let addedTasks = 0;
+        let addedExams = 0;
+        let addedGrades = 0;
 
-    function extractPagesFromText(txt) {
-        let m = txt.match(/(\d+)\s*(pag|pagine)/);
-        return m ? parseInt(m[1]) : 20;
-    }
+        actions.forEach(actionObj => {
+            if (actionObj.type === 'add_task') {
+                const deadline = (actionObj.date && actionObj.date > todayDateStr) ? actionObj.date : tomorrowStr;
+                const assignedDate = calculateAssignedDate(deadline, 2, 2, todayDateStr, []);
+                const newTodo = {
+                    id: 'td_' + generateId(),
+                    subject: actionObj.subject || userSubjects[0] || 'Matematica',
+                    title: actionObj.details || ('Studio di ' + (actionObj.subject || 'Materia')),
+                    priority: 2,
+                    difficulty: 2,
+                    deadline: deadline,
+                    assignedDate: assignedDate,
+                    repeat: false,
+                    createdAt: todayDateStr,
+                    excludedDays: []
+                };
+                myTodos.push(newTodo);
+                addedTasks++;
+            } else if (actionObj.type === 'add_exam') {
+                const examDate = (actionObj.date && actionObj.date > todayDateStr) ? actionObj.date : tomorrowStr;
+                const newExam = {
+                    id: 'ex_' + generateId(),
+                    type: actionObj.examType || 'Verifica',
+                    subject: actionObj.subject || userSubjects[0] || 'Storia',
+                    date: examDate,
+                    startDate: todayDateStr,
+                    pages: parseInt(actionObj.pages, 10) || 20,
+                    specificInterrogazioneDates: [],
+                    progress: {},
+                    excludedDays: [],
+                    snoozedDays: []
+                };
+                myExams.push(newExam);
+                addedExams++;
+            } else if (actionObj.type === 'add_grade') {
+                const rawVal = String(actionObj.value || '7');
+                const nowDateStr = formatDateStr(new Date());
+                const newGrade = {
+                    id: 'gr_' + generateId(),
+                    subject: actionObj.subject || userSubjects[0] || 'Matematica',
+                    displayValue: rawVal,
+                    numericValue: parseGradeNumeric(rawVal) || 7.0,
+                    quadrimestre: getQuadrimestreForDate(nowDateStr),
+                    date: nowDateStr
+                };
+                myGrades.push(newGrade);
+                addedGrades++;
+            }
+        });
 
-    function extractDetailsFromText(txt) {
-        let clean = txt.replace(/aggiungi|compito|verifica|per|domani|dopodomani/gi, '').trim();
-        return clean.length > 3 ? clean : '';
-    }
-
-    window.executePendingAiAction = function(actionObj) {
-        if (!actionObj) return;
-
-        if (actionObj.type === 'add_task') {
-            const newTodo = {
-                _id: 'todo_' + Date.now(),
-                title: actionObj.details || ('Compito di ' + (actionObj.subject || 'Studio')),
-                subject: actionObj.subject || userSubjects[0] || 'Matematica',
-                deadline: actionObj.date || tomorrowStr,
-                priority: 'media',
-                difficulty: 'media',
-                assignedDate: todayDateStr,
-                createdAt: todayDateStr,
-                isDone: false,
-                excludedDays: []
-            };
-            myTodos.push(newTodo);
+        if (addedTasks > 0) {
             localStorage.setItem('studylog_todos', JSON.stringify(myTodos));
-            renderTimeline();
-            addXP(25);
-            showToast('Compito aggiunto! +25 XP');
-        } else if (actionObj.type === 'add_exam') {
-            const newExam = {
-                id: 'exam_' + Date.now(),
-                subject: actionObj.subject || userSubjects[0] || 'Storia',
-                date: actionObj.date || tomorrowStr,
-                pagesTotal: parseInt(actionObj.pages) || 20,
-                type: 'Scritto',
-                startDate: todayDateStr,
-                excludedDays: []
-            };
-            myExams.push(newExam);
+            addXP(25 * addedTasks);
+        }
+        if (addedExams > 0) {
             localStorage.setItem('studylog_exams', JSON.stringify(myExams));
-            generateTasksFromExam(newExam);
-            renderTimeline();
-            addXP(40);
-            showToast('Verifica programmata! +40 XP');
-        } else if (actionObj.type === 'add_grade') {
-            const rawVal = String(actionObj.value || '7');
-            const newGrade = {
-                id: 'grade_' + Date.now(),
-                subject: actionObj.subject || userSubjects[0] || 'Matematica',
-                rawInput: rawVal,
-                displayValue: rawVal,
-                numericValue: parseGradeNumeric(rawVal) || 7.0,
-                type: 'Scritto',
-                quadrimestre: getQuadrimestreForDate(todayDateStr),
-                date: todayDateStr,
-                notes: 'Registrato con Study AI'
-            };
-            myGrades.push(newGrade);
+            addXP(40 * addedExams);
+        }
+        if (addedGrades > 0) {
             localStorage.setItem('studylog_grades', JSON.stringify(myGrades));
-            renderGradesView();
-            addXP(20);
-            showToast('Voto ' + rawVal + ' registrato! +20 XP');
+            try { renderGradesView(); } catch(e){}
+            addXP(20 * addedGrades);
         }
 
-        appendChatMessage('ai', 'Fatto! Modifiche applicate con successo al tuo piano di studio.');
-        speakAiVoice('Fatto! Modifiche applicate con successo.');
+        try { updateAllDots(); } catch(e){}
+        try { if (selectedDateStr) generateTasksForDate(selectedDateStr); } catch(e){}
+        try { updateWeeklyChart(); } catch(e){}
+        try { renderMonthCalendar(); } catch(e){}
+        try { renderSubjectDonutChart(); } catch(e){}
+        try { updateDashboard(); } catch(e){}
+
+        showToast('Piano di studio aggiornato con successo!');
+        appendChatMessage('ai', 'Perfetto! Ho aggiunto tutto al tuo diario di studio.');
+        speakAiVoice('Perfetto! Ho aggiunto tutto al tuo diario di studio.');
     };
 
-    
     function updateGeminiKeyStatusUI() {
         const statusEl = document.getElementById('gemini-key-status');
         const input = document.getElementById('settings-gemini-key-input');
         if (input && typeof geminiApiKey !== 'undefined' && geminiApiKey) input.value = geminiApiKey;
         if (statusEl) {
             if (typeof geminiApiKey !== 'undefined' && geminiApiKey) {
-                statusEl.innerHTML = '<span style="color:#10B981;"><i class="fa-solid fa-check"></i> Chiave Gemini attiva</span>';
+                statusEl.innerHTML = '<span style="color:#10B981;"><i class="fa-solid fa-check"></i> Chiave Gemini attiva (Proxima Cloud + Offline)</span>';
             } else {
-                statusEl.innerHTML = '<span>Motore locale offline attivo</span>';
+                statusEl.innerHTML = '<span>Motore locale Proxima attivo (inserisci una chiave per risposte cloud)</span>';
             }
         }
     }
@@ -4013,7 +4244,8 @@ Richiesta dello studente: "${rawText}"`;
         let val = input.value.trim();
         geminiApiKey = val;
         localStorage.setItem('studylog_gemini_key', val);
-        showToast(val ? 'Chiave Gemini salvata' : 'Chiave Gemini rimossa');
+        updateGeminiKeyStatusUI();
+        showToast(val ? 'Chiave Gemini salvata con successo!' : 'Chiave Gemini rimossa');
     };
 
     window.executeHardReset = function() { 
@@ -4023,4 +4255,3 @@ Richiesta dello studente: "${rawText}"`;
     };
 
     init();
-

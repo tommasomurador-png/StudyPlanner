@@ -11,8 +11,8 @@ android {
         applicationId = "com.tommasomurador.studyplanner"
         minSdk = 24
         targetSdk = 35
-        versionCode = 18
-        versionName = "2.4.5"
+        versionCode = 19
+        versionName = "2.4.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

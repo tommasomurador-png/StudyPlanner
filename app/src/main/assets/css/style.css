@@ -237,6 +237,16 @@
         .popover-cal-cell.disabled { opacity: 0.2; cursor: not-allowed; text-decoration: line-through; pointer-events: none; }
 
         /* Popover Selettore Materia e Tipologia */
+        .option-selector-grid.cols-4 {
+            grid-template-columns: repeat(4, 1fr);
+            max-height: 240px;
+        }
+        .option-selector-grid.cols-4 .option-selector-btn {
+            justify-content: center;
+            text-align: center;
+            padding: 10px 6px;
+            font-weight: 700;
+        }
         .option-selector-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -1543,133 +1553,241 @@
 }
 
 /* ==========================================================================
-   AI CHATBOT VIEW (Image 1 Mobile UI UX Spec)
+   PROXIMA AI VIEW (Image 2 Specification - System Monochrome Theme)
    ========================================================================== */
 .ai-view {
     display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 120px);
-    padding-bottom: 120px;
+    min-height: calc(100vh - 180px);
+    padding-bottom: 155px;
     position: relative;
 }
 
-.ai-view-header {
+/* Welcome Screen (Image 2 Left Phone) */
+.proxima-welcome {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 4px 20px;
+    animation: viewFadeSlideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.proxima-greeting-block {
+    margin-bottom: 28px;
+}
+.proxima-hello-line {
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: var(--theme-strong);
+    line-height: 1.18;
+    letter-spacing: -0.8px;
+}
+.proxima-user-highlight {
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 1.5px dashed var(--border-color);
+    transition: color 0.2s ease;
+}
+.proxima-user-highlight:active {
+    color: var(--theme-strong);
+}
+.proxima-subtitle-line {
+    font-size: 1.95rem;
+    font-weight: 700;
+    color: var(--theme-strong);
+    line-height: 1.2;
+    letter-spacing: -0.7px;
+    margin-top: 2px;
+}
+
+/* Proxima Brand Row with Isometric Cube */
+.proxima-brand-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 0 14px 0;
-    margin-bottom: 8px;
+    margin-bottom: 14px;
 }
-.ai-brand-badge {
+.proxima-brand-left {
     display: inline-flex;
     align-items: center;
+    gap: 10px;
+}
+.proxima-cube-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--theme-strong);
+}
+.proxima-brand-title {
+    font-size: 1.02rem;
+    font-weight: 700;
+    color: var(--theme-strong);
+    letter-spacing: -0.2px;
+}
+
+/* Bento Suggestion Grid (Image 2 Left Phone) */
+.proxima-bento-grid {
+    display: grid;
+    grid-template-columns: 1.08fr 0.92fr;
+    gap: 12px;
+}
+.proxima-bento-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.proxima-bento-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 22px;
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease, border-color 0.2s ease;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
+}
+.proxima-bento-card:active {
+    transform: scale(0.96);
+    border-color: var(--theme-strong);
+}
+.proxima-bento-card.tall {
+    min-height: 196px;
+}
+.proxima-bento-card.square {
+    flex: 1;
+    min-height: 132px;
+}
+.proxima-bento-text {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--text-main);
+    line-height: 1.42;
+}
+.proxima-bento-icon-circle {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--theme-strong);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    margin-top: 14px;
+}
+.proxima-bento-actions-pill {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    height: 52px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
+}
+.proxima-mini-action {
+    background: transparent;
+    border: none;
+    color: var(--theme-strong);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: transform 0.18s ease, background-color 0.18s ease;
+}
+.proxima-mini-action:active {
+    transform: scale(0.88);
+    background: var(--bg-color);
+}
+
+/* Proxima Chat Thread (Image 2 Right Phone) */
+.proxima-chat-thread {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 8px 4px 36px;
+}
+.proxima-turn {
+    display: flex;
+    flex-direction: column;
     gap: 8px;
+    animation: viewFadeSlideIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.proxima-turn-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.proxima-user-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--theme-strong);
+    color: var(--bg-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.proxima-ai-avatar {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--theme-strong);
+    flex-shrink: 0;
+}
+.proxima-turn-name {
     font-size: 0.95rem;
     font-weight: 700;
     color: var(--theme-strong);
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    padding: 6px 14px;
-    border-radius: 20px;
 }
-.ai-spark-icon {
-    color: var(--theme-strong);
-}
-.btn-ai-header-action {
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    color: var(--text-muted);
-    width: 38px;
-    height: 38px;
-    border-radius: 19px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-.btn-ai-header-action:active {
-    transform: scale(0.92);
-}
-
-/* Centerpiece / Welcome (Image 1 Left Screen) */
-.ai-welcome-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 40px 20px 24px;
-    transition: opacity 0.3s ease;
-}
-.ai-hero-logo {
-    margin-bottom: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.ai-welcome-greeting {
-    font-size: 1.65rem;
-    font-weight: 700;
-    color: var(--theme-strong);
-    margin-bottom: 8px;
-    letter-spacing: -0.5px;
-}
-#ai-user-name {
-    text-decoration: underline;
-    text-decoration-style: dotted;
-    text-underline-offset: 4px;
-    cursor: pointer;
-}
-.ai-welcome-sub {
-    font-size: 0.92rem;
-    color: var(--text-muted);
-    max-width: 280px;
-    line-height: 1.45;
-}
-
-/* Chat Message Thread (Image 1 Right Screen) */
-.ai-chat-thread {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    padding: 10px 4px 30px;
-}
-.ai-msg {
-    max-width: 86%;
-    padding: 12px 16px;
-    font-size: 0.92rem;
-    line-height: 1.5;
-    animation: fadeInMsg 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+.proxima-turn-body {
+    font-size: 0.94rem;
+    line-height: 1.55;
+    color: var(--text-main);
+    padding-left: 36px;
     word-break: break-word;
 }
-@keyframes fadeInMsg {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+.proxima-turn-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-left: 36px;
+    margin-top: 4px;
 }
-.ai-msg-user {
-    align-self: flex-end;
-    background: var(--theme-strong);
-    color: var(--bg-color);
-    border-radius: 20px 20px 4px 20px;
-    font-weight: 500;
+.proxima-tool-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    padding: 4px;
+    cursor: pointer;
+    transition: color 0.15s ease, transform 0.15s ease;
 }
-.ai-msg-ai {
-    align-self: flex-start;
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
-    border-radius: 20px 20px 20px 4px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+.proxima-tool-btn:active {
+    color: var(--theme-strong);
+    transform: scale(0.9);
 }
 
-/* Action Proposal Card in AI Bubble */
+/* Action Proposal Card in Proxima Reply */
 .ai-action-card {
-    background: var(--bg-color);
+    background: var(--surface-color);
     border: 1px solid var(--border-color);
-    border-radius: 14px;
-    padding: 12px 14px;
+    border-radius: 16px;
+    padding: 14px 16px;
     margin-top: 10px;
+    margin-left: 36px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.04);
 }
 .ai-action-header {
     font-size: 0.72rem;
@@ -1685,7 +1803,8 @@
 .ai-action-desc {
     font-size: 0.88rem;
     color: var(--text-main);
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    line-height: 1.45;
 }
 .ai-action-btn-row {
     display: flex;
@@ -1695,145 +1814,185 @@
     background: var(--theme-strong);
     color: var(--bg-color);
     border: none;
-    border-radius: 16px;
-    padding: 7px 14px;
+    border-radius: 14px;
+    padding: 9px 16px;
     font-size: 0.82rem;
     font-weight: 700;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    transition: opacity 0.15s;
+    transition: transform 0.15s ease, opacity 0.15s;
 }
-.btn-ai-action-confirm:active { opacity: 0.85; }
-.btn-ai-action-cancel {
-    background: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-muted);
-    border-radius: 16px;
-    padding: 7px 14px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    cursor: pointer;
+.btn-ai-action-confirm:active {
+    transform: scale(0.95);
+    opacity: 0.9;
 }
 
-/* Floating Input Dock (Image 1 Bottom Bar) */
+/* Floating Input Dock (Image 2 Prompt Box with Guaranteed Circular Buttons) */
 .ai-input-dock {
     position: fixed;
-    bottom: calc(86px + env(safe-area-inset-bottom));
+    bottom: calc(88px + env(safe-area-inset-bottom));
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 32px);
-    max-width: 480px;
-    z-index: 100;
+    max-width: 440px;
+    z-index: 110;
 }
 .ai-input-bar {
     display: flex;
     align-items: center;
     background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 36px;
-    padding: 6px 8px 6px 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    border: 1.5px solid var(--border-color);
+    border-radius: 28px;
+    padding: 6px 8px 6px 16px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
     gap: 8px;
 }
-.btn-ai-dock-action {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    font-size: 1.1rem;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    border-radius: 50%;
+[data-theme="dark"] .ai-input-bar {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 .ai-prompt-field {
     flex: 1;
-    background: transparent;
+    min-width: 0;
     border: none;
-    outline: none;
+    background: transparent;
     color: var(--text-main);
-    font-size: 0.92rem;
     font-family: var(--ui-font);
-    padding: 6px 2px;
+    font-size: 0.92rem;
+    outline: none;
+    padding: 8px 0;
 }
 .ai-prompt-field::placeholder {
     color: var(--text-muted);
-    opacity: 0.7;
+    opacity: 0.75;
 }
 
-/* Waveform Bars Animation (Speaking / Receiving Voice) */
+/* 100% Round Buttons (Never Oval) */
+.btn-ai-circle-icon,
+.btn-ai-circle-send {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    max-width: 40px !important;
+    max-height: 40px !important;
+    flex: 0 0 40px !important;
+    aspect-ratio: 1 / 1;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer;
+    transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.18s ease;
+}
+.btn-ai-circle-icon {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--theme-strong);
+    font-size: 1rem;
+}
+.btn-ai-circle-icon.is-listening {
+    background: #EF4444 !important;
+    border-color: #EF4444 !important;
+    color: #FFFFFF !important;
+    animation: micPulseRing 1.2s infinite ease-in-out;
+}
+.btn-ai-circle-send {
+    background: var(--theme-strong);
+    border: none;
+    color: var(--bg-color);
+    font-size: 1rem;
+}
+.btn-ai-circle-icon:active,
+.btn-ai-circle-send:active {
+    transform: scale(0.9);
+}
+
+@keyframes micPulseRing {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
+    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* Voice Waveform Animation */
 .ai-waveform-container {
     display: flex;
     align-items: center;
     gap: 3px;
-    padding: 0 4px;
     height: 24px;
+    padding: 0 6px;
+    flex-shrink: 0;
 }
 .ai-wave-bar {
-    width: 3.5px;
-    height: 18px;
-    background: var(--theme-strong);
-    border-radius: 2px;
-    animation: waveBounce 1s ease-in-out infinite alternate;
+    width: 3px;
+    height: 12px;
+    background: #EF4444;
+    border-radius: 3px;
+    animation: aiWaveBounce 0.7s infinite ease-in-out;
 }
-.ai-wave-bar:nth-child(1) { animation-delay: 0.1s; height: 12px; }
-.ai-wave-bar:nth-child(2) { animation-delay: 0.3s; height: 22px; }
-.ai-wave-bar:nth-child(3) { animation-delay: 0.2s; height: 16px; }
-.ai-wave-bar:nth-child(4) { animation-delay: 0.4s; height: 20px; }
-
-@keyframes waveBounce {
-    0% { transform: scaleY(0.3); opacity: 0.5; }
-    100% { transform: scaleY(1.2); opacity: 1; }
+.ai-wave-bar:nth-child(2) { animation-delay: 0.15s; height: 18px; }
+.ai-wave-bar:nth-child(3) { animation-delay: 0.3s; height: 22px; }
+.ai-wave-bar:nth-child(4) { animation-delay: 0.45s; height: 14px; }
+@keyframes aiWaveBounce {
+    0%, 100% { transform: scaleY(0.45); }
+    50% { transform: scaleY(1.15); }
 }
 
-.btn-ai-mic {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
+/* ==========================================================================
+   FLUID VIEW, SHEET, MODAL & SUBJECT ANIMATIONS
+   ========================================================================== */
+@keyframes viewFadeSlideIn {
+    0% { opacity: 0; transform: translateY(10px) scale(0.99); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
 }
-.btn-ai-mic:active {
-    transform: scale(0.92);
-}
-.btn-ai-mic.is-listening {
-    background: rgba(239, 68, 68, 0.15);
-    color: #EF4444;
-    border-color: #EF4444;
-    animation: micPulse 1.2s infinite alternate;
-}
-@keyframes micPulse {
-    0% { transform: scale(1); }
-    100% { transform: scale(1.1); box-shadow: 0 0 12px rgba(239, 68, 68, 0.4); }
+.view-animate-in {
+    animation: viewFadeSlideIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-.btn-ai-send {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--theme-strong);
-    color: var(--bg-color);
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: transform 0.15s ease;
+@keyframes sheetSlideUpSpring {
+    0% { opacity: 0; transform: translateY(100%); }
+    100% { opacity: 1; transform: translateY(0); }
 }
-.btn-ai-send:active {
-    transform: scale(0.92);
+.bottom-sheet-overlay.active .bottom-sheet-content {
+    animation: sheetSlideUpSpring 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes modalScaleSpring {
+    0% { opacity: 0; transform: translateY(18px) scale(0.95); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.fullscreen-modal.active .glass-panel {
+    animation: modalScaleSpring 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes cardCascadeIn {
+    0% { opacity: 0; transform: translateY(12px) scale(0.97); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.materia-card,
+.grade-item-row,
+.grades-media-card {
+    animation: cardCascadeIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.materia-card {
+    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease, border-color 0.2s ease !important;
+}
+.materia-card:active {
+    transform: scale(0.94) !important;
+}
+.dash-widget {
+    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease !important;
+}
+.dash-widget:not(.wide):active {
+    transform: scale(0.95) !important;
+}
+.subject-tag {
+    transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.18s ease !important;
+}
+.subject-tag:active {
+    transform: scale(0.93);
 }
 
 /* ==========================================================================

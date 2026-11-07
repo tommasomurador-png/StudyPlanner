@@ -126,7 +126,9 @@ class MainActivity : AppCompatActivity() {
         settings.mediaPlaybackRequiresUserGesture = false
 
         // Bridge for native features (haptic feedback, platform check, native notifications)
-        webView.addJavascriptInterface(WebAppInterface(this), "AndroidNative")
+        val bridge = WebAppInterface(this)
+        webView.addJavascriptInterface(bridge, "AndroidNative")
+        webView.addJavascriptInterface(bridge, "Android")
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -155,6 +157,11 @@ class MainActivity : AppCompatActivity() {
         webView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
                 return super.onConsoleMessage(consoleMessage)
+            }
+            override fun onPermissionRequest(request: PermissionRequest?) {
+                runOnUiThread {
+                    request?.grant(request.resources)
+                }
             }
         }
     }
@@ -190,7 +197,10 @@ class MainActivity : AppCompatActivity() {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "it-IT")
-                    putExtra(RecognizerIntent.EXTRA_PROMPT, "Parla con Mallow...")
+                    putExtra(RecognizerIntent.EXTRA_PROMPT, "Parla con Proxima AI...")
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3500L)
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 2500L)
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 3500L)
                 }
                 startActivityForResult(intent, SPEECH_REQUEST_CODE)
                 webView.evaluateJavascript("window.onAndroidSpeechStart ? window.onAndroidSpeechStart() : null", null)

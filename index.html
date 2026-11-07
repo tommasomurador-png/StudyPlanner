@@ -16,7 +16,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js?v=2.4.5').then(function(reg) {
+          navigator.serviceWorker.register('sw.js?v=2.4.6').then(function(reg) {
             reg.update();
             reg.onupdatefound = function() {
               const newWorker = reg.installing;
@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.4.5">
+    <link rel="stylesheet" href="css/style.css?v=2.4.6">
 </head>
 <body>
 
@@ -121,47 +121,75 @@
             </div>
         </div>
 
-        <!-- AI CHAT VIEW (Modern Chatbot UI - Image 1) -->
+        <!-- AI CHATBOT VIEW (Proxima UI - Image 2 Specification) -->
         <div id="ai-view" class="ai-view" style="display: none;">
-            <!-- AI Header -->
-            <div class="ai-view-header">
-                <div class="ai-brand-badge">
-                    <svg class="ai-spark-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/>
-                    </svg>
-                    <span>Study AI</span>
+
+            <!-- Welcome Screen (Left Phone in Image 2) -->
+            <div class="proxima-welcome" id="ai-welcome-container">
+                <div class="proxima-greeting-block">
+                    <div class="proxima-hello-line">
+                        Hello <span id="ai-user-name" class="proxima-user-highlight" onclick="promptChangeUserName()" title="Tocca per cambiare il tuo nome">Studente</span>
+                    </div>
+                    <div class="proxima-subtitle-line">May I help you?</div>
                 </div>
-                <button type="button" class="btn-ai-header-action" onclick="resetAiChatConversation()" title="Nuova conversazione">
-                    <i class="fa-solid fa-rotate-right"></i>
-                </button>
+
+                <!-- Proxima Brand Header with Isometric Cube -->
+                <div class="proxima-brand-bar">
+                    <div class="proxima-brand-left">
+                        <span class="proxima-cube-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                                <polygon points="12,2 21,7 12,12 3,7" fill="currentColor"/>
+                                <polygon points="3,7 12,12 12,22 3,17" fill="currentColor" opacity="0.72"/>
+                                <polygon points="21,7 12,12 12,22 21,17" stroke="currentColor" stroke-width="1.8" fill="currentColor" fill-opacity="0.2"/>
+                            </svg>
+                        </span>
+                        <span class="proxima-brand-title">Proxima A*</span>
+                    </div>
+                </div>
+
+                <!-- Bento Suggestion Cards (Image 2 Layout) -->
+                <div class="proxima-bento-grid">
+                    <div class="proxima-bento-card tall" onclick="fillAiQuickPrompt('Aggiungi 5 esercizi di matematica per domani e 7 di scienze')">
+                        <div class="proxima-bento-text">
+                            Organizza i compiti per casa o dividi le pagine della prossima verifica
+                        </div>
+                        <div class="proxima-bento-icon-circle">
+                            <i class="fa-regular fa-clone"></i>
+                        </div>
+                    </div>
+
+                    <div class="proxima-bento-col">
+                        <div class="proxima-bento-card square" onclick="fillAiQuickPrompt('Ho preso 8 in matematica')">
+                            <div class="proxima-bento-text">
+                                Registra un nuovo voto e adatta il metodo
+                            </div>
+                            <div class="proxima-bento-icon-circle">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                            </div>
+                        </div>
+
+                        <div class="proxima-bento-actions-pill">
+                            <button type="button" class="proxima-mini-action" onclick="openBottomSheet('settings-sheet')" title="Configura Chiave API Gemini">
+                                <i class="fa-solid fa-key"></i>
+                            </button>
+                            <button type="button" class="proxima-mini-action" onclick="resetAiChatConversation()" title="Nuova conversazione">
+                                <i class="fa-solid fa-rotate-right"></i>
+                            </button>
+                            <button type="button" class="proxima-mini-action" onclick="toggleAiVoiceRecording()" title="Parla con Proxima">
+                                <i class="fa-solid fa-microphone"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Welcome Centerpiece (Shown when chat has no messages) -->
-            <div class="ai-welcome-container" id="ai-welcome-container">
-                <div class="ai-hero-logo">
-                    <svg width="68" height="68" viewBox="0 0 64 64" fill="none">
-                        <rect x="8" y="8" width="48" height="48" rx="24" fill="var(--theme-strong)" opacity="0.08"/>
-                        <path d="M22 36 L32 18 L42 36 L32 29 Z" fill="var(--theme-strong)"/>
-                        <path d="M22 39 L32 46 L42 39 L32 41.5 Z" fill="var(--theme-strong)" opacity="0.75"/>
-                        <circle cx="32" cy="32.5" r="3" fill="var(--bg-color)"/>
-                    </svg>
-                </div>
-                <div class="ai-welcome-greeting" id="ai-welcome-greeting">
-                    <span id="ai-greeting-text">Buongiorno</span>, <span id="ai-user-name" onclick="promptChangeUserName()" title="Tocca per cambiare nome">Studente</span>
-                </div>
-                <div class="ai-welcome-sub">Come posso aiutarti oggi con lo studio?</div>
-            </div>
+            <!-- Chat Thread (Right Phone in Image 2) -->
+            <div class="proxima-chat-thread" id="ai-chat-thread"></div>
 
-            <!-- Chat Message Thread -->
-            <div class="ai-chat-thread" id="ai-chat-thread"></div>
-
-            <!-- Floating Input Dock (Image 1) -->
+            <!-- Bottom Prompt Box (Image 2 Input Dock with 100% Circular Buttons) -->
             <div class="ai-input-dock">
                 <div class="ai-input-bar">
-                    <button type="button" class="btn-ai-dock-action" onclick="openChoiceModal()" title="Aggiungi compito o verifica">
-                        <i class="fa-solid fa-plus"></i>
-                    </button>
-                    <input type="text" id="ai-prompt-input" class="ai-prompt-field" placeholder="Come posso aiutarti oggi?" onkeydown="if(event.key==='Enter'){ sendAiChatMessage(); event.preventDefault(); }">
+                    <input type="text" id="ai-prompt-input" class="ai-prompt-field" placeholder="Scrivi qui o parla con Proxima..." onkeydown="if(event.key==='Enter'){ sendAiChatMessage(); event.preventDefault(); }">
                     
                     <!-- Voice Waveform Animation Indicator -->
                     <div class="ai-waveform-container" id="ai-waveform-container" style="display: none;">
@@ -171,13 +199,13 @@
                         <span class="ai-wave-bar"></span>
                     </div>
 
-                    <!-- Voice Mic Button -->
-                    <button type="button" class="btn-ai-mic" id="btn-ai-mic" onclick="toggleAiVoiceRecording()" title="Parla con l'AI">
+                    <!-- Circular Voice Mic Button -->
+                    <button type="button" class="btn-ai-circle-icon" id="btn-ai-mic" onclick="toggleAiVoiceRecording()" title="Parla al microfono">
                         <i class="fa-solid fa-microphone"></i>
                     </button>
 
-                    <!-- Send Button -->
-                    <button type="button" class="btn-ai-send" id="btn-ai-send" onclick="sendAiChatMessage()" title="Invia">
+                    <!-- Circular Send Button -->
+                    <button type="button" class="btn-ai-circle-send" id="btn-ai-send" onclick="sendAiChatMessage()" title="Invia messaggio">
                         <i class="fa-solid fa-arrow-up"></i>
                     </button>
                 </div>
@@ -338,13 +366,16 @@
                 </div>
                 <div class="settings-card">
                     <div class="settings-card-header">
-                        <span class="settings-card-title"><i class="fa-solid fa-robot"></i> Intelligenza Artificiale (Gemini AI)</span>
+                        <span class="settings-card-title"><i class="fa-solid fa-cube"></i> Proxima AI (Google Gemini)</span>
                     </div>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
-                        Mallow funziona <b>offline a costo zero</b> con il motore vocale locale. Se vuoi potenziare le sue risposte e il tutoraggio scientifico, inserisci la tua chiave gratuita di Google AI Studio (Gemini Flash).
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.45;">
+                        Proxima funziona anche offline per compiti, verifiche e voti. Per risposte complete con l'intelligenza artificiale, crea gratis una chiave su Google AI Studio e incollala qui sotto:
                     </p>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="btn-get-gemini-key" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px 14px; margin-bottom: 10px; border-radius: 12px; border: 1px dashed var(--theme-strong); background: var(--bg-color); color: var(--theme-strong); font-size: 0.82rem; font-weight: 700; text-decoration: none;">
+                        <i class="fa-solid fa-up-right-from-square"></i> Crea Chiave API Gratuita (Google AI Studio)
+                    </a>
                     <div class="input-row">
-                        <input type="password" id="settings-gemini-key-input" class="form-control" placeholder="Chiave API Gemini (opzionale)">
+                        <input type="password" id="settings-gemini-key-input" class="form-control" placeholder="Incolla qui la chiave API (AIza...)">
                         <button type="button" class="btn-submit compact" onclick="saveGeminiApiKeyFromSettings()">Salva</button>
                     </div>
                     <div id="gemini-key-status" style="font-size: 0.78rem; margin-top: 6px; color: var(--text-muted);"></div>
@@ -668,43 +699,22 @@
             <button class="btn-close-modal-top" onclick="closeModal('add-grade-modal')"><i class="fa-solid fa-xmark"></i></button>
             <h3 style="margin-bottom: 22px; font-weight: 700; text-transform: uppercase;">Nuovo Voto</h3>
 
-            <div class="input-label">Materia</div>
-            <select class="form-control" id="grade-subject-select" style="margin-bottom: 16px;"></select>
-
-            <div class="input-label">Voto (es. 8, 7.5, 6-)</div>
-            <input type="text" class="form-control" id="grade-val-input" placeholder="Es. 8 o 7.5" style="margin-bottom: 16px;">
-
-            <div class="input-label">Tipologia</div>
-            <div class="segmented-control" id="grade-type-segment" style="margin-bottom: 16px;">
-                <button type="button" class="segment-btn active" onclick="selectGradeType('Scritto', this)">Scritto</button>
-                <button type="button" class="segment-btn" onclick="selectGradeType('Orale', this)">Orale</button>
-                <button type="button" class="segment-btn" onclick="selectGradeType('Pratico', this)">Pratico</button>
-                <button type="button" class="segment-btn" onclick="selectGradeType('Unico', this)">Unico</button>
+            <div class="form-group" style="margin-bottom: 18px;">
+                <label>Materia</label>
+                <div id="grade-subject-popover-container"></div>
             </div>
 
-            <div class="input-label">Periodo</div>
-            <div class="segmented-control" id="grade-quadrimestre-segment" style="margin-bottom: 16px;">
-                <button type="button" class="segment-btn active" onclick="selectGradeQuadrimestre('1° Quadrimestre', this)">1° Quadrimestre</button>
-                <button type="button" class="segment-btn" onclick="selectGradeQuadrimestre('2° Quadrimestre', this)">2° Quadrimestre</button>
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label>Voto</label>
+                <div id="grade-value-popover-container"></div>
             </div>
-            <div class="input-label">Data</div>
-            <input type="date" class="form-control" id="grade-date-input" style="margin-bottom: 16px;">
-
-            <div class="input-label">Verifica associata (facoltativo)</div>
-            <select class="form-control" id="grade-exam-select" style="margin-bottom: 16px;">
-                <option value="">Nessuna verifica collegata</option>
-            </select>
-
-            <div class="input-label">Note / Argomento</div>
-            <input type="text" class="form-control" id="grade-notes-input" placeholder="Es. Rivoluzione Francese" style="margin-bottom: 22px;">
 
             <button type="button" class="btn-submit" onclick="saveGradeFromModal()">Salva Voto</button>
         </div>
     </div>
 
-    
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.4.5" defer></script>
+    <script src="js/app.js?v=2.4.6" defer></script>
 
 </body>
 </html>
