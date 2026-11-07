@@ -16,7 +16,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js?v=2.4.3').then(function(reg) {
+          navigator.serviceWorker.register('sw.js?v=2.4.5').then(function(reg) {
             reg.update();
             reg.onupdatefound = function() {
               const newWorker = reg.installing;
@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.4.3">
+    <link rel="stylesheet" href="css/style.css?v=2.4.5">
 </head>
 <body>
 
@@ -348,6 +348,7 @@
                         <button type="button" class="btn-submit compact" onclick="saveGeminiApiKeyFromSettings()">Salva</button>
                     </div>
                     <div id="gemini-key-status" style="font-size: 0.78rem; margin-top: 6px; color: var(--text-muted);"></div>
+                </div>
                                 <div class="settings-card danger-card" style="border: 1px solid rgba(239, 68, 68, 0.25);">
                     <div class="settings-card-header">
                         <span class="settings-card-title" style="color: var(--danger-color);"><i class="fa-solid fa-triangle-exclamation"></i> Gestione Dati</span>
@@ -660,9 +661,6 @@
             </button>
         </div>
     </div>
-
-</div>
-
     
     <!-- MODAL AGGIUNGI VOTO -->
     <div class="fullscreen-modal" id="add-grade-modal">
@@ -706,7 +704,7 @@
 
     
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.4.3" defer></script>
+    <script src="js/app.js?v=2.4.5" defer></script>
 
 </body>
 </html>

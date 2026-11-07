@@ -1046,7 +1046,7 @@
         });
     });
 
-    window.openChoiceModal = () => document.getElementById('choice-modal').classList.add('active');
+    window.openChoiceModal = () => window.openModal('choice-modal');
     
     window.openModal = function(id) {
         const el = document.getElementById(id);
