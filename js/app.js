@@ -3616,12 +3616,28 @@
         }
     }
 
+    function estimateTaskEffort(detailsText, subjectName, deadlineStr) {
+        const lower = (detailsText || '').toLowerCase();
+        // Heavy tasks requiring ~1-2 hours
+        if (/\b(tema|saggio|ricerca|relazione|tesina|progetto|presentazione|powerpoint|slide|versione|traduzione)\b/i.test(lower)) {
+            return { priority: 2, difficulty: 3, timeLabel: '~1-2h' };
+        }
+        // Light tasks (~15-20 min)
+        if (/\b(lettura|leggere|ripassino|rivedere|appunti|poesia|1\s+esercizio|2\s+esercizi|3\s+esercizi|breve)\b/i.test(lower)) {
+            return { priority: 1, difficulty: 1, timeLabel: '~20m' };
+        }
+        // Standard balanced tasks (~45 min)
+        return { priority: 2, difficulty: 2, timeLabel: '~45m' };
+    }
+
     function getActionCardMeta(act) {
         if (!act) return { icon: 'fa-bolt', label: 'Azione', editableVal: '', btnText: 'Conferma' };
         if (act.type === 'add_task') {
+            const effort = estimateTaskEffort(act.details, act.subject, act.date);
+            const tLabel = act.estimatedTime || effort.timeLabel;
             return {
                 icon: 'fa-list-check',
-                label: 'Compito • ' + (act.subject || 'Materia') + ' • ' + formatDateShort(act.date || tomorrowStr),
+                label: 'Compito • ' + (act.subject || 'Materia') + ' • ' + formatDateShort(act.date || tomorrowStr) + ' • ' + tLabel,
                 editableVal: act.details || 'Esercizi',
                 btnText: 'Aggiungi'
             };
@@ -3920,10 +3936,15 @@
     function applyLocalFreeFlowCleanup(rawStr) {
         let s = (rawStr || '').trim();
         if (!s) return '';
-        // Fix common Italian continuous dictation ASR artifacts
-        s = s.replace(/\b(ehm|uhm|mmm|mah|allora allora)\b/gi, '');
+        // Fix common Italian continuous dictation ASR artifacts & pause-induced punctuation
+        s = s.replace(/\b(ehm|uhm|mmm|mah|allora allora|una specie di)\b/gi, ' ');
         s = s.replace(/\bquesti tre novembre\b/gi, '23 novembre');
         s = s.replace(/\bquesti\s+(\d+)\b/gi, '$1');
+        // Remove broken periods/question-marks inserted by speaking pauses before dates, prepositions, or self-corrections
+        s = s.replace(/[.?]+\s+(?=(?:\d{1,2}\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)|l['’]?\d|di\s+|su\s+|sul\s+|sulla\s+|sui\s+|sulle\s+|per\s+|da\s+fare\b|ok\b|il\s+tema\b|una\s+verifica\b))/gi, ' ');
+        s = s.replace(/\bverifica\s*\?\s*/gi, 'verifica ');
+        s = s.replace(/\b(?:sulle funzioni|letteratura)\s+è\s+una\s+verifica\b/gi, (m) => m.replace(/\s+è\s+una\s+verifica/i, ' e una verifica'));
+        s = s.replace(/\s+è\s+una\s+verifica\b/gi, ' e una verifica');
         s = s.replace(/\s+/g, ' ').trim();
         return s.charAt(0).toUpperCase() + s.slice(1);
     }
@@ -4191,17 +4212,18 @@
     };
 
     function getFreeFlowCleanupPrompt() {
-        // Exact FreeFlow (zachlatta/freeflow) post-processing rules adapted for Italian school dictation
-        return `Sei un motore di trascrizione e pulizia vocale ad alta precisione in italiano (stile FreeFlow / Wispr Flow).
-Ascolta attentamente l'audio allegato dello studente e restituisci ESATTAMENTE ed UNICAMENTE il testo pulito e pronto da inviare.
+        // Wispr Flow / FreeFlow anti-pause-punctuation dictation cleanup in Italian
+        return `Sei un motore di trascrizione vocale fluida in italiano (stile Wispr Flow / FreeFlow).
+Chi parla spesso fa pause brevi di respiro o per pensare mentre detta compiti, verifiche o voti.
 
-Vocabolario materie dello studente (correggi la grafia di nomi/materie simili se pronunciati): ${userSubjects.join(', ')}.
-
-Regole rigorose:
-- Rimuovi esitazioni o intercalari inutili (ehm, uhm, allora cioè, cioè) se non cambiano il senso.
-- Inserisci punteggiatura naturale, maiuscole corrette e numeri chiari (es. "23 novembre", "8 ottobre", "ho preso 8 in matematica").
-- Non inventare né aggiungere MAI parole non pronunciate nell'audio.
-- Non scrivere introduzioni come "Ecco la trascrizione:". Restituisci SOLO il testo trascritto (oppure EMPTY se l'audio è vuoto/solo rumore).`;
+REGOLA FONDAMENTALE ANTI-PUNTI:
+1. NON inserire MAI punti (.) o punti interrogativi (?) quando chi parla fa una pausa a metà frase tra verbo, data, materia o argomento!
+   - SBAGLIATO: "Ho una verifica? 8 dicembre sulle funzioni è una verifica il 23 su letteratura Latina, inoltre. Da fare una specie di tema. Ok, il tema. Su un mio punto di vista personale. Di filosofia su Heidegger."
+   - CORRETTO: "Ho una verifica l'8 dicembre sulle funzioni e una verifica il 23 su letteratura latina, inoltre devo fare un tema di filosofia su Heidegger sul mio punto di vista personale."
+2. Usa punti (.) o virgole (,) SOLO alla fine di un pensiero completamente concluso. In caso di dubbio tra punto e virgola/spazio, usa sempre lo spazio o una virgola leggera, MAI il punto!
+3. Rimuovi auto-correzioni, esitazioni e false partenze parlate (es. "ok,", "una specie di", "ehm", "uhm", ripetizioni come "tema. Ok, il tema").
+4. Correggi omofoni ASR italiani comuni ("è una verifica" -> "e una verifica", "dica" prima di una materia -> "verifica", e usa il vocabolario materie dello studente: ${userSubjects.join(', ')}).
+5. Non aggiungere contenuti non detti e restituisci ESCLUSIVAMENTE il testo pulito finale (o EMPTY se non si sente voce).`;
     }
 
     async function transcribeWithGroqFreeFlow(base64Wav) {
@@ -4216,7 +4238,8 @@ Regole rigorose:
             form.append('model', 'whisper-large-v3-turbo');
             form.append('language', 'it');
             form.append('temperature', '0');
-            form.append('prompt', 'Dettatura scolastica in italiano. Materie: ' + userSubjects.join(', ') + '. Compiti, verifiche, voti, interrogazioni.');
+            // Single flowing phrase prompt with minimal periods so Whisper doesn't chop pauses into sentences
+            form.append('prompt', 'Dettatura scolastica continua e scorrevole in italiano senza interruzioni con materie come ' + userSubjects.join(', ') + ' tra compiti verifiche voti temi e date');
 
             const resp = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
                 method: 'POST',
@@ -4228,7 +4251,7 @@ Regole rigorose:
             const rawText = (data.text || '').trim();
             if (!rawText) return '';
 
-            // Optional FreeFlow Llama 3.3 70B post-processing cleanup on Groq
+            // Always run Llama 3.3 70B FreeFlow Cleanup to merge pause-chopped periods and hesitations
             try {
                 const cleanResp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
@@ -4241,18 +4264,18 @@ Regole rigorose:
                         temperature: 0,
                         messages: [
                             { role: 'system', content: getFreeFlowCleanupPrompt() },
-                            { role: 'user', content: 'RAW_TRANSCRIPTION: "' + rawText + '"' }
+                            { role: 'user', content: 'Trascrizione grezza con troppe pause/punti da ripulire e ricucire in frasi scorrevoli:\n"' + rawText + '"' }
                         ]
                     })
                 });
                 if (cleanResp.ok) {
                     const cleanJson = await cleanResp.json();
                     const polished = (cleanJson.choices?.[0]?.message?.content || '').trim().replace(/^"|"$/g, '');
-                    if (polished && polished !== 'EMPTY') return polished;
+                    if (polished && polished !== 'EMPTY') return applyLocalFreeFlowCleanup(polished);
                 }
             } catch (e) {}
 
-            return rawText;
+            return applyLocalFreeFlowCleanup(rawText);
         } catch (err) {
             console.warn('Groq FreeFlow error:', err);
             return '';
@@ -4479,6 +4502,21 @@ Regole rigorose:
             }
         }
 
+        // Bare "il 23" / "per il 15" when month was omitted in fast speech (avoid matching pages/exercises/grades)
+        const bareDayMatch = lower.match(/\b(?:il|l['’]?|per\s+il|entro\s+il)\s*(\d{1,2})\b(?!\s*(?:pag|pagine|es|eserciz|capitol|paragraf))/i);
+        if (bareDayMatch) {
+            const day = parseInt(bareDayMatch[1], 10);
+            if (day >= 1 && day <= 31) {
+                let m = now.getMonth();
+                let y = now.getFullYear();
+                if (day <= now.getDate()) {
+                    m += 1;
+                    if (m > 11) { m = 0; y += 1; }
+                }
+                return formatDateStr(new Date(y, m, day));
+            }
+        }
+
         // Italian weekdays ("per martedì", "per prossimo martedì", "venerdì prossimo")
         // Note: use (?=\s|$|[.,;!?]) because JS \b fails after accented characters like ì
         const weekdaysMap = {
@@ -4504,6 +4542,7 @@ Regole rigorose:
         if (/\b(domani|dopodomani|tra\s+\d+\s+giorn|fra\s+\d+\s+giorn)\b/i.test(lower)) return true;
         if (/\b(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\b/i.test(lower)) return true;
         if (/\b\d{1,2}\/\d{1,2}\b/.test(lower)) return true;
+        if (/\b(?:il|l['’]?|per\s+il|entro\s+il)\s*\d{1,2}\b(?!\s*(?:pag|pagine|es|eserciz|capitol|paragraf))/i.test(lower)) return true;
         if (/(?:^|\s)(domenica|luned[iì]|marted[iì]|mercoled[iì]|gioved[iì]|venerd[iì]|sabato)(?=\s|$|[.,;!?])/i.test(lower)) return true;
         return false;
     }
@@ -4541,10 +4580,12 @@ Regole rigorose:
         norm = norm.replace(/\b(?:di|in|per)?\s*\b(?:mate|matematica|ita|italiano|ingl|inglese|scienze|storia|filo|filosofia|biologia|fisica|chimica|latino|greco|arte|informatica|geografia|diritto|economia)\b/gi, '');
 
         // 3. Remove spoken ASR filler words & conversational lead-ins
-        norm = norm.replace(/\b(?:come\s+compito(?:\s+per\s+casa)?|compito\s+per\s+casa|compiti\s+per\s+casa|per\s+casa|e\s+invece|invece|dica|sempre|poi\s+ho|l['’])\b/gi, ' ');
+        norm = norm.replace(/\b(?:come\s+compito(?:\s+per\s+casa)?|compito\s+per\s+casa|compiti\s+per\s+casa|per\s+casa|una\s+specie\s+di|e\s+invece|invece|ok\s*,?\s*(?:il\s+tema)?|dica|sempre|poi\s+ho|l['’])\b/gi, ' ');
+        norm = norm.replace(/\btema\s+su\s+un\s+mio\b/gi, 'Tema:');
+        norm = norm.replace(/\bsu\s+un\s+mio\b/gi, '');
         norm = norm.replace(/\s+/g, ' ').trim();
 
-        const leadInPattern = /^(?:(?:allora|guarda|senti|ciao|ehi|proxima|ascolta|vorrei|dovrei|devo|avrò\s+da\s+fare|avrei\s+da\s+fare|dovrò\s+fare|avrò|dovrò|ho\s+da\s+fare|ho\s+da|ho|bisogna|c['’]è\s+da|ci\s+sono\s+da|puoi|potresti|mi\s+puoi|aggiungi|aggiungere|metti|mettere|metterli|mettili|inserisci|inserire|segna|segnare|modifica|modificare|sposta|spostare|cambia|cambiare|fare|svolgere|completare|studiare|ripassare|leggere|scrivere|che\s+devo|come|compito|compiti|da|degli|dei|delle|dello|della|di|gli|le|i|l['’]|un|uno|una|qualche|alcuni|alcune|quegli|quei|quelle|questi|queste)\s+)+/i;
+        const leadInPattern = /^(?:(?:allora|guarda|senti|ciao|ehi|proxima|ascolta|vorrei|dovrei|devo|avrò\s+da\s+fare|avrei\s+da\s+fare|dovrò\s+fare|avrò|dovrò|ho\s+da\s+fare|ho\s+da|ho|bisogna|c['’]è\s+da|ci\s+sono\s+da|puoi|potresti|mi\s+puoi|aggiungi|aggiungere|metti|mettere|metterli|mettili|inserisci|inserire|segna|segnare|modifica|modificare|sposta|spostare|cambia|cambiare|fare|svolgere|completare|studiare|ripassare|leggere|scrivere|che\s+devo|come|compito|compiti|ok|cioè|su\s+un\s+mio|da|degli|dei|delle|dello|della|di|gli|le|i|l['’]|un|uno|una|qualche|alcuni|alcune|quegli|quei|quelle|questi|queste)\s+)+/i;
         norm = norm.replace(leadInPattern, '').trim();
 
         // 4. Clean up connectors like "riguardanti / riguardante / relativi a" into clean diary labels
@@ -4611,11 +4652,14 @@ Regole rigorose:
     }
 
     function splitMultiIntentClauses(rawText) {
+        // First pre-heal pause-induced periods/question marks using local FreeFlow cleanup
+        const healedInput = applyLocalFreeFlowCleanup(rawText);
         // Protect "e mezzo" inside grades before splitting on " e "
-        let protectedStr = rawText.replace(/\be\s+mezzo\b/gi, '__EMEZZO__');
+        let protectedStr = healedInput.replace(/\be\s+mezzo\b/gi, '__EMEZZO__');
         const subjectHead = '(?:matematica|italiano|inglese|filosofia|biologia|fisica|storia|chimica|scienze|latino|greco|arte|informatica|geografia|diritto|economia)';
         const splitRegex = new RegExp(
-            '\\s*[.;,!?]+\\s*' +
+            '\\s*[.;!?]+\\s*' +
+            '|\\s*,\\s*(?=(?:inoltre|poi|e\\s+|ho\\s+|devo\\s+|avrò\\s+|dovrò\\s+|una?\\s+(?:verifica|compito)|preso|voto))' +
             '|\\s+(?:e\\s+(?:poi\\s+|inoltre\\s+|anche\\s+)?|poi\\s+|inoltre\\s+)(?=(?:io\\s+)?(?:ho\\s+|devo\\s+|avrò\\s+|dovrò\\s+|c[\'’]è\\s+|vorrei\\s+|abbiamo\\s+|una?\\s+(?:verifica|compito|voto)|un[\'’]?interrogazion|verific|interrogazion|compit|eserci|vot|preso|ricevut|studi|ripass|modific|spost|cambi|elimin|togl|(?:\\d+|cinque|sei|sette|otto|nove|dieci)\\s+(?:di\\s+' + subjectHead + '|eserci|pagin|compit)))' +
             '|\\s+(?=(?:io\\s+)?(?:ho\\s+(?:preso|ricevuto|avuto|preso\\s+un|un\\s+voto|una?\\s+verifica|un[\'’]?interrogazion|un\\s+compito|da\\s+fare)|avrò\\s+da\\s+fare|dovrò\\s+fare))' +
             '|\\s+(?=(?:oggi|domani|dopodomani)\\s+(?:la\\s+verifica|il\\s+compito|l[\'’]?interrogazion|ho\\s+))',
@@ -4626,23 +4670,22 @@ Regole rigorose:
             .map(p => (p || '').replace(/__EMEZZO__/g, 'e mezzo').trim())
             .filter(p => p.length > 1);
 
-        // Merge trailing subject stubs ("Di filosofia") backward and leading bare date stubs ("L'otto ottobre") forward
+        // Merge pause-broken continuations backward/forward so pauses never create fake extra tasks!
         const merged = [];
         let pendingPrefix = '';
         for (const rawPart of rawParts) {
-            const part = rawPart.replace(/^(?:e\s+invece|invece)\s+/i, '').trim();
+            const part = rawPart.replace(/^(?:inoltre|e\s+invece|invece|allora|ok\s*,?\s*)\s*/i, '').trim();
             const lowerP = part.toLowerCase();
-            // Discard pure filler stubs with no subject/action/date
-            if (!part || /^(?:poi\s+ho|allora|e\s+invece|invece|poi|io|oggi|domani|dica)$/i.test(lowerP)) {
+            if (!part || /^(?:poi\s+ho|allora|e\s+invece|invece|poi|io|oggi|domani|dica|ok|inoltre)$/i.test(lowerP)) {
                 continue;
             }
-            // If fragment is ONLY a trailing prepositional subject tag ("Di filosofia", "in matematica"), attach to previous clause!
-            if (merged.length > 0 && /^(?:di|in|per)\s+[a-zàèéìòù]+(?:\s+[a-zàèéìòù]+)?$/i.test(lowerP) && findSubjectInSegment(part) !== null && !/\b(compit|eserci|verific|voto|preso)\b/i.test(lowerP)) {
+            // Merge any prepositional continuation ("Di filosofia su Heidegger", "Su un mio punto di vista...") or self-correction ("il tema") backward!
+            if (merged.length > 0 && /^(?:di|in|per|su|sul|sulla|sulle|sui|sugli|riguardo|con|a|il\s+tema|ok\b)/i.test(lowerP) && !/\b(?:ho\s+(?:preso|una\s+verifica|un\s+compito)|devo\s+fare|avrò|dovrò|voto|verifica|interrogazione)\b/i.test(lowerP)) {
                 merged[merged.length - 1] = merged[merged.length - 1] + ' ' + part;
                 continue;
             }
             // If fragment is ONLY a date mention without subject/action verb, carry it forward into the next clause!
-            if (hasExplicitDateMention(part) && findSubjectInSegment(part) === null && !/\b(compit|eserci|verific|interrogaz|voto|preso|studi|ripass|fare|avrò|ho|devo)\b/i.test(lowerP)) {
+            if (hasExplicitDateMention(part) && findSubjectInSegment(part) === null && !/\b(compit|eserci|verific|interrogaz|voto|preso|studi|ripass|fare|avrò|ho|devo|tema)\b/i.test(lowerP)) {
                 pendingPrefix = pendingPrefix ? (pendingPrefix + ' ' + part) : part;
                 continue;
             }
@@ -4654,7 +4697,7 @@ Regole rigorose:
             merged[merged.length - 1] = merged[merged.length - 1] + ' ' + pendingPrefix;
         }
 
-        return merged.length > 0 ? merged : [rawText.trim()];
+        return merged.length > 0 ? merged : [healedInput.trim()];
     }
 
     function parseLocalStudyActions(rawText) {
@@ -4752,11 +4795,15 @@ Regole rigorose:
             if (hasExplicitSchoolKeyword || explicitSub !== null) {
                 const sub = explicitSub || lastSubjectContext || userSubjects[0] || 'Matematica';
                 const details = extractCleanTaskDetails(normClause, sub);
+                const effort = estimateTaskEffort(details, sub, clauseDate);
                 allActions.push({
                     type: 'add_task',
                     subject: sub,
                     date: clauseDate,
-                    details: details
+                    details: details,
+                    priority: effort.priority,
+                    difficulty: effort.difficulty,
+                    estimatedTime: effort.timeLabel
                 });
             }
         });
@@ -4817,10 +4864,9 @@ Regole rigorose:
             if (el) el.remove();
         };
 
-        // 1. If Gemini API Key is present, call Gemini 2.5 Flash (with fallback to 2.0 Flash)
-        if (geminiApiKey && geminiApiKey.trim().length > 10) {
-            const recentTurnsSummary = aiChatHistory.slice(-4).map(m => (m.sender === 'user' ? 'Studente: ' : 'Proxima: ') + m.text).join('\n');
-            const systemPrompt = `Sei Proxima, l'assistente AI integrato in Study Planner.
+        // 1. Helpers & Cloud LLM Processing (Supports Gemini API Key AND Groq Llama 3.3 Key!)
+        const recentTurnsSummary = aiChatHistory.slice(-4).map(m => (m.sender === 'user' ? 'Studente: ' : 'Proxima: ') + m.text).join('\n');
+        const systemPrompt = `Sei Proxima, l'assistente AI integrato in Study Planner.
 Rispondi sempre in italiano in modo conciso, chiaro, naturale e senza MAI usare grassetto o asterischi (**).
 Oggi è ${todayDateStr} e domani è ${tomorrowStr}.
 Materie dello studente: ${userSubjects.join(', ')}.
@@ -4830,22 +4876,71 @@ Voti registrati: ${myGrades.map(g => g.subject + ': ' + g.displayValue).join('; 
 Contesto recente della conversazione:
 ${recentTurnsSummary || 'Inizio conversazione'}
 
-REGOLE FONDAMENTALI PER I TITOLI ("details"), MULTI-AZIONE E MODIFICHE:
-1. Estrai TUTTE le azioni presenti nel messaggio dello studente (anche se nel testo ci sono insieme compiti, verifiche E voti nella stessa frase senza punteggiatura!). Metti OGNI azione rilevata come elemento dell'array JSON, senza saltarne nessuna.
-2. Nel campo "details" NON copiare MAI la frase intera dello studente (es. NON scrivere "devo fare degli esercizi riguardanti le funzioni per il 3 novembre" e NON scrivere "puoi modificare quegli esercizi"). Scrivi SOLO un titolo sintetico da diario scolastico, ad esempio: "Esercizi: le funzioni", "5 esercizi sulle funzioni", "Dante: riflessione personale", "Studio cap. 4".
-3. Se lo studente chiede di MODIFICARE o SPOSTARE di data un compito/esercizio già detto o presente (es. "modifica quegli esercizi per l'11 novembre"), usa "type": "modify_task" mantenendo il titolo originale pulito dell'esercizio e cambiando solo "date" con la nuova data YYYY-MM-DD!
-4. Inserisci OBBLIGATORIAMENTE in fondo alla risposta il blocco JSON esatto con TUTTE le azioni trovate:
-###JSON_ACTION: [{"type": "add_task", "subject": "NomeMateria", "date": "YYYY-MM-DD", "details": "Esercizi: argomento"}]###
+REGOLE FONDAMENTALI PER TITOLI, MULTI-AZIONE E CARICO/PRIORITÀ PER TIPOLOGIA:
+1. Estrai TUTTE le azioni reali presenti nel messaggio dello studente senza spezzare una singola attività in più parti per colpa di pause/punti nel parlato (es. "tema di filosofia su Heidegger punto di vista personale" è UN SOLO compito, NON 3!).
+2. Nel campo "details" scrivi SOLO un titolo sintetico e ordinato da diario scolastico, MAI frasi intere o parole riempitive come "specie di", "ok", "avrò da fare".
+3. Stima automaticamente "difficulty" (1=Leggero ~20m, 2=Medio ~45m, 3=Impegnativo ~1-2h), "priority" (1=Bassa, 2=Media equilibrata, 3=Alta urgente) ed "estimatedTime" in base alla tipologia di compito:
+   - Temi, saggi, ricerche, relazioni, versioni (1-2 ore): "difficulty": 3, "priority": 2 (non sovraccaricare un solo giorno se c'è tempo!), "estimatedTime": "~1-2h".
+   - Esercizi standard, studio medio: "difficulty": 2, "priority": 2, "estimatedTime": "~45m".
+   - Brevi letture o 1-3 esercizi veloci: "difficulty": 1, "priority": 1, "estimatedTime": "~20m".
+4. Se lo studente chiede di MODIFICARE o SPOSTARE di data un compito già presente, usa "type": "modify_task" mantenendo invariato il titolo originale!
+5. Inserisci OBBLIGATORIAMENTE in fondo alla risposta il blocco JSON esatto:
+###JSON_ACTION: [{"type": "add_task", "subject": "NomeMateria", "date": "YYYY-MM-DD", "details": "Tema su Heidegger", "difficulty": 3, "priority": 2, "estimatedTime": "~1-2h"}]###
 Tipi supportati:
-- Aggiungere compito: {"type": "add_task", "subject": "NomeMateria", "date": "YYYY-MM-DD", "details": "Titolo sintetico"}
-- Modificare/Spostare compito: {"type": "modify_task", "subject": "NomeMateria", "date": "YYYY-MM-DD", "details": "Titolo sintetico originale"}
-- Rimuovere compito: {"type": "remove_task", "subject": "NomeMateria", "details": "Titolo sintetico"}
-- Aggiungere verifica: {"type": "add_exam", "subject": "NomeMateria", "date": "YYYY-MM-DD", "pages": 25}
-- Modificare verifica: {"type": "modify_exam", "subject": "NomeMateria", "date": "YYYY-MM-DD", "pages": 25}
-- Registrare voto: {"type": "add_grade", "subject": "NomeMateria", "value": "8"}
+- Compito: {"type": "add_task", "subject": "NomeMateria", "date": "YYYY-MM-DD", "details": "Titolo sintetico", "difficulty": 2, "priority": 2, "estimatedTime": "~45m"}
+- Modifica compito: {"type": "modify_task", "subject": "NomeMateria", "date": "YYYY-MM-DD", "details": "Titolo originale"}
+- Rimozione compito: {"type": "remove_task", "subject": "NomeMateria", "details": "Titolo sintetico"}
+- Verifica: {"type": "add_exam", "subject": "NomeMateria", "date": "YYYY-MM-DD", "pages": 25}
+- Modifica verifica: {"type": "modify_exam", "subject": "NomeMateria", "date": "YYYY-MM-DD", "pages": 25}
+- Voto: {"type": "add_grade", "subject": "NomeMateria", "value": "8"}
 
 Messaggio dello studente: "${rawText}"`;
 
+        const handleCloudReply = (replyText) => {
+            if (!replyText) return false;
+            removeLoading();
+            let reply = replyText;
+            let actionCard = null;
+            if (reply.includes('###JSON_ACTION:')) {
+                const parts = reply.split('###JSON_ACTION:');
+                reply = parts[0].trim();
+                const jsonStr = parts[1].split('###')[0].trim();
+                try {
+                    let parsedActions = JSON.parse(jsonStr);
+                    const actList = Array.isArray(parsedActions) ? parsedActions : [parsedActions];
+                    const userAskedModify = /\b(modifica|modificare|sposta|spostare|cambia|cambiare|metterli|mettili)\b/i.test(rawText);
+                    actList.forEach(a => {
+                        if (userAskedModify && a.type === 'add_task') a.type = 'modify_task';
+                        if (a.type === 'modify_task') {
+                            const prevRef = findLastDiscussedOrSavedTask(a.subject);
+                            if (prevRef) {
+                                a.details = prevRef.details;
+                                if (prevRef.todo) a.todoId = prevRef.todo.id;
+                            }
+                        } else if (a.type === 'add_task') {
+                            if (a.details && /\b(devo\s+fare|vorrei|puoi|specie\s+di|riguardant|per\s+il|per\s+l['’]|ok\b)\b/i.test(a.details)) {
+                                a.details = extractCleanTaskDetails(a.details, a.subject);
+                            }
+                            const effort = estimateTaskEffort(a.details, a.subject, a.date);
+                            if (!a.difficulty) a.difficulty = effort.difficulty;
+                            if (!a.priority) a.priority = effort.priority;
+                            if (!a.estimatedTime) a.estimatedTime = effort.timeLabel;
+                        }
+                    });
+                    actionCard = {
+                        desc: formatActionDescription(actList),
+                        action: actList
+                    };
+                } catch(e){}
+            }
+            reply = reply.replace(/\*\*/g, '').replace(/\*/g, '');
+            appendChatMessage('ai', reply, actionCard);
+            speakAiVoice(reply);
+            return true;
+        };
+
+        // 1A. Try Google Gemini API if present
+        if (geminiApiKey && geminiApiKey.trim().length > 10) {
             const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash'];
             for (const modelName of modelsToTry) {
                 try {
@@ -4854,55 +4949,42 @@ Messaggio dello studente: "${rawText}"`;
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
                     });
-
                     if (resp.ok) {
                         const data = await resp.json();
-                        let reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                        if (reply) {
-                            removeLoading();
-                            let actionCard = null;
-                            if (reply.includes('###JSON_ACTION:')) {
-                                const parts = reply.split('###JSON_ACTION:');
-                                reply = parts[0].trim();
-                                const jsonStr = parts[1].split('###')[0].trim();
-                                try {
-                                    let parsedActions = JSON.parse(jsonStr);
-                                    const actList = Array.isArray(parsedActions) ? parsedActions : [parsedActions];
-                                    const userAskedModify = /\b(modifica|modificare|sposta|spostare|cambia|cambiare|metterli|mettili)\b/i.test(rawText);
-                                    actList.forEach(a => {
-                                        if (userAskedModify && a.type === 'add_task') {
-                                            a.type = 'modify_task';
-                                        }
-                                        if (a.type === 'modify_task') {
-                                            const prevRef = findLastDiscussedOrSavedTask(a.subject);
-                                            if (prevRef) {
-                                                // Always preserve the original clean task description when modifying the date!
-                                                a.details = prevRef.details;
-                                                if (prevRef.todo) {
-                                                    a.todoId = prevRef.todo.id;
-                                                }
-                                            }
-                                        } else if (a.type === 'add_task' && a.details) {
-                                            if (/\b(devo\s+fare|vorrei|puoi|riguardant|per\s+il|per\s+l['’])\b/i.test(a.details)) {
-                                                a.details = extractCleanTaskDetails(a.details, a.subject);
-                                            }
-                                        }
-                                    });
-                                    actionCard = {
-                                        desc: formatActionDescription(actList),
-                                        action: actList
-                                    };
-                                } catch(e){}
-                            }
-                            reply = reply.replace(/\*\*/g, '').replace(/\*/g, '');
-                            appendChatMessage('ai', reply, actionCard);
-                            speakAiVoice(reply);
-                            return;
-                        }
+                        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                        if (handleCloudReply(reply)) return;
                     }
                 } catch (err) {
                     console.warn('Gemini model ' + modelName + ' error:', err);
                 }
+            }
+        }
+
+        // 1B. Try Groq Cloud AI (Llama 3.3 70B) if Groq API Key is configured in Settings!
+        if (groqApiKey && groqApiKey.trim().length > 10) {
+            try {
+                const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + groqApiKey.trim(),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'llama-3.3-70b-versatile',
+                        temperature: 0.1,
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: rawText }
+                        ]
+                    })
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const reply = data.choices?.[0]?.message?.content || '';
+                    if (handleCloudReply(reply)) return;
+                }
+            } catch (err) {
+                console.warn('Groq Llama AI error:', err);
             }
         }
 
@@ -4972,16 +5054,19 @@ Messaggio dello studente: "${rawText}"`;
         actions.forEach(actionObj => {
             if (actionObj.type === 'add_task') {
                 const deadline = actionObj.date || tomorrowStr;
-                const assignedDate = calculateAssignedDate(deadline, 2, 2, todayDateStr, []);
                 const cleanTitle = (actionObj.details && !/\b(devo fare|puoi modificare)\b/i.test(actionObj.details))
                     ? actionObj.details
                     : extractCleanTaskDetails(actionObj.details || '', actionObj.subject);
+                const effort = estimateTaskEffort(cleanTitle, actionObj.subject, deadline);
+                const prio = parseInt(actionObj.priority, 10) || effort.priority || 2;
+                const diff = parseInt(actionObj.difficulty, 10) || effort.difficulty || 2;
+                const assignedDate = calculateAssignedDate(deadline, prio, diff, todayDateStr, []);
                 const newTodo = {
                     id: 'td_' + generateId(),
                     subject: actionObj.subject || userSubjects[0] || 'Matematica',
                     title: cleanTitle,
-                    priority: 2,
-                    difficulty: 2,
+                    priority: prio,
+                    difficulty: diff,
                     deadline: deadline,
                     assignedDate: assignedDate,
                     repeat: false,
