@@ -1925,7 +1925,7 @@ body.ai-view-locked .content-wrapper {
 }
 
 /* ==========================================================================
-   STATIONARY INPUT DOCK + GEMINI-STYLE INLINE VOICE WAVEFORM
+   STATIONARY INPUT DOCK + EXACT GEMINI TWO-ROW COMPOSER & INLINE VOICE BAR
    ========================================================================== */
 .ai-input-dock {
     flex-shrink: 0;
@@ -1941,79 +1941,148 @@ body.ai-view-locked .content-wrapper {
 }
 .ai-input-bar {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     background: var(--surface-color);
     border: 1.5px solid var(--border-color);
     border-radius: 28px;
-    padding: 7px 8px 7px 16px;
+    padding: 13px 12px 10px 16px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
     gap: 8px;
-    min-height: 54px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, padding 0.18s ease;
+}
+.ai-input-bar.is-voice-active {
+    padding: 9px 12px 9px 12px;
+    gap: 0;
 }
 [data-theme="dark"] .ai-input-bar {
     box-shadow: 0 8px 26px rgba(0, 0, 0, 0.42);
 }
+.ai-composer-top {
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
 .ai-prompt-field {
+    width: 100%;
     flex: 1;
     min-width: 0;
     border: none;
     background: transparent;
     color: var(--text-main);
     font-family: var(--ui-font);
-    font-size: 0.93rem;
-    line-height: 1.38;
+    font-size: 0.96rem;
+    line-height: 1.42;
     outline: none;
-    padding: 6px 0;
+    padding: 2px 4px;
     resize: none;
-    max-height: 84px;
+    max-height: 120px;
     overflow-y: auto;
 }
 .ai-prompt-field::placeholder {
     color: var(--text-muted);
-    opacity: 0.75;
+    opacity: 0.78;
+}
+
+.ai-composer-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+    min-height: 40px;
+}
+
+.btn-ai-plus {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    border-radius: 50% !important;
+    border: none;
+    background: transparent;
+    color: var(--text-main);
+    font-size: 1.08rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.btn-ai-plus:active {
+    background: rgba(128, 128, 128, 0.14);
+    transform: scale(0.92);
 }
 
 .ai-input-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-shrink: 0;
-    align-self: flex-end;
+    margin-left: auto;
 }
 
-/* Gemini-Style Horizontal Voice Waveform Inside the Input Bar */
+/* Gemini-Style Horizontal Voice Waveform Inside the Bar */
 .ai-gemini-wave-track {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    height: 36px;
-    padding: 0 8px;
+    height: 38px;
+    padding: 0 6px;
     overflow: hidden;
 }
 .gemini-wave-tick {
     width: 2.5px;
-    height: 6px;
+    height: 5px;
     border-radius: 3px;
     background: var(--theme-strong);
-    opacity: 0.85;
+    opacity: 0.88;
     transition: height 0.08s ease-out, opacity 0.12s ease;
 }
 
-/* Rounded Square Stop Icon inside #btn-ai-mic (matches Gemini video) */
+/* Rounded Square Stop Icon inside #btn-ai-mic.is-listening (matches Gemini video) */
 .gemini-stop-square {
     width: 12px;
     height: 12px;
     border: 2px solid var(--theme-strong);
-    border-radius: 3px;
+    border-radius: 3.5px;
     display: inline-block;
     box-sizing: border-box;
 }
 
-/* 100% Round Buttons (Never Oval) */
-.btn-ai-circle-icon,
+/* Clean Borderless Mic (Idle) -> Soft Ringed Circle (Listening) */
+.btn-ai-mic-clean {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    max-width: 40px !important;
+    max-height: 40px !important;
+    flex: 0 0 40px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-size: 1.05rem;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer;
+    transition: transform 0.16s ease, background-color 0.16s ease, border-color 0.16s ease;
+}
+.btn-ai-mic-clean.is-listening {
+    background: rgba(128, 128, 128, 0.12) !important;
+    border: 1.5px solid var(--border-color) !important;
+    color: var(--theme-strong) !important;
+}
+.btn-ai-mic-clean:active {
+    transform: scale(0.9);
+}
+
+/* 100% Round Solid Send Button */
 .btn-ai-circle-send {
     width: 40px !important;
     height: 40px !important;
@@ -2029,26 +2098,12 @@ body.ai-view-locked .content-wrapper {
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer;
-    transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.18s ease;
-}
-.btn-ai-circle-icon {
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    color: var(--theme-strong);
-    font-size: 1rem;
-}
-.btn-ai-circle-icon.is-listening {
-    background: var(--bg-color) !important;
-    border: 1.5px solid var(--border-color) !important;
-    color: var(--theme-strong) !important;
-}
-.btn-ai-circle-send {
     background: var(--theme-strong);
     border: none;
     color: var(--bg-color);
     font-size: 1rem;
+    transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s ease;
 }
-.btn-ai-circle-icon:active,
 .btn-ai-circle-send:active {
     transform: scale(0.9);
 }

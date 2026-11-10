@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.4.8">
+    <link rel="stylesheet" href="css/style.css?v=2.4.9">
 </head>
 <body>
 
@@ -189,43 +189,49 @@
                 <div class="proxima-chat-thread" id="ai-chat-thread"></div>
             </div>
 
-            <!-- Bottom Prompt Box (Stationary, Gemini-style inline voice waveform + manual start/stop) -->
+            <!-- Bottom Prompt Box (Stationary, Exact Gemini Two-Row Composer & Inline Voice Bar) -->
             <div class="ai-input-dock" id="ai-input-dock">
                 <div class="ai-input-bar" id="ai-input-bar">
-                    <textarea id="ai-prompt-input" rows="1" class="ai-prompt-field" placeholder="Scrivi qui o parla con Proxima..." oninput="autoResizeAiPrompt(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey){ sendAiChatMessage(); event.preventDefault(); }"></textarea>
-
-                    <!-- Gemini-Style Inline Horizontal Voice Equalizer (shown inside bar while recording) -->
-                    <div class="ai-gemini-wave-track" id="ai-gemini-wave-track" style="display: none;">
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
-                        <span class="gemini-wave-tick"></span>
+                    <div class="ai-composer-top" id="ai-composer-top">
+                        <textarea id="ai-prompt-input" rows="1" class="ai-prompt-field" placeholder="Scrivi qui o parla con Proxima..." oninput="autoResizeAiPrompt(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey){ sendAiChatMessage(); event.preventDefault(); }"></textarea>
                     </div>
 
-                    <div class="ai-input-actions">
-                        <!-- Circular Voice Mic / Manual Stop Button -->
-                        <button type="button" class="btn-ai-circle-icon" id="btn-ai-mic" onclick="toggleAiVoiceRecording()" title="Parla o ferma registrazione">
-                            <i class="fa-solid fa-microphone" id="btn-ai-mic-icon"></i>
-                            <span class="gemini-stop-square" id="btn-ai-stop-square" style="display: none;"></span>
+                    <div class="ai-composer-toolbar">
+                        <button type="button" class="btn-ai-plus" id="btn-ai-plus" onclick="openModal('choice-modal')" title="Aggiungi Task o Verifica">
+                            <i class="fa-solid fa-plus"></i>
                         </button>
 
-                        <!-- Circular Send Button -->
-                        <button type="button" class="btn-ai-circle-send" id="btn-ai-send" onclick="sendAiChatMessage()" title="Invia messaggio">
-                            <i class="fa-solid fa-arrow-up"></i>
-                        </button>
+                        <!-- Gemini-Style Inline Horizontal Voice Equalizer (shown inside bar while recording) -->
+                        <div class="ai-gemini-wave-track" id="ai-gemini-wave-track" style="display: none;">
+                            <span class="gemini-wave-tick"></span>
+                            <span class="gemini-wave-tick"></span>
+                            <span class="gemini-wave-tick"></span>
+                            <span class="gemini-wave-tick"></span>
+                            <span class="gemini-wave-tick"></span>
+                            <span class="gemini-wave-tick"></span>
+                            <span class="gemini-wave-tick"></span>
+                            <span class="gemini-wave-tick"></span>
+                            <span class="gemini-wave-tick"></span>
+                            <span class="gemini-wave-tick"></span>
+                            <span class="gemini-wave-tick"></span>
+                            <span class="gemini-wave-tick"></span>
+                            <span class="gemini-wave-tick"></span>
+                            <span class="gemini-wave-tick"></span>
+                            <span class="gemini-wave-tick"></span>
+                        </div>
+
+                        <div class="ai-input-actions">
+                            <!-- Clean Mic Icon (turns into Ringed Rounded Square Stop while recording) -->
+                            <button type="button" class="btn-ai-mic-clean" id="btn-ai-mic" onclick="toggleAiVoiceRecording()" title="Parla o ferma registrazione">
+                                <i class="fa-solid fa-microphone" id="btn-ai-mic-icon"></i>
+                                <span class="gemini-stop-square" id="btn-ai-stop-square" style="display: none;"></span>
+                            </button>
+
+                            <!-- Circular Send Button (always solid circle ↑) -->
+                            <button type="button" class="btn-ai-circle-send" id="btn-ai-send" onclick="sendAiChatMessage()" title="Invia messaggio">
+                                <i class="fa-solid fa-arrow-up"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -733,7 +739,7 @@
     </div>
 
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.4.8" defer></script>
+    <script src="js/app.js?v=2.4.9" defer></script>
 
 </body>
 </html>

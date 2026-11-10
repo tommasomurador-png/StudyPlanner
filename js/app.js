@@ -3666,7 +3666,7 @@
                         <div class="ai-action-header"><i class="fa-solid fa-bolt"></i> Piano d'Azione Rilevato</div>
                         <div class="ai-action-desc"></div>
                         <div class="ai-action-btn-row">
-                            <button type="button" class="btn-ai-action-confirm" onclick="executePendingAiActionById('${actionId}')">
+                            <button type="button" class="btn-ai-action-confirm" onclick="executePendingAiActionById('${actionId}', this)">
                                 <i class="fa-solid fa-check"></i> Conferma ed Esegui
                             </button>
                         </div>
@@ -3755,23 +3755,28 @@
     }
 
     function setGeminiVoiceBarMode(active) {
+        const inputBar = document.getElementById('ai-input-bar');
+        const composerTop = document.getElementById('ai-composer-top');
         const inputEl = document.getElementById('ai-prompt-input');
         const waveTrack = document.getElementById('ai-gemini-wave-track');
         const micBtn = document.getElementById('btn-ai-mic');
         const micIcon = document.getElementById('btn-ai-mic-icon');
         const stopSquare = document.getElementById('btn-ai-stop-square');
 
+        if (inputBar) inputBar.classList.toggle('is-voice-active', active);
         if (micBtn) micBtn.classList.toggle('is-listening', active);
         if (micIcon) micIcon.style.display = active ? 'none' : 'inline-block';
         if (stopSquare) stopSquare.style.display = active ? 'inline-block' : 'none';
 
         if (active) {
-            if (inputEl) inputEl.style.display = 'none';
+            if (inputEl) inputEl.blur();
+            if (composerTop) composerTop.style.display = 'none';
             if (waveTrack) waveTrack.style.display = 'flex';
             startGeminiWaveAnimation();
         } else {
             stopGeminiWaveAnimation();
             if (waveTrack) waveTrack.style.display = 'none';
+            if (composerTop) composerTop.style.display = 'flex';
             if (inputEl) {
                 inputEl.style.display = 'block';
                 window.autoResizeAiPrompt(inputEl);
@@ -3902,7 +3907,8 @@
         if (inputEl) {
             inputEl.value = finalTranscript;
             window.autoResizeAiPrompt(inputEl);
-            inputEl.focus();
+            // Explicitly avoid focus() so Android soft keyboard NEVER opens automatically after voice stops
+            inputEl.blur();
         }
     }
 
@@ -4001,11 +4007,12 @@
     // NATURAL LANGUAGE PARSING (Smart Concise Titles + Modify/Move Tasks + Multi-Task)
     // ==========================================================================
     const ITALIAN_NUM_WORDS = {
-        'un': 1, 'uno': 1, 'una': 1, 'due': 2, 'tre': 3, 'quattro': 4,
+        'uno': 1, 'due': 2, 'tre': 3, 'quattro': 4,
         'cinque': 5, 'sei': 6, 'sette': 7, 'otto': 8, 'nove': 9, 'dieci': 10,
         'undici': 11, 'dodici': 12, 'tredici': 13, 'quattordici': 14, 'quindici': 15,
         'sedici': 16, 'diciassette': 17, 'diciotto': 18, 'diciannove': 19, 'venti': 20,
-        'trenta': 30, 'quaranta': 40, 'cinquanta': 50
+        'ventuno': 21, 'ventidue': 22, 'ventitre': 23, 'ventitré': 23, 'ventiquattro': 24,
+        'venticinque': 25, 'trenta': 30, 'quaranta': 40, 'cinquanta': 50
     };
 
     function normalizeNumberWords(str) {
@@ -4023,10 +4030,21 @@
         for (const sub of sortedSubs) {
             if (lower.includes(sub.toLowerCase())) return sub;
         }
-        if (lower.includes('mate')) return userSubjects.find(s => s.toLowerCase().includes('mat')) || 'Matematica';
-        if (lower.includes('ita')) return userSubjects.find(s => s.toLowerCase().includes('ita')) || 'Italiano';
-        if (lower.includes('ingl')) return userSubjects.find(s => s.toLowerCase().includes('ing')) || 'Inglese';
-        if (lower.includes('filo')) return userSubjects.find(s => s.toLowerCase().includes('fil')) || 'Filosofia';
+        const subjectStems = [
+            ['mate', 'Matematica'], ['ita', 'Italiano'], ['ingl', 'Inglese'],
+            ['filo', 'Filosofia'], ['biolog', 'Biologia'], ['fisic', 'Fisica'],
+            ['stori', 'Storia'], ['chimi', 'Chimica'], ['scienz', 'Scienze'],
+            ['latin', 'Latino'], ['greco', 'Greco'], ['art', 'Arte'],
+            ['informatic', 'Informatica'], ['geograf', 'Geografia'],
+            ['diritt', 'Diritto'], ['econom', 'Economia'], ['frances', 'Francese'],
+            ['spagnol', 'Spagnolo'], ['tedesc', 'Tedesco'], ['religion', 'Religione'],
+            ['motor', 'Educazione Fisica']
+        ];
+        for (const [stem, fallbackName] of subjectStems) {
+            if (lower.includes(stem)) {
+                return userSubjects.find(s => s.toLowerCase().includes(stem.slice(0, 4))) || fallbackName;
+            }
+        }
         return null;
     }
 
@@ -4051,13 +4069,13 @@
             return formatDateStr(d);
         }
 
-        // Italian month names (e.g. "3 novembre", "l'11 novembre", "il 10 novembre")
+        // Italian month names (e.g. "3 novembre", "l'11 novembre", "23 novembre")
         const monthsMap = {
             'gennaio': 1, 'febbraio': 2, 'marzo': 3, 'aprile': 4, 'maggio': 5, 'giugno': 6,
             'luglio': 7, 'agosto': 8, 'settembre': 9, 'ottobre': 10, 'novembre': 11, 'dicembre': 12
         };
         for (const [mName, mIdx] of Object.entries(monthsMap)) {
-            const mReg = new RegExp("(?:l['’]?\\s*)?(\\d{1,2}|primo)\\s+" + mName, 'i');
+            const mReg = new RegExp("(?:l['’]?\\s*|quest[oi]\\s+)?(\\d{1,2}|primo)\\s+" + mName, 'i');
             const mMatch = lower.match(mReg);
             if (mMatch) {
                 const day = mMatch[1].toLowerCase() === 'primo' ? 1 : parseInt(mMatch[1], 10);
@@ -4080,15 +4098,43 @@
             }
         }
 
+        // Italian weekdays ("per martedì", "per prossimo martedì", "venerdì prossimo")
+        // Note: use (?=\s|$|[.,;!?]) because JS \b fails after accented characters like ì
+        const weekdaysMap = {
+            'domenica': 0, 'lunedi': 1, 'lunedì': 1, 'martedi': 2, 'martedì': 2,
+            'mercoledi': 3, 'mercoledì': 3, 'giovedi': 4, 'giovedì': 4,
+            'venerdi': 5, 'venerdì': 5, 'sabato': 6
+        };
+        for (const [wName, wIdx] of Object.entries(weekdaysMap)) {
+            if (new RegExp('(?:^|\\s|[.,;!?])' + wName + '(?=\\s|$|[.,;!?])', 'i').test(lower)) {
+                let diff = wIdx - now.getDay();
+                if (diff <= 0) diff += 7;
+                let d = new Date(now);
+                d.setDate(d.getDate() + diff);
+                return formatDateStr(d);
+            }
+        }
+
         return tomorrowStr;
+    }
+
+    function hasExplicitDateMention(txt) {
+        const lower = normalizeNumberWords(txt.toLowerCase());
+        if (/\b(domani|dopodomani|tra\s+\d+\s+giorn|fra\s+\d+\s+giorn)\b/i.test(lower)) return true;
+        if (/\b(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\b/i.test(lower)) return true;
+        if (/\b\d{1,2}\/\d{1,2}\b/.test(lower)) return true;
+        if (/(?:^|\s)(domenica|luned[iì]|marted[iì]|mercoled[iì]|gioved[iì]|venerd[iì]|sabato)(?=\s|$|[.,;!?])/i.test(lower)) return true;
+        return false;
     }
 
     function stripDatesAndPoliteness(text) {
         let s = text;
         const monthPattern = '(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)';
+        const weekdayPattern = '(?:domenica|luned[iì]|marted[iì]|mercoled[iì]|gioved[iì]|venerd[iì]|sabato)';
         // Remove date phrases like "per il 3 novembre", "per l'11 novembre", "al 10 novembre", "il 3 novembre"
-        s = s.replace(new RegExp("\\b(?:per\\s+il|per\\s+l['’]?|al|all['’]?|entro\\s+il|entro\\s+l['’]?|il|l['’]?|del)\\s*(?:\\d{1,2}|primo)\\s+" + monthPattern + "\\b", 'gi'), '');
-        s = s.replace(new RegExp("\\b(?:\\d{1,2}|primo)\\s+" + monthPattern + "\\b", 'gi'), '');
+        s = s.replace(new RegExp("\\b(?:per\\s+il|per\\s+l['’]?|al|all['’]?|entro\\s+il|entro\\s+l['’]?|il|l['’]?|del)\\s*(?:\\d{1,2}|primo)\\s+" + monthPattern + "(?=\\s|$|[.,;!?])", 'gi'), '');
+        s = s.replace(new RegExp("\\b(?:\\d{1,2}|primo)\\s+" + monthPattern + "(?=\\s|$|[.,;!?])", 'gi'), '');
+        s = s.replace(new RegExp("(?:^|\\s)(?:per\\s+(?:il\\s+)?)?(?:prossim[oa]\\s+)?" + weekdayPattern + "(?:\\s+prossim[oa])?(?=\\s|$|[.,;!?])", 'gi'), ' ');
         s = s.replace(/\b(?:per\s+|al\s+|il\s+)?\d{1,2}\/\d{1,2}\b/gi, '');
         s = s.replace(/\b(?:per\s+domani|per\s+dopodomani|domani|dopodomani|per\s+oggi|oggi)\b/gi, '');
         s = s.replace(/\b(?:tra|fra)\s+\d+\s+giorn[oi]\b/gi, '');
@@ -4111,10 +4157,10 @@
             norm = norm.replace(new RegExp('\\b(?:di|in|per)\\s+' + escapedSub + '\\b', 'gi'), '');
             norm = norm.replace(new RegExp('\\b' + escapedSub + '\\b', 'gi'), '');
         }
-        norm = norm.replace(/\b(?:di|in|per)\s+(?:mate|matematica|ita|italiano|ingl|inglese|scienze|storia|filo|filosofia|fisica|latino|arte)\b/gi, '');
+        norm = norm.replace(/\b(?:di|in|per)\s+(?:mate|matematica|ita|italiano|ingl|inglese|scienze|storia|filo|filosofia|biologia|fisica|chimica|latino|greco|arte|informatica|geografia|diritto|economia)\b/gi, '');
 
         // 3. Remove conversational lead-in verbs, pronouns, and articles iteratively
-        const leadInPattern = /^(?:(?:allora|guarda|senti|ciao|ehi|proxima|ascolta|vorrei|dovrei|devo|ho\s+da|bisogna|c['’]è\s+da|ci\s+sono\s+da|puoi|potresti|mi\s+puoi|aggiungi|aggiungere|metti|mettere|metterli|mettili|inserisci|inserire|segna|segnare|modifica|modificare|sposta|spostare|cambia|cambiare|fare|svolgere|completare|studiare|ripassare|leggere|scrivere|che\s+devo|da|degli|dei|delle|dello|della|gli|le|i|un|uno|una|qualche|alcuni|alcune|quegli|quei|quelle|questi|queste)\s+)+/i;
+        const leadInPattern = /^(?:(?:allora|guarda|senti|ciao|ehi|proxima|ascolta|vorrei|dovrei|devo|ho\s+da|ho|bisogna|c['’]è\s+da|ci\s+sono\s+da|puoi|potresti|mi\s+puoi|aggiungi|aggiungere|metti|mettere|metterli|mettili|inserisci|inserire|segna|segnare|modifica|modificare|sposta|spostare|cambia|cambiare|fare|svolgere|completare|studiare|ripassare|leggere|scrivere|che\s+devo|compito|compiti|da|degli|dei|delle|dello|della|gli|le|i|un|uno|una|qualche|alcuni|alcune|quegli|quei|quelle|questi|queste)\s+)+/i;
         norm = norm.replace(leadInPattern, '').trim();
 
         // 4. Clean up connectors like "riguardanti / riguardante / relativi a" into clean diary labels
@@ -4174,127 +4220,131 @@
         return null;
     }
 
+    function splitMultiIntentClauses(rawText) {
+        // Protect "e mezzo" inside grades before splitting on " e "
+        let protectedStr = rawText.replace(/\be\s+mezzo\b/gi, '__EMEZZO__');
+        // Split on punctuation (.,;!), OR before spoken Italian action starters or new subjects ("e 7 di scienze")
+        const subjectHead = '(?:matematica|italiano|inglese|filosofia|biologia|fisica|storia|chimica|scienze|latino|greco|arte|informatica|geografia|diritto|economia)';
+        const splitRegex = new RegExp(
+            '\\s*[.;,!?]+\\s*' +
+            '|\\s+(?:e\\s+(?:poi\\s+|inoltre\\s+|anche\\s+)?|poi\\s+|inoltre\\s+)(?=(?:io\\s+)?(?:ho\\s+|devo\\s+|c[\'’]è\\s+|vorrei\\s+|abbiamo\\s+|una?\\s+(?:verifica|compito|voto)|un[\'’]?interrogazion|verific|interrogazion|compit|eserci|vot|preso|ricevut|studi|ripass|modific|spost|cambi|elimin|togl|(?:\\d+|cinque|sei|sette|otto|nove|dieci)\\s+(?:di\\s+' + subjectHead + '|eserci|pagin|compit)))' +
+            '|\\s+(?=(?:io\\s+)?ho\\s+(?:preso|ricevuto|avuto|preso\\s+un|un\\s+voto|una?\\s+verifica|un[\'’]?interrogazion|un\\s+compito|da\\s+fare))' +
+            '|\\s+(?=(?:oggi|domani|dopodomani)\\s+(?:la\\s+verifica|il\\s+compito|l[\'’]?interrogazion|ho\\s+))',
+            'gi'
+        );
+
+        let parts = protectedStr.split(splitRegex)
+            .map(p => (p || '').replace(/__EMEZZO__/g, 'e mezzo').trim())
+            .filter(p => p.length > 2);
+
+        return parts.length > 0 ? parts : [rawText.trim()];
+    }
+
     function parseLocalStudyActions(rawText) {
-        const normText = normalizeNumberWords(rawText.trim());
-        const lower = normText.toLowerCase();
-        const globalTargetDate = parseDateFromText(normText);
+        const clauses = splitMultiIntentClauses(rawText);
+        const allActions = [];
+        let lastSubjectContext = null;
 
-        // 0. Check if it's a MODIFY / MOVE / RESCHEDULE request ("modifica quegli esercizi per l'11 novembre", "sposta gli esercizi di matematica al 10 novembre")
-        const isModifyIntent = /\b(modifica|modificare|sposta|spostare|cambia|cambiare|rimanda|rimandare|posticipa|posticipare|metterli|mettili|metti\s+quegli|metti\s+quei|aggiorna)\b/i.test(lower);
-        if (isModifyIntent) {
-            const explicitSub = findSubjectInSegment(normText);
-            const isExamMod = /\b(verifica|verifiche|interrogazione|esame)\b/i.test(lower);
+        clauses.forEach(clauseRaw => {
+            const normClause = normalizeNumberWords(clauseRaw.trim());
+            const lower = normClause.toLowerCase();
+            const explicitSub = findSubjectInSegment(normClause);
+            if (explicitSub) lastSubjectContext = explicitSub;
+            const clauseDate = hasExplicitDateMention(normClause) ? parseDateFromText(normClause) : tomorrowStr;
 
-            if (isExamMod && myExams.length > 0) {
-                const targetExam = explicitSub
-                    ? ([...myExams].reverse().find(e => e.subject.toLowerCase() === explicitSub.toLowerCase()) || myExams[myExams.length - 1])
-                    : myExams[myExams.length - 1];
-                const pagMatch = normText.match(/(\d+)\s*(pag|pagine|esercizi)/i);
-                return [{
-                    type: 'modify_exam',
-                    examId: targetExam.id,
-                    subject: targetExam.subject,
-                    date: globalTargetDate,
-                    pages: pagMatch ? parseInt(pagMatch[1], 10) : targetExam.pages
-                }];
-            }
-
-            const existingRef = findLastDiscussedOrSavedTask(explicitSub);
-            const targetSub = explicitSub || (existingRef ? existingRef.subject : (userSubjects[0] || 'Matematica'));
-            // NEVER alter the existing task description when modifying/moving the date!
-            const preservedDetails = existingRef ? existingRef.details : ('Esercizi di ' + targetSub);
-
-            return [{
-                type: 'modify_task',
-                todoId: existingRef && existingRef.todo ? existingRef.todo.id : null,
-                subject: targetSub,
-                date: globalTargetDate,
-                details: preservedDetails
-            }];
-        }
-
-        // 0b. Check if it's a DELETE / REMOVE request ("elimina quegli esercizi", "cancella il compito di matematica")
-        const isDeleteIntent = /\b(elimina|eliminare|cancella|cancellare|togli|togliere|rimuovi|rimuovere)\b/i.test(lower);
-        if (isDeleteIntent) {
-            const sub = findSubjectInSegment(normText);
-            const existingRef = findLastDiscussedOrSavedTask(sub);
-            return [{
-                type: 'remove_task',
-                todoId: existingRef && existingRef.todo ? existingRef.todo.id : null,
-                subject: sub || (existingRef ? existingRef.subject : (userSubjects[0] || 'Matematica')),
-                details: existingRef ? existingRef.details : 'Compito'
-            }];
-        }
-
-        // 1. Check if it's a Grade registration ("ho preso 8 in fisica", "voto 7.5 in matematica")
-        const isGradeIntent = /\b(voto|preso|ottenuto|registrare\s+voto|registra\s+\d)\b/i.test(lower);
-        if (isGradeIntent) {
-            const sub = findSubjectInSegment(normText) || userSubjects[0] || 'Matematica';
-            const gMatch = normText.match(/\b([2-9]|10)(\.5|\,5|\+|\-|\s*e\s*mezzo)?\b/i);
-            let gradeVal = gMatch ? gMatch[0].replace(',', '.').replace(/\s*e\s*mezzo/i, '.5') : '7';
-            return [{
-                type: 'add_grade',
-                subject: sub,
-                value: gradeVal,
-                date: formatDateStr(new Date())
-            }];
-        }
-
-        // 2. Check if it's an Exam / Interrogazione ("verifica di storia 30 pagine", "interrogazione di filosofia")
-        const isExamIntent = /\b(verifica|verifiche|interrogazione|interrogazioni|esame|compito in classe)\b/i.test(lower);
-        if (isExamIntent) {
-            const sub = findSubjectInSegment(normText) || userSubjects[0] || 'Storia';
-            const pagMatch = normText.match(/(\d+)\s*(pag|pagine|esercizi)/i);
-            const pages = pagMatch ? parseInt(pagMatch[1], 10) : 20;
-            const exType = lower.includes('interrogazion') ? 'Interrogazione' : 'Verifica';
-            return [{
-                type: 'add_exam',
-                examType: exType,
-                subject: sub,
-                date: globalTargetDate,
-                pages: pages
-            }];
-        }
-
-        // 3. Check if it's Homework / Exercises / Study tasks (supports multiple subjects separated by " e " or ",")
-        // Ignore conversational idioms like "fare in modo che", "fare una domanda", "cosa sai fare"
-        const cleanedForIntent = lower.replace(/\b(fare\s+in\s+modo|aver\s+a\s+che\s+fare|cosa\s+puoi\s+fare|cosa\s+sai\s+fare|come\s+si\s+fa|fare\s+una\s+domanda)\b/gi, '');
-        const hasExplicitSchoolKeyword = /\b(compito|compiti|esercizio|esercizi|studiare|ripassare|pagine|pagina|capitolo|paragrafo|versione|ricerca|tema|es\.)\b/i.test(cleanedForIntent);
-        const hasSubjectMention = findSubjectInSegment(normText) !== null;
-        const isTaskIntent = hasExplicitSchoolKeyword || hasSubjectMention;
-        if (isTaskIntent) {
-            const clauses = normText.split(/\s+e\s+|\s*,\s*/i);
-            const multiTasks = [];
-
-            clauses.forEach(clause => {
-                const sub = findSubjectInSegment(clause);
-                if (sub) {
-                    const details = extractCleanTaskDetails(clause, sub);
-                    const clauseHasOwnDate = /\b(domani|dopodomani|tra\s+\d+|gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\b/i.test(clause);
-                    const clauseDate = clauseHasOwnDate ? parseDateFromText(clause) : globalTargetDate;
-                    multiTasks.push({
-                        type: 'add_task',
-                        subject: sub,
+            // 0. Check MODIFY / MOVE / RESCHEDULE in this clause
+            const isModifyIntent = /\b(modifica|modificare|sposta|spostare|cambia|cambiare|rimanda|rimandare|posticipa|posticipare|metterli|mettili|metti\s+quegli|metti\s+quei|aggiorna)\b/i.test(lower);
+            if (isModifyIntent) {
+                const isExamMod = /\b(verifica|verifiche|interrogazione|esame)\b/i.test(lower);
+                if (isExamMod && myExams.length > 0) {
+                    const targetExam = explicitSub
+                        ? ([...myExams].reverse().find(e => e.subject.toLowerCase() === explicitSub.toLowerCase()) || myExams[myExams.length - 1])
+                        : myExams[myExams.length - 1];
+                    const pagMatch = normClause.match(/(\d+)\s*(pag|pagine|esercizi)/i);
+                    allActions.push({
+                        type: 'modify_exam',
+                        examId: targetExam.id,
+                        subject: targetExam.subject,
                         date: clauseDate,
-                        details: details
+                        pages: pagMatch ? parseInt(pagMatch[1], 10) : targetExam.pages
                     });
+                    return;
                 }
-            });
 
-            if (multiTasks.length > 0) {
-                return multiTasks;
+                const existingRef = findLastDiscussedOrSavedTask(explicitSub);
+                const targetSub = explicitSub || (existingRef ? existingRef.subject : (lastSubjectContext || userSubjects[0] || 'Matematica'));
+                const preservedDetails = existingRef ? existingRef.details : ('Esercizi di ' + targetSub);
+                allActions.push({
+                    type: 'modify_task',
+                    todoId: existingRef && existingRef.todo ? existingRef.todo.id : null,
+                    subject: targetSub,
+                    date: clauseDate,
+                    details: preservedDetails
+                });
+                return;
             }
 
-            const fallbackSub = findSubjectInSegment(normText) || userSubjects[0] || 'Matematica';
-            return [{
-                type: 'add_task',
-                subject: fallbackSub,
-                date: globalTargetDate,
-                details: extractCleanTaskDetails(normText, fallbackSub)
-            }];
-        }
+            // 0b. Check DELETE / REMOVE in this clause
+            const isDeleteIntent = /\b(elimina|eliminare|cancella|cancellare|togli|togliere|rimuovi|rimuovere)\b/i.test(lower);
+            if (isDeleteIntent) {
+                const existingRef = findLastDiscussedOrSavedTask(explicitSub);
+                allActions.push({
+                    type: 'remove_task',
+                    todoId: existingRef && existingRef.todo ? existingRef.todo.id : null,
+                    subject: explicitSub || (existingRef ? existingRef.subject : (lastSubjectContext || userSubjects[0] || 'Matematica')),
+                    details: existingRef ? existingRef.details : 'Compito'
+                });
+                return;
+            }
 
-        return null;
+            // 1. Check Grade in this clause ("ho preso 8 in matematica", "ho un voto...")
+            const isGradeIntent = /\b(voto|preso|ottenuto|registrare\s+voto|registra\s+\d)\b/i.test(lower);
+            if (isGradeIntent) {
+                const sub = explicitSub || lastSubjectContext || userSubjects[0] || 'Matematica';
+                const gMatch = normClause.match(/\b(10|[2-9])(\.5|\,5|\+|\-|\s*e\s*mezzo)?\b/i);
+                let gradeVal = gMatch ? gMatch[0].replace(',', '.').replace(/\s*e\s*mezzo/i, '.5') : '7';
+                allActions.push({
+                    type: 'add_grade',
+                    subject: sub,
+                    value: gradeVal,
+                    date: formatDateStr(new Date())
+                });
+                return;
+            }
+
+            // 2. Check Exam / Interrogazione in this clause
+            const isExamIntent = /\b(verifica|verifiche|interrogazione|interrogazioni|esame|compito\s+in\s+classe)\b/i.test(lower);
+            if (isExamIntent) {
+                const sub = explicitSub || lastSubjectContext || userSubjects[0] || 'Storia';
+                const pagMatch = normClause.match(/(\d+)\s*(pag|pagine|esercizi)/i);
+                const pages = pagMatch ? parseInt(pagMatch[1], 10) : 20;
+                const exType = lower.includes('interrogazion') ? 'Interrogazione' : 'Verifica';
+                allActions.push({
+                    type: 'add_exam',
+                    examType: exType,
+                    subject: sub,
+                    date: clauseDate,
+                    pages: pages
+                });
+                return;
+            }
+
+            // 3. Check Homework / Exercises / Study task in this clause
+            const cleanedForIntent = lower.replace(/\b(fare\s+in\s+modo|aver\s+a\s+che\s+fare|cosa\s+puoi\s+fare|cosa\s+sai\s+fare|come\s+si\s+fa|fare\s+una\s+domanda)\b/gi, '');
+            const hasExplicitSchoolKeyword = /\b(compito|compiti|esercizio|esercizi|studiare|ripassare|pagine|pagina|capitolo|paragrafo|versione|ricerca|tema|riflessione|es\.)\b/i.test(cleanedForIntent);
+            if (hasExplicitSchoolKeyword || explicitSub !== null) {
+                const sub = explicitSub || lastSubjectContext || userSubjects[0] || 'Matematica';
+                const details = extractCleanTaskDetails(normClause, sub);
+                allActions.push({
+                    type: 'add_task',
+                    subject: sub,
+                    date: clauseDate,
+                    details: details
+                });
+            }
+        });
+
+        return allActions.length > 0 ? allActions : null;
     }
 
     function formatActionDescription(actionOrArray) {
@@ -4363,10 +4413,11 @@ Voti registrati: ${myGrades.map(g => g.subject + ': ' + g.displayValue).join('; 
 Contesto recente della conversazione:
 ${recentTurnsSummary || 'Inizio conversazione'}
 
-REGOLE FONDAMENTALI PER I TITOLI ("details") E LE MODIFICHE:
-1. Nel campo "details" NON copiare MAI la frase intera dello studente (es. NON scrivere "devo fare degli esercizi riguardanti le funzioni per il 3 novembre" e NON scrivere "puoi modificare quegli esercizi"). Scrivi SOLO un titolo sintetico da diario scolastico, ad esempio: "Esercizi: le funzioni", "5 esercizi sulle funzioni", "Studio cap. 4".
-2. Se lo studente chiede di MODIFICARE o SPOSTARE di data un compito/esercizio già detto o presente (es. "modifica quegli esercizi per l'11 novembre"), usa "type": "modify_task" mantenendo il titolo originale pulito dell'esercizio (es. "Esercizi: le funzioni") e cambiando solo "date" con la nuova data YYYY-MM-DD!
-3. Inserisci OBBLIGATORIAMENTE in fondo alla risposta il blocco JSON esatto:
+REGOLE FONDAMENTALI PER I TITOLI ("details"), MULTI-AZIONE E MODIFICHE:
+1. Estrai TUTTE le azioni presenti nel messaggio dello studente (anche se nel testo ci sono insieme compiti, verifiche E voti nella stessa frase senza punteggiatura!). Metti OGNI azione rilevata come elemento dell'array JSON, senza saltarne nessuna.
+2. Nel campo "details" NON copiare MAI la frase intera dello studente (es. NON scrivere "devo fare degli esercizi riguardanti le funzioni per il 3 novembre" e NON scrivere "puoi modificare quegli esercizi"). Scrivi SOLO un titolo sintetico da diario scolastico, ad esempio: "Esercizi: le funzioni", "5 esercizi sulle funzioni", "Dante: riflessione personale", "Studio cap. 4".
+3. Se lo studente chiede di MODIFICARE o SPOSTARE di data un compito/esercizio già detto o presente (es. "modifica quegli esercizi per l'11 novembre"), usa "type": "modify_task" mantenendo il titolo originale pulito dell'esercizio e cambiando solo "date" con la nuova data YYYY-MM-DD!
+4. Inserisci OBBLIGATORIAMENTE in fondo alla risposta il blocco JSON esatto con TUTTE le azioni trovate:
 ###JSON_ACTION: [{"type": "add_task", "subject": "NomeMateria", "date": "YYYY-MM-DD", "details": "Esercizi: argomento"}]###
 Tipi supportati:
 - Aggiungere compito: {"type": "add_task", "subject": "NomeMateria", "date": "YYYY-MM-DD", "details": "Titolo sintetico"}
@@ -4482,9 +4533,14 @@ Messaggio dello studente: "${rawText}"`;
         speakAiVoice(fallbackReply);
     };
 
-    window.executePendingAiActionById = function(actionId) {
+    window.executePendingAiActionById = function(actionId, btnEl) {
         const actionPayload = window.pendingAiActionsStore[actionId];
         if (!actionPayload) return;
+        if (btnEl) {
+            btnEl.disabled = true;
+            btnEl.innerHTML = '<i class="fa-solid fa-check-double"></i> Confermato';
+            btnEl.style.opacity = '0.65';
+        }
         window.executePendingAiAction(actionPayload);
     };
 
