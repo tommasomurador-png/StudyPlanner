@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.4.9">
+    <link rel="stylesheet" href="css/style.css?v=2.5.0">
 </head>
 <body>
 
@@ -189,7 +189,7 @@
                 <div class="proxima-chat-thread" id="ai-chat-thread"></div>
             </div>
 
-            <!-- Bottom Prompt Box (Stationary, Exact Gemini Two-Row Composer & Inline Voice Bar) -->
+            <!-- Bottom Prompt Box (Stationary, Exact Gemini Two-Row Composer WITHOUT + & FreeFlow Continuous Audio) -->
             <div class="ai-input-dock" id="ai-input-dock">
                 <div class="ai-input-bar" id="ai-input-bar">
                     <div class="ai-composer-top" id="ai-composer-top">
@@ -197,12 +197,10 @@
                     </div>
 
                     <div class="ai-composer-toolbar">
-                        <button type="button" class="btn-ai-plus" id="btn-ai-plus" onclick="openModal('choice-modal')" title="Aggiungi Task o Verifica">
-                            <i class="fa-solid fa-plus"></i>
-                        </button>
-
                         <!-- Gemini-Style Inline Horizontal Voice Equalizer (shown inside bar while recording) -->
                         <div class="ai-gemini-wave-track" id="ai-gemini-wave-track" style="display: none;">
+                            <span class="gemini-wave-tick"></span>
+                            <span class="gemini-wave-tick"></span>
                             <span class="gemini-wave-tick"></span>
                             <span class="gemini-wave-tick"></span>
                             <span class="gemini-wave-tick"></span>
@@ -391,19 +389,28 @@
                 </div>
                 <div class="settings-card">
                     <div class="settings-card-header">
-                        <span class="settings-card-title"><i class="fa-solid fa-cube"></i> Proxima AI (Google Gemini)</span>
+                        <span class="settings-card-title"><i class="fa-solid fa-cube"></i> Proxima AI & Dettatura FreeFlow</span>
                     </div>
                     <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.45;">
-                        Proxima funziona anche offline per compiti, verifiche e voti. Per risposte complete con l'intelligenza artificiale, crea gratis una chiave su Google AI Studio e incollala qui sotto:
+                        Con una chiave Gemini (o Groq Whisper stile FreeFlow) la dettatura vocale usa registrazione continua senza tagli e pulizia AI automatica.
                     </p>
                     <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="btn-get-gemini-key" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px 14px; margin-bottom: 10px; border-radius: 12px; border: 1px dashed var(--theme-strong); background: var(--bg-color); color: var(--theme-strong); font-size: 0.82rem; font-weight: 700; text-decoration: none;">
                         <i class="fa-solid fa-up-right-from-square"></i> Crea Chiave API Gratuita (Google AI Studio)
                     </a>
                     <div class="input-row">
-                        <input type="password" id="settings-gemini-key-input" class="form-control" placeholder="Incolla qui la chiave API (AIza...)">
+                        <input type="password" id="settings-gemini-key-input" class="form-control" placeholder="Chiave Gemini (AIza...)">
                         <button type="button" class="btn-submit compact" onclick="saveGeminiApiKeyFromSettings()">Salva</button>
                     </div>
-                    <div id="gemini-key-status" style="font-size: 0.78rem; margin-top: 6px; color: var(--text-muted);"></div>
+                    <div id="gemini-key-status" style="font-size: 0.78rem; margin-top: 6px; margin-bottom: 12px; color: var(--text-muted);"></div>
+
+                    <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" class="btn-get-gemini-key" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 9px 14px; margin-bottom: 8px; border-radius: 12px; border: 1px dashed var(--border-color); background: var(--bg-color); color: var(--text-main); font-size: 0.78rem; font-weight: 600; text-decoration: none;">
+                        <i class="fa-solid fa-microphone-lines"></i> Chiave Groq Whisper Gratuita (FreeFlow)
+                    </a>
+                    <div class="input-row">
+                        <input type="password" id="settings-groq-key-input" class="form-control" placeholder="Opzionale: Chiave Groq (gsk_...)">
+                        <button type="button" class="btn-submit compact" onclick="saveGroqApiKeyFromSettings()">Salva</button>
+                    </div>
+                    <div id="groq-key-status" style="font-size: 0.76rem; margin-top: 6px; color: var(--text-muted);"></div>
                 </div>
                                 <div class="settings-card danger-card" style="border: 1px solid rgba(239, 68, 68, 0.25);">
                     <div class="settings-card-header">
@@ -739,7 +746,7 @@
     </div>
 
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.4.9" defer></script>
+    <script src="js/app.js?v=2.5.0" defer></script>
 
 </body>
 </html>

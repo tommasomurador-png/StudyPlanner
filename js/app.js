@@ -3207,6 +3207,7 @@
     // ==========================================================================
     let myGrades = JSON.parse(localStorage.getItem('studylog_grades') || '[]');
     let geminiApiKey = localStorage.getItem('studylog_gemini_key') || '';
+    let groqApiKey = localStorage.getItem('studylog_groq_key') || '';
     let selectedGradeType = 'Scritto';
     let selectedGradeQuadrimestre = '1° Quadrimestre';
     let currentGradesTab = 'materie'; // 'ultime', 'materie', 'q1', 'q2'
@@ -3615,6 +3616,149 @@
         }
     }
 
+    function getActionCardMeta(act) {
+        if (!act) return { icon: 'fa-bolt', label: 'Azione', editableVal: '', btnText: 'Conferma' };
+        if (act.type === 'add_task') {
+            return {
+                icon: 'fa-list-check',
+                label: 'Compito • ' + (act.subject || 'Materia') + ' • ' + formatDateShort(act.date || tomorrowStr),
+                editableVal: act.details || 'Esercizi',
+                btnText: 'Aggiungi'
+            };
+        }
+        if (act.type === 'modify_task') {
+            return {
+                icon: 'fa-pen-to-square',
+                label: 'Sposta Compito • ' + (act.subject || 'Materia') + ' → ' + formatDateShort(act.date || tomorrowStr),
+                editableVal: act.details || 'Compito',
+                btnText: 'Conferma Modifica'
+            };
+        }
+        if (act.type === 'remove_task') {
+            return {
+                icon: 'fa-trash-can',
+                label: 'Rimuovi Compito • ' + (act.subject || 'Materia'),
+                editableVal: act.details || 'Compito',
+                btnText: 'Rimuovi'
+            };
+        }
+        if (act.type === 'add_exam') {
+            return {
+                icon: 'fa-file-pen',
+                label: (act.examType || 'Verifica') + ' • ' + (act.subject || 'Materia') + ' • ' + formatDateShort(act.date || tomorrowStr),
+                editableVal: act.details || ((act.pages || 20) + ' pagine'),
+                btnText: 'Aggiungi Verifica'
+            };
+        }
+        if (act.type === 'modify_exam') {
+            return {
+                icon: 'fa-calendar-days',
+                label: 'Sposta Verifica • ' + (act.subject || 'Materia') + ' → ' + formatDateShort(act.date || tomorrowStr),
+                editableVal: act.details || ((act.pages || 20) + ' pagine'),
+                btnText: 'Aggiorna'
+            };
+        }
+        if (act.type === 'add_grade') {
+            return {
+                icon: 'fa-graduation-cap',
+                label: 'Voto • ' + (act.subject || 'Materia') + ' • ' + getQuadrimestreForDate(formatDateStr(new Date())),
+                editableVal: String(act.value || '7'),
+                btnText: 'Salva Voto'
+            };
+        }
+        return { icon: 'fa-bolt', label: 'Attività', editableVal: act.details || '', btnText: 'Aggiungi' };
+    }
+
+    window.autoResizeSingleCardTextarea = function(el) {
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = Math.max(26, el.scrollHeight) + 'px';
+    };
+
+    window.updatePendingSingleActionText = function(turnIdx, actIdx, el) {
+        const turn = aiChatHistory[turnIdx];
+        if (!turn || !turn.actionCard || !turn.actionCard.action) return;
+        const list = Array.isArray(turn.actionCard.action) ? turn.actionCard.action : [turn.actionCard.action];
+        const act = list[actIdx];
+        if (!act || !el) return;
+
+        const val = el.value;
+        if (act.type === 'add_grade') {
+            act.value = val.trim() || act.value;
+        } else if (act.type === 'add_exam' || act.type === 'modify_exam') {
+            act.details = val;
+            const numMatch = val.match(/(\d+)/);
+            if (numMatch) act.pages = parseInt(numMatch[1], 10);
+        } else {
+            act.details = val;
+        }
+        localStorage.setItem('studylog_ai_chat', JSON.stringify(aiChatHistory));
+        window.autoResizeSingleCardTextarea(el);
+    };
+
+    window.confirmSinglePendingAction = function(turnIdx, actIdx, btnEl) {
+        const turn = aiChatHistory[turnIdx];
+        if (!turn || !turn.actionCard || !turn.actionCard.action) return;
+        const list = Array.isArray(turn.actionCard.action) ? turn.actionCard.action : [turn.actionCard.action];
+        const act = list[actIdx];
+        if (!act || act._status === 'confirmed') return;
+
+        // Read latest text from sibling editable textarea before saving
+        const cardEl = btnEl ? btnEl.closest('.ai-single-action-card') : null;
+        if (cardEl) {
+            const inputField = cardEl.querySelector('.ai-card-edit-input');
+            if (inputField) {
+                const cleanEdited = inputField.value.trim();
+                if (cleanEdited) {
+                    if (act.type === 'add_grade') act.value = cleanEdited;
+                    else if (act.type === 'add_exam' || act.type === 'modify_exam') {
+                        act.details = cleanEdited;
+                        const nm = cleanEdited.match(/(\d+)/);
+                        if (nm) act.pages = parseInt(nm[1], 10);
+                    } else {
+                        act.details = cleanEdited;
+                    }
+                }
+                inputField.disabled = true;
+            }
+            cardEl.classList.add('is-confirmed');
+            const dismissBtn = cardEl.querySelector('.btn-ai-single-dismiss');
+            if (dismissBtn) dismissBtn.style.display = 'none';
+        }
+
+        if (btnEl) {
+            btnEl.disabled = true;
+            btnEl.innerHTML = '<i class="fa-solid fa-check"></i> Aggiunto';
+        }
+
+        act._status = 'confirmed';
+        localStorage.setItem('studylog_ai_chat', JSON.stringify(aiChatHistory));
+        // Execute silently (toast only, no extra spam chat messages)
+        window.executePendingAiAction([act], true);
+    };
+
+    window.dismissSinglePendingAction = function(turnIdx, actIdx, btnEl) {
+        const turn = aiChatHistory[turnIdx];
+        if (!turn || !turn.actionCard || !turn.actionCard.action) return;
+        const list = Array.isArray(turn.actionCard.action) ? turn.actionCard.action : [turn.actionCard.action];
+        const act = list[actIdx];
+        if (!act) return;
+        act._status = 'dismissed';
+        localStorage.setItem('studylog_ai_chat', JSON.stringify(aiChatHistory));
+        const cardEl = btnEl ? btnEl.closest('.ai-single-action-card') : null;
+        if (cardEl) {
+            cardEl.classList.add('is-dismissed');
+            const inputField = cardEl.querySelector('.ai-card-edit-input');
+            if (inputField) inputField.disabled = true;
+            const confirmBtn = cardEl.querySelector('.btn-ai-single-confirm');
+            if (confirmBtn) confirmBtn.style.display = 'none';
+            if (btnEl) {
+                btnEl.disabled = true;
+                btnEl.innerText = 'Ignorato';
+            }
+        }
+    };
+
     function renderAiChatThread() {
         const threadEl = document.getElementById('ai-chat-thread');
         const welcomeEl = document.getElementById('ai-welcome-container');
@@ -3657,22 +3801,42 @@
                 `;
                 turnDiv.querySelector('.proxima-turn-body').innerText = item.text;
 
-                if (item.actionCard) {
-                    const actionId = 'act_' + idx;
-                    window.pendingAiActionsStore[actionId] = item.actionCard.action;
-                    const card = document.createElement('div');
-                    card.className = 'ai-action-card';
-                    card.innerHTML = `
-                        <div class="ai-action-header"><i class="fa-solid fa-bolt"></i> Piano d'Azione Rilevato</div>
-                        <div class="ai-action-desc"></div>
-                        <div class="ai-action-btn-row">
-                            <button type="button" class="btn-ai-action-confirm" onclick="executePendingAiActionById('${actionId}', this)">
-                                <i class="fa-solid fa-check"></i> Conferma ed Esegui
-                            </button>
-                        </div>
-                    `;
-                    card.querySelector('.ai-action-desc').innerText = item.actionCard.desc;
-                    turnDiv.insertBefore(card, turnDiv.querySelector('.proxima-turn-toolbar'));
+                if (item.actionCard && item.actionCard.action) {
+                    const actList = Array.isArray(item.actionCard.action) ? item.actionCard.action : [item.actionCard.action];
+                    const stackDiv = document.createElement('div');
+                    stackDiv.className = 'ai-actions-stack';
+
+                    actList.forEach((act, actIdx) => {
+                        const meta = getActionCardMeta(act);
+                        const isConfirmed = act._status === 'confirmed';
+                        const isDismissed = act._status === 'dismissed';
+
+                        const singleCard = document.createElement('div');
+                        singleCard.className = 'ai-single-action-card' + (isConfirmed ? ' is-confirmed' : '') + (isDismissed ? ' is-dismissed' : '');
+                        singleCard.innerHTML = `
+                            <div class="ai-card-top-row">
+                                <span class="ai-card-badge"><i class="fa-solid ${meta.icon}"></i> ${meta.label}</span>
+                                <span class="ai-card-edit-hint"><i class="fa-solid fa-pen"></i> Tocca per modificare</span>
+                            </div>
+                            <div class="ai-card-edit-wrap">
+                                <textarea class="ai-card-edit-input" rows="1" ${(isConfirmed || isDismissed) ? 'disabled' : ''} oninput="updatePendingSingleActionText(${idx}, ${actIdx}, this)"></textarea>
+                            </div>
+                            <div class="ai-card-actions-row">
+                                <button type="button" class="btn-ai-single-confirm" ${(isConfirmed || isDismissed) ? 'disabled' : ''} onclick="confirmSinglePendingAction(${idx}, ${actIdx}, this)" style="${isDismissed ? 'display:none;' : ''}">
+                                    <i class="fa-solid fa-check"></i> ${isConfirmed ? 'Aggiunto' : meta.btnText}
+                                </button>
+                                <button type="button" class="btn-ai-single-dismiss" ${(isConfirmed || isDismissed) ? 'disabled' : ''} onclick="dismissSinglePendingAction(${idx}, ${actIdx}, this)" style="${isConfirmed ? 'display:none;' : ''}">
+                                    ${isDismissed ? 'Ignorato' : '<i class="fa-solid fa-xmark"></i> Ignora'}
+                                </button>
+                            </div>
+                        `;
+                        const ta = singleCard.querySelector('.ai-card-edit-input');
+                        ta.value = meta.editableVal;
+                        stackDiv.appendChild(singleCard);
+                        setTimeout(() => window.autoResizeSingleCardTextarea(ta), 10);
+                    });
+
+                    turnDiv.insertBefore(stackDiv, turnDiv.querySelector('.proxima-turn-toolbar'));
                 }
             }
 
@@ -3698,16 +3862,22 @@
     };
 
     window.sendAiChatMessage = function() {
-        // If user taps Send (↑) while recording is active, stop recording and immediately send the spoken text
+        // If user taps Send (↑) while recording is active, stop recording and auto-send once transcription finishes
         if (isAiListening) {
+            if (usingContinuousFreeFlowMode) {
+                pendingAutoSendAfterTranscription = true;
+                stopAiVoiceRecordingToInput();
+                return;
+            }
             const spoken = getFullVoiceTranscript();
             stopAiVoiceEngineOnly();
             setGeminiVoiceBarMode(false);
             const inputEl = document.getElementById('ai-prompt-input');
-            const finalSpoken = (spoken || (inputEl ? inputEl.value : '')).trim();
+            const finalSpoken = applyLocalFreeFlowCleanup((spoken || (inputEl ? inputEl.value : '')).trim());
             if (inputEl) {
                 inputEl.value = '';
                 window.autoResizeAiPrompt(inputEl);
+                inputEl.blur();
             }
             accumulatedVoiceText = '';
             currentPartialVoiceText = '';
@@ -3737,12 +3907,26 @@
     }
 
     // ==========================================================================
-    // GEMINI-STYLE INLINE VOICE RECORDING (Manual Start & Manual Stop Only)
+    // FREEFLOW-INSPIRED CONTINUOUS VOICE RECORDING + GEMINI INLINE WAVEFORM
     // ==========================================================================
     let accumulatedVoiceText = '';
     let currentPartialVoiceText = '';
     let currentVoiceRmsLevel = 0.15;
     let geminiWaveAnimFrame = null;
+    let usingContinuousFreeFlowMode = false;
+    let pendingAutoSendAfterTranscription = false;
+    let existingPrefixBeforeVoice = '';
+
+    function applyLocalFreeFlowCleanup(rawStr) {
+        let s = (rawStr || '').trim();
+        if (!s) return '';
+        // Fix common Italian continuous dictation ASR artifacts
+        s = s.replace(/\b(ehm|uhm|mmm|mah|allora allora)\b/gi, '');
+        s = s.replace(/\bquesti tre novembre\b/gi, '23 novembre');
+        s = s.replace(/\bquesti\s+(\d+)\b/gi, '$1');
+        s = s.replace(/\s+/g, ' ').trim();
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    }
 
     function getFullVoiceTranscript() {
         const p1 = (accumulatedVoiceText || '').trim();
@@ -3812,7 +3996,8 @@
 
     window.toggleAiVoiceRecording = function() {
         if (isAiListening) {
-            // User manually clicked the Stop square -> stop recording and place text in input box
+            // User manually clicked the Stop square -> stop recording and place clean text in input box
+            pendingAutoSendAfterTranscription = false;
             stopAiVoiceRecordingToInput();
         } else {
             // User manually clicked the Mic icon -> start continuous recording
@@ -3820,17 +4005,37 @@
         }
     };
 
+    function hasCloudTranscriptionKey() {
+        const hasGroq = typeof groqApiKey === 'string' && groqApiKey.trim().length > 10;
+        const hasGemini = typeof geminiApiKey === 'string' && geminiApiKey.trim().length > 10;
+        return navigator.onLine && (hasGroq || hasGemini);
+    }
+
     function startAiVoiceRecording() {
         const inputEl = document.getElementById('ai-prompt-input');
-        // Preserve any text already typed in the input box before pressing Mic
-        accumulatedVoiceText = inputEl && inputEl.value.trim() ? inputEl.value.trim() : '';
+        existingPrefixBeforeVoice = inputEl && inputEl.value.trim() ? inputEl.value.trim() : '';
+        accumulatedVoiceText = existingPrefixBeforeVoice;
         currentPartialVoiceText = '';
         currentVoiceRmsLevel = 0.22;
+        pendingAutoSendAfterTranscription = false;
         isAiListening = true;
         setGeminiVoiceBarMode(true);
 
-        // Use AndroidNative (or Android alias) bridge on mobile APK (continuous listening until manual stop)
         const nativeBridge = window.AndroidNative || window.Android;
+        // FreeFlow HD Pipeline: Continuous uninterrupted 16kHz PCM WAV capture + Whisper/Gemini cleanup
+        if (nativeBridge && typeof nativeBridge.startContinuousAudioRecording === 'function' && hasCloudTranscriptionKey()) {
+            usingContinuousFreeFlowMode = true;
+            try {
+                nativeBridge.startContinuousAudioRecording();
+                return;
+            } catch (err) {
+                console.warn('Continuous FreeFlow record start error:', err);
+                usingContinuousFreeFlowMode = false;
+            }
+        }
+
+        // Offline / No-Key Android SpeechRecognizer fallback
+        usingContinuousFreeFlowMode = false;
         if (nativeBridge && typeof nativeBridge.startNativeSpeechRecognition === 'function') {
             try {
                 nativeBridge.startNativeSpeechRecognition();
@@ -3867,7 +4072,6 @@
                 };
                 rec.onerror = () => {};
                 rec.onend = () => {
-                    // Restart automatically if user hasn't manually pressed Stop
                     if (isAiListening && window._activeWebSpeechRec) {
                         try { window._activeWebSpeechRec.start(); } catch(e){}
                     }
@@ -3893,13 +4097,30 @@
             try { r.stop(); } catch(e){}
         }
         const nativeBridge = window.AndroidNative || window.Android;
-        if (nativeBridge && typeof nativeBridge.stopNativeSpeechRecognition === 'function') {
+        if (usingContinuousFreeFlowMode && nativeBridge && typeof nativeBridge.stopContinuousAudioRecording === 'function') {
+            try { nativeBridge.stopContinuousAudioRecording(); } catch(e){}
+        } else if (nativeBridge && typeof nativeBridge.stopNativeSpeechRecognition === 'function') {
             try { nativeBridge.stopNativeSpeechRecognition(); } catch(e){}
         }
     }
 
     function stopAiVoiceRecordingToInput() {
-        const finalTranscript = getFullVoiceTranscript();
+        if (usingContinuousFreeFlowMode) {
+            isAiListening = false;
+            setGeminiVoiceBarMode(false);
+            const inputEl = document.getElementById('ai-prompt-input');
+            if (inputEl) {
+                inputEl.placeholder = 'Trascrizione FreeFlow in corso...';
+                inputEl.blur();
+            }
+            const nativeBridge = window.AndroidNative || window.Android;
+            if (nativeBridge && typeof nativeBridge.stopContinuousAudioRecording === 'function') {
+                try { nativeBridge.stopContinuousAudioRecording(); } catch(e){}
+            }
+            return;
+        }
+
+        const finalTranscript = applyLocalFreeFlowCleanup(getFullVoiceTranscript());
         stopAiVoiceEngineOnly();
         setGeminiVoiceBarMode(false);
 
@@ -3912,9 +4133,169 @@
         }
     }
 
+    // FreeFlow Pipeline Callback: receives continuous recorded WAV Base64 & runs Whisper / Gemini cleanup
+    window.onAndroidAudioReady = async function() {
+        const inputEl = document.getElementById('ai-prompt-input');
+        const restorePlaceholder = () => {
+            if (inputEl) inputEl.placeholder = 'Scrivi qui o parla con Proxima...';
+        };
+        const nativeBridge = window.AndroidNative || window.Android;
+        if (!nativeBridge || typeof nativeBridge.getLastRecordedAudioBase64 !== 'function') {
+            restorePlaceholder();
+            return;
+        }
+        const b64 = nativeBridge.getLastRecordedAudioBase64();
+        if (!b64 || b64.length < 100) {
+            restorePlaceholder();
+            showToast('Nessun audio rilevato');
+            return;
+        }
+
+        try {
+            let cleanTranscript = '';
+            if (groqApiKey && groqApiKey.trim().length > 10) {
+                cleanTranscript = await transcribeWithGroqFreeFlow(b64);
+            }
+            if (!cleanTranscript && geminiApiKey && geminiApiKey.trim().length > 10) {
+                cleanTranscript = await transcribeWithGeminiFreeFlow(b64);
+            }
+            restorePlaceholder();
+
+            cleanTranscript = (cleanTranscript || '').trim();
+            if (cleanTranscript === 'EMPTY') cleanTranscript = '';
+
+            if (cleanTranscript) {
+                const combined = existingPrefixBeforeVoice ? (existingPrefixBeforeVoice + ' ' + cleanTranscript) : cleanTranscript;
+                if (pendingAutoSendAfterTranscription) {
+                    pendingAutoSendAfterTranscription = false;
+                    if (inputEl) {
+                        inputEl.value = '';
+                        window.autoResizeAiPrompt(inputEl);
+                        inputEl.blur();
+                    }
+                    appendChatMessage('user', combined);
+                    processStudyAiCommand(combined);
+                } else if (inputEl) {
+                    inputEl.value = combined;
+                    window.autoResizeAiPrompt(inputEl);
+                    inputEl.blur();
+                }
+            } else {
+                showToast('Non ho sentito parole chiare, riprova.');
+            }
+        } catch (err) {
+            console.warn('FreeFlow audio transcribe error:', err);
+            restorePlaceholder();
+            showToast('Errore trascrizione vocale');
+        }
+    };
+
+    function getFreeFlowCleanupPrompt() {
+        // Exact FreeFlow (zachlatta/freeflow) post-processing rules adapted for Italian school dictation
+        return `Sei un motore di trascrizione e pulizia vocale ad alta precisione in italiano (stile FreeFlow / Wispr Flow).
+Ascolta attentamente l'audio allegato dello studente e restituisci ESATTAMENTE ed UNICAMENTE il testo pulito e pronto da inviare.
+
+Vocabolario materie dello studente (correggi la grafia di nomi/materie simili se pronunciati): ${userSubjects.join(', ')}.
+
+Regole rigorose:
+- Rimuovi esitazioni o intercalari inutili (ehm, uhm, allora cioè, cioè) se non cambiano il senso.
+- Inserisci punteggiatura naturale, maiuscole corrette e numeri chiari (es. "23 novembre", "8 ottobre", "ho preso 8 in matematica").
+- Non inventare né aggiungere MAI parole non pronunciate nell'audio.
+- Non scrivere introduzioni come "Ecco la trascrizione:". Restituisci SOLO il testo trascritto (oppure EMPTY se l'audio è vuoto/solo rumore).`;
+    }
+
+    async function transcribeWithGroqFreeFlow(base64Wav) {
+        try {
+            const binaryStr = atob(base64Wav);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+            const wavBlob = new Blob([bytes], { type: 'audio/wav' });
+
+            const form = new FormData();
+            form.append('file', wavBlob, 'speech.wav');
+            form.append('model', 'whisper-large-v3-turbo');
+            form.append('language', 'it');
+            form.append('temperature', '0');
+            form.append('prompt', 'Dettatura scolastica in italiano. Materie: ' + userSubjects.join(', ') + '. Compiti, verifiche, voti, interrogazioni.');
+
+            const resp = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + groqApiKey.trim() },
+                body: form
+            });
+            if (!resp.ok) return '';
+            const data = await resp.json();
+            const rawText = (data.text || '').trim();
+            if (!rawText) return '';
+
+            // Optional FreeFlow Llama 3.3 70B post-processing cleanup on Groq
+            try {
+                const cleanResp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + groqApiKey.trim(),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'llama-3.3-70b-versatile',
+                        temperature: 0,
+                        messages: [
+                            { role: 'system', content: getFreeFlowCleanupPrompt() },
+                            { role: 'user', content: 'RAW_TRANSCRIPTION: "' + rawText + '"' }
+                        ]
+                    })
+                });
+                if (cleanResp.ok) {
+                    const cleanJson = await cleanResp.json();
+                    const polished = (cleanJson.choices?.[0]?.message?.content || '').trim().replace(/^"|"$/g, '');
+                    if (polished && polished !== 'EMPTY') return polished;
+                }
+            } catch (e) {}
+
+            return rawText;
+        } catch (err) {
+            console.warn('Groq FreeFlow error:', err);
+            return '';
+        }
+    }
+
+    async function transcribeWithGeminiFreeFlow(base64Wav) {
+        const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+        const promptText = getFreeFlowCleanupPrompt();
+        for (const modelName of modelsToTry) {
+            try {
+                const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey.trim()}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: promptText },
+                                { inline_data: { mime_type: 'audio/wav', data: base64Wav } }
+                            ]
+                        }]
+                    })
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const textOut = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim().replace(/^"|"$/g, '');
+                    if (textOut) return textOut;
+                }
+            } catch (err) {
+                console.warn('Gemini FreeFlow audio error (' + modelName + '):', err);
+            }
+        }
+        return '';
+    }
+
     window.cancelAiVoiceRecording = function() {
         accumulatedVoiceText = '';
         currentPartialVoiceText = '';
+        pendingAutoSendAfterTranscription = false;
+        const nativeBridge = window.AndroidNative || window.Android;
+        if (usingContinuousFreeFlowMode && nativeBridge && typeof nativeBridge.cancelContinuousAudioRecording === 'function') {
+            try { nativeBridge.cancelContinuousAudioRecording(); } catch(e){}
+        }
         stopAiVoiceEngineOnly();
         setGeminiVoiceBarMode(false);
     };
@@ -4144,7 +4525,7 @@
     }
 
     function extractCleanTaskDetails(segmentRaw, subjectName) {
-        let norm = normalizeNumberWords(segmentRaw);
+        let norm = normalizeNumberWords(segmentRaw).replace(/[?!]+/g, ' ');
         const hadExercisesWord = /\b(?:esercizio|esercizi|es\.)\b/i.test(norm);
         const hadStudyWord = /\b(?:studiare|studio|ripassare|ripasso|leggere|lettura)\b/i.test(norm);
 
@@ -4154,13 +4535,16 @@
         // 2. Remove subject mentions ("di matematica", "in matematica", "matematica")
         if (subjectName) {
             const escapedSub = subjectName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            norm = norm.replace(new RegExp('\\b(?:di|in|per)\\s+' + escapedSub + '\\b', 'gi'), '');
+            norm = norm.replace(new RegExp('\\b(?:di|in|per|su)\\s+' + escapedSub + '\\b', 'gi'), '');
             norm = norm.replace(new RegExp('\\b' + escapedSub + '\\b', 'gi'), '');
         }
-        norm = norm.replace(/\b(?:di|in|per)\s+(?:mate|matematica|ita|italiano|ingl|inglese|scienze|storia|filo|filosofia|biologia|fisica|chimica|latino|greco|arte|informatica|geografia|diritto|economia)\b/gi, '');
+        norm = norm.replace(/\b(?:di|in|per)?\s*\b(?:mate|matematica|ita|italiano|ingl|inglese|scienze|storia|filo|filosofia|biologia|fisica|chimica|latino|greco|arte|informatica|geografia|diritto|economia)\b/gi, '');
 
-        // 3. Remove conversational lead-in verbs, pronouns, and articles iteratively
-        const leadInPattern = /^(?:(?:allora|guarda|senti|ciao|ehi|proxima|ascolta|vorrei|dovrei|devo|ho\s+da|ho|bisogna|c['’]è\s+da|ci\s+sono\s+da|puoi|potresti|mi\s+puoi|aggiungi|aggiungere|metti|mettere|metterli|mettili|inserisci|inserire|segna|segnare|modifica|modificare|sposta|spostare|cambia|cambiare|fare|svolgere|completare|studiare|ripassare|leggere|scrivere|che\s+devo|compito|compiti|da|degli|dei|delle|dello|della|gli|le|i|un|uno|una|qualche|alcuni|alcune|quegli|quei|quelle|questi|queste)\s+)+/i;
+        // 3. Remove spoken ASR filler words & conversational lead-ins
+        norm = norm.replace(/\b(?:come\s+compito(?:\s+per\s+casa)?|compito\s+per\s+casa|compiti\s+per\s+casa|per\s+casa|e\s+invece|invece|dica|sempre|poi\s+ho|l['’])\b/gi, ' ');
+        norm = norm.replace(/\s+/g, ' ').trim();
+
+        const leadInPattern = /^(?:(?:allora|guarda|senti|ciao|ehi|proxima|ascolta|vorrei|dovrei|devo|avrò\s+da\s+fare|avrei\s+da\s+fare|dovrò\s+fare|avrò|dovrò|ho\s+da\s+fare|ho\s+da|ho|bisogna|c['’]è\s+da|ci\s+sono\s+da|puoi|potresti|mi\s+puoi|aggiungi|aggiungere|metti|mettere|metterli|mettili|inserisci|inserire|segna|segnare|modifica|modificare|sposta|spostare|cambia|cambiare|fare|svolgere|completare|studiare|ripassare|leggere|scrivere|che\s+devo|come|compito|compiti|da|degli|dei|delle|dello|della|di|gli|le|i|l['’]|un|uno|una|qualche|alcuni|alcune|quegli|quei|quelle|questi|queste)\s+)+/i;
         norm = norm.replace(leadInPattern, '').trim();
 
         // 4. Clean up connectors like "riguardanti / riguardante / relativi a" into clean diary labels
@@ -4169,9 +4553,15 @@
             norm = norm.replace(/^(\d+)\s+(?:riguardant[ei]|su|sull['’]|sulle|sui|sugli|sul|sulla)\s+/i, '$1 esercizi su ');
         } else if (/^(?:esercizi|compiti)\s+(?:riguardant[ei]|relativ[oi]\s+a)\s+/i.test(norm)) {
             norm = norm.replace(/^(?:esercizi|compiti)\s+(?:riguardant[ei]|relativ[oi]\s+a)\s+/i, 'Esercizi: ');
-        } else if (/^(?:riguardant[ei]|relativ[oi]\s+a|sull['’]argomento)\s+/i.test(norm)) {
-            const prefix = hadExercisesWord ? 'Esercizi: ' : (hadStudyWord ? 'Studio: ' : 'Argomento: ');
-            norm = norm.replace(/^(?:riguardant[ei]|relativ[oi]\s+a|sull['’]argomento)\s+/i, prefix);
+        } else if (/^(?:riguardant[ei]|relativ[oi]\s+a|sull['’]argomento|sulle|sui|sugli|sull['’]|sul|sulla|su)\s+/i.test(norm)) {
+            const prefix = hadExercisesWord ? 'Esercizi su ' : (hadStudyWord ? 'Studio su ' : '');
+            if (/^riguardant/i.test(norm) || /^relativ/i.test(norm) || /^sull['’]argomento/i.test(norm)) {
+                norm = norm.replace(/^(?:riguardant[ei]|relativ[oi]\s+a|sull['’]argomento)\s+/i, hadExercisesWord ? 'Esercizi: ' : (hadStudyWord ? 'Studio: ' : 'Argomento: '));
+            } else if (prefix) {
+                norm = norm.replace(/^(?:sulle|sui|sugli|sull['’]|sul|sulla|su)\s+/i, prefix);
+            } else {
+                norm = 'Studio ' + norm;
+            }
         } else if (!/^(?:\d+|eserciz|compit|studi|ripass|pagin|version|capitol|paragraf)/i.test(norm) && norm.length > 1) {
             if (hadExercisesWord) {
                 norm = 'Esercizi: ' + norm;
@@ -4180,8 +4570,8 @@
             }
         }
 
-        // Remove trailing stray prepositions ("per", "di", "in", "e")
-        norm = norm.replace(/\s+\b(?:per|di|in|a|da|con|su|e)\s*$/i, '').replace(/\s+/g, ' ').trim();
+        // Remove trailing stray prepositions & punctuation
+        norm = norm.replace(/[.,;!?]+$/g, '').replace(/\s+\b(?:per|di|in|a|da|con|su|e|il|la|lo|l['’])\s*$/i, '').replace(/\s+/g, ' ').trim();
 
         if (/^\d+$/.test(norm)) {
             norm = norm + ' esercizi';
@@ -4223,21 +4613,48 @@
     function splitMultiIntentClauses(rawText) {
         // Protect "e mezzo" inside grades before splitting on " e "
         let protectedStr = rawText.replace(/\be\s+mezzo\b/gi, '__EMEZZO__');
-        // Split on punctuation (.,;!), OR before spoken Italian action starters or new subjects ("e 7 di scienze")
         const subjectHead = '(?:matematica|italiano|inglese|filosofia|biologia|fisica|storia|chimica|scienze|latino|greco|arte|informatica|geografia|diritto|economia)';
         const splitRegex = new RegExp(
             '\\s*[.;,!?]+\\s*' +
-            '|\\s+(?:e\\s+(?:poi\\s+|inoltre\\s+|anche\\s+)?|poi\\s+|inoltre\\s+)(?=(?:io\\s+)?(?:ho\\s+|devo\\s+|c[\'’]è\\s+|vorrei\\s+|abbiamo\\s+|una?\\s+(?:verifica|compito|voto)|un[\'’]?interrogazion|verific|interrogazion|compit|eserci|vot|preso|ricevut|studi|ripass|modific|spost|cambi|elimin|togl|(?:\\d+|cinque|sei|sette|otto|nove|dieci)\\s+(?:di\\s+' + subjectHead + '|eserci|pagin|compit)))' +
-            '|\\s+(?=(?:io\\s+)?ho\\s+(?:preso|ricevuto|avuto|preso\\s+un|un\\s+voto|una?\\s+verifica|un[\'’]?interrogazion|un\\s+compito|da\\s+fare))' +
+            '|\\s+(?:e\\s+(?:poi\\s+|inoltre\\s+|anche\\s+)?|poi\\s+|inoltre\\s+)(?=(?:io\\s+)?(?:ho\\s+|devo\\s+|avrò\\s+|dovrò\\s+|c[\'’]è\\s+|vorrei\\s+|abbiamo\\s+|una?\\s+(?:verifica|compito|voto)|un[\'’]?interrogazion|verific|interrogazion|compit|eserci|vot|preso|ricevut|studi|ripass|modific|spost|cambi|elimin|togl|(?:\\d+|cinque|sei|sette|otto|nove|dieci)\\s+(?:di\\s+' + subjectHead + '|eserci|pagin|compit)))' +
+            '|\\s+(?=(?:io\\s+)?(?:ho\\s+(?:preso|ricevuto|avuto|preso\\s+un|un\\s+voto|una?\\s+verifica|un[\'’]?interrogazion|un\\s+compito|da\\s+fare)|avrò\\s+da\\s+fare|dovrò\\s+fare))' +
             '|\\s+(?=(?:oggi|domani|dopodomani)\\s+(?:la\\s+verifica|il\\s+compito|l[\'’]?interrogazion|ho\\s+))',
             'gi'
         );
 
-        let parts = protectedStr.split(splitRegex)
+        let rawParts = protectedStr.split(splitRegex)
             .map(p => (p || '').replace(/__EMEZZO__/g, 'e mezzo').trim())
-            .filter(p => p.length > 2);
+            .filter(p => p.length > 1);
 
-        return parts.length > 0 ? parts : [rawText.trim()];
+        // Merge trailing subject stubs ("Di filosofia") backward and leading bare date stubs ("L'otto ottobre") forward
+        const merged = [];
+        let pendingPrefix = '';
+        for (const rawPart of rawParts) {
+            const part = rawPart.replace(/^(?:e\s+invece|invece)\s+/i, '').trim();
+            const lowerP = part.toLowerCase();
+            // Discard pure filler stubs with no subject/action/date
+            if (!part || /^(?:poi\s+ho|allora|e\s+invece|invece|poi|io|oggi|domani|dica)$/i.test(lowerP)) {
+                continue;
+            }
+            // If fragment is ONLY a trailing prepositional subject tag ("Di filosofia", "in matematica"), attach to previous clause!
+            if (merged.length > 0 && /^(?:di|in|per)\s+[a-zàèéìòù]+(?:\s+[a-zàèéìòù]+)?$/i.test(lowerP) && findSubjectInSegment(part) !== null && !/\b(compit|eserci|verific|voto|preso)\b/i.test(lowerP)) {
+                merged[merged.length - 1] = merged[merged.length - 1] + ' ' + part;
+                continue;
+            }
+            // If fragment is ONLY a date mention without subject/action verb, carry it forward into the next clause!
+            if (hasExplicitDateMention(part) && findSubjectInSegment(part) === null && !/\b(compit|eserci|verific|interrogaz|voto|preso|studi|ripass|fare|avrò|ho|devo)\b/i.test(lowerP)) {
+                pendingPrefix = pendingPrefix ? (pendingPrefix + ' ' + part) : part;
+                continue;
+            }
+            const combined = pendingPrefix ? (pendingPrefix + ' ' + part) : part;
+            pendingPrefix = '';
+            merged.push(combined);
+        }
+        if (pendingPrefix && merged.length > 0) {
+            merged[merged.length - 1] = merged[merged.length - 1] + ' ' + pendingPrefix;
+        }
+
+        return merged.length > 0 ? merged : [rawText.trim()];
     }
 
     function parseLocalStudyActions(rawText) {
@@ -4497,21 +4914,21 @@ Messaggio dello studente: "${rawText}"`;
             const descText = formatActionDescription(detectedActions);
             let reply = '';
             if (detectedActions.length > 1) {
-                reply = `Ho preparato ${detectedActions.length} attività per il tuo piano di studio. Premi conferma qui sotto per applicarle.`;
+                reply = `Ho rilevato ${detectedActions.length} attività separate. Puoi toccare il testo di ciascuna per modificarla e scegliere quale aggiungere:`;
             } else {
                 const first = detectedActions[0];
                 if (first.type === 'add_task') {
-                    reply = `Ho preparato il compito di ${first.subject} ("${first.details}") per il ${formatDateShort(first.date)}. Premi conferma per aggiungerlo.`;
+                    reply = `Ho preparato questo compito di ${first.subject}. Puoi toccare il titolo per modificarlo prima di aggiungerlo:`;
                 } else if (first.type === 'modify_task') {
-                    reply = `Ho aggiornato il compito di ${first.subject} ("${first.details}") spostandolo al ${formatDateShort(first.date)}. Premi conferma per applicare la modifica.`;
+                    reply = `Ho preparato lo spostamento del compito di ${first.subject} al ${formatDateShort(first.date)}.`;
                 } else if (first.type === 'remove_task') {
-                    reply = `Ho preparato la rimozione del compito di ${first.subject} ("${first.details}"). Premi conferma per eliminarlo.`;
+                    reply = `Vuoi rimuovere questo compito di ${first.subject}?`;
                 } else if (first.type === 'add_exam') {
-                    reply = `Ho preparato la ${first.examType || 'verifica'} di ${first.subject} (${first.pages} pagine) per il ${formatDateShort(first.date)}. Premi conferma per pianificarla.`;
+                    reply = `Ho preparato questa ${first.examType || 'verifica'} di ${first.subject} per il ${formatDateShort(first.date)}.`;
                 } else if (first.type === 'modify_exam') {
-                    reply = `Ho spostato la verifica di ${first.subject} al ${formatDateShort(first.date)}. Premi conferma per salvare.`;
+                    reply = `Ho preparato lo spostamento della verifica di ${first.subject} al ${formatDateShort(first.date)}.`;
                 } else if (first.type === 'add_grade') {
-                    reply = `Ho preparato la registrazione del voto ${first.value} in ${first.subject}. Premi conferma per salvarlo nel registro.`;
+                    reply = `Ho preparato la registrazione di questo voto in ${first.subject}.`;
                 }
             }
 
@@ -4544,7 +4961,7 @@ Messaggio dello studente: "${rawText}"`;
         window.executePendingAiAction(actionPayload);
     };
 
-    window.executePendingAiAction = function(actionOrArray) {
+    window.executePendingAiAction = function(actionOrArray, silent = false) {
         if (!actionOrArray) return;
         const actions = Array.isArray(actionOrArray) ? actionOrArray : [actionOrArray];
         let changedTodos = false;
@@ -4698,9 +5115,11 @@ Messaggio dello studente: "${rawText}"`;
         try { renderSubjectDonutChart(); } catch(e){}
         try { updateDashboard(); } catch(e){}
 
-        showToast('Piano di studio aggiornato con successo!');
-        appendChatMessage('ai', 'Perfetto! Ho aggiornato il tuo diario di studio.');
-        speakAiVoice('Perfetto! Ho aggiornato il tuo diario di studio.');
+        showToast(xpGain > 0 ? `Aggiunto al diario! +${xpGain} XP` : 'Diario aggiornato con successo!');
+        if (!silent) {
+            appendChatMessage('ai', 'Perfetto! Ho aggiornato il tuo diario di studio.');
+            speakAiVoice('Perfetto! Ho aggiornato il tuo diario di studio.');
+        }
     };
 
     function updateGeminiKeyStatusUI() {
@@ -4709,9 +5128,23 @@ Messaggio dello studente: "${rawText}"`;
         if (input && typeof geminiApiKey !== 'undefined' && geminiApiKey) input.value = geminiApiKey;
         if (statusEl) {
             if (typeof geminiApiKey !== 'undefined' && geminiApiKey) {
-                statusEl.innerHTML = '<span style="color:#10B981;"><i class="fa-solid fa-check"></i> Chiave Gemini attiva (Proxima Cloud + Offline)</span>';
+                statusEl.innerHTML = '<span style="color:#10B981;"><i class="fa-solid fa-check"></i> Chiave Gemini attiva (Chat Cloud + Audio FreeFlow)</span>';
             } else {
-                statusEl.innerHTML = '<span>Motore locale Proxima attivo (inserisci una chiave per risposte cloud)</span>';
+                statusEl.innerHTML = '<span>Motore locale Proxima attivo (inserisci una chiave per chat cloud e audio HD)</span>';
+            }
+        }
+        updateGroqKeyStatusUI();
+    }
+
+    function updateGroqKeyStatusUI() {
+        const gStatusEl = document.getElementById('groq-key-status');
+        const gInput = document.getElementById('settings-groq-key-input');
+        if (gInput && typeof groqApiKey !== 'undefined' && groqApiKey) gInput.value = groqApiKey;
+        if (gStatusEl) {
+            if (typeof groqApiKey !== 'undefined' && groqApiKey) {
+                gStatusEl.innerHTML = '<span style="color:#10B981;"><i class="fa-solid fa-check"></i> Groq Whisper FreeFlow attivo</span>';
+            } else {
+                gStatusEl.innerHTML = '<span>Opzionale: con Groq usa Whisper V3 Turbo identico a FreeFlow</span>';
             }
         }
     }
@@ -4724,6 +5157,16 @@ Messaggio dello studente: "${rawText}"`;
         localStorage.setItem('studylog_gemini_key', val);
         updateGeminiKeyStatusUI();
         showToast(val ? 'Chiave Gemini salvata con successo!' : 'Chiave Gemini rimossa');
+    };
+
+    window.saveGroqApiKeyFromSettings = function() {
+        const input = document.getElementById('settings-groq-key-input');
+        if (!input) return;
+        let val = input.value.trim();
+        groqApiKey = val;
+        localStorage.setItem('studylog_groq_key', val);
+        updateGroqKeyStatusUI();
+        showToast(val ? 'Chiave Groq FreeFlow salvata!' : 'Chiave Groq rimossa');
     };
 
     window.executeHardReset = function() { 

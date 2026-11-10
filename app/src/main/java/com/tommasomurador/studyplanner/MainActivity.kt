@@ -24,6 +24,11 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.PermissionRequest
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.MediaRecorder
+import android.util.Base64
+import java.io.ByteArrayOutputStream
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -186,6 +191,142 @@ class MainActivity : AppCompatActivity() {
 
     
     private var isManualListeningActive = false
+    private var isContinuousAudioRecording = false
+    private var continuousAudioRecord: AudioRecord? = null
+    private var continuousAudioThread: Thread? = null
+    @Volatile
+    private var lastRecordedAudioBase64: String = ""
+
+    fun startContinuousAudioRecording() {
+        runOnUiThread {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), AUDIO_PERMISSION_CODE)
+                webView.evaluateJavascript("window.onAndroidSpeechError ? window.onAndroidSpeechError('permission_denied') : null", null)
+                return@runOnUiThread
+            }
+            if (isContinuousAudioRecording) return@runOnUiThread
+
+            try {
+                val sampleRate = 16000
+                val channelConfig = AudioFormat.CHANNEL_IN_MONO
+                val audioFormat = AudioFormat.ENCODING_PCM_16BIT
+                val minBuf = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
+                val bufferSize = maxOf(minBuf * 2, 4096)
+
+                val recorder = AudioRecord(
+                    MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                    sampleRate,
+                    channelConfig,
+                    audioFormat,
+                    bufferSize
+                )
+                if (recorder.state != AudioRecord.STATE_INITIALIZED) {
+                    recorder.release()
+                    startNativeListening()
+                    return@runOnUiThread
+                }
+
+                continuousAudioRecord = recorder
+                lastRecordedAudioBase64 = ""
+                isContinuousAudioRecording = true
+                recorder.startRecording()
+                webView.evaluateJavascript("window.onAndroidSpeechStart ? window.onAndroidSpeechStart() : null", null)
+
+                continuousAudioThread = Thread {
+                    val pcmOut = ByteArrayOutputStream()
+                    val buffer = ShortArray(bufferSize / 2)
+                    val byteBuf = ByteArray(bufferSize)
+                    var lastRmsPostMs = 0L
+
+                    try {
+                        while (isContinuousAudioRecording) {
+                            val readShorts = recorder.read(buffer, 0, buffer.size)
+                            if (readShorts > 0) {
+                                var sumSq = 0.0
+                                for (i in 0 until readShorts) {
+                                    val s = buffer[i].toInt()
+                                    sumSq += s.toDouble() * s.toDouble()
+                                    byteBuf[i * 2] = (s and 0xFF).toByte()
+                                    byteBuf[i * 2 + 1] = ((s shr 8) and 0xFF).toByte()
+                                }
+                                pcmOut.write(byteBuf, 0, readShorts * 2)
+
+                                val nowMs = System.currentTimeMillis()
+                                if (nowMs - lastRmsPostMs >= 55) {
+                                    lastRmsPostMs = nowMs
+                                    val rms = kotlin.math.sqrt(sumSq / readShorts)
+                                    val db = if (rms > 1.0) (20.0 * kotlin.math.log10(rms / 32767.0) + 45.0) / 4.0 else -2.0
+                                    webView.post {
+                                        webView.evaluateJavascript("window.onAndroidSpeechRms ? window.onAndroidSpeechRms($db) : null", null)
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    } finally {
+                        try {
+                            recorder.stop()
+                        } catch (_: Exception) {}
+                        try {
+                            recorder.release()
+                        } catch (_: Exception) {}
+                        continuousAudioRecord = null
+
+                        val pcmBytes = pcmOut.toByteArray()
+                        if (pcmBytes.size > 1600) {
+                            val wavBytes = buildWavBytes(pcmBytes, sampleRate, 1, 16)
+                            lastRecordedAudioBase64 = Base64.encodeToString(wavBytes, Base64.NO_WRAP)
+                            webView.post {
+                                webView.evaluateJavascript("window.onAndroidAudioReady ? window.onAndroidAudioReady() : null", null)
+                            }
+                        } else {
+                            webView.post {
+                                webView.evaluateJavascript("window.onAndroidAudioReady ? window.onAndroidAudioReady() : null", null)
+                            }
+                        }
+                    }
+                }.apply { start() }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                isContinuousAudioRecording = false
+                startNativeListening()
+            }
+        }
+    }
+
+    fun stopContinuousAudioRecording() {
+        isContinuousAudioRecording = false
+    }
+
+    fun cancelContinuousAudioRecording() {
+        isContinuousAudioRecording = false
+        lastRecordedAudioBase64 = ""
+    }
+
+    private fun buildWavBytes(pcmData: ByteArray, sampleRate: Int, channels: Int, bitsPerSample: Int): ByteArray {
+        val totalDataLen = pcmData.size + 36
+        val byteRate = sampleRate * channels * bitsPerSample / 8
+        val header = ByteArray(44)
+        header[0] = 'R'.code.toByte(); header[1] = 'I'.code.toByte(); header[2] = 'F'.code.toByte(); header[3] = 'F'.code.toByte()
+        header[4] = (totalDataLen and 0xff).toByte(); header[5] = ((totalDataLen shr 8) and 0xff).toByte()
+        header[6] = ((totalDataLen shr 16) and 0xff).toByte(); header[7] = ((totalDataLen shr 24) and 0xff).toByte()
+        header[8] = 'W'.code.toByte(); header[9] = 'A'.code.toByte(); header[10] = 'V'.code.toByte(); header[11] = 'E'.code.toByte()
+        header[12] = 'f'.code.toByte(); header[13] = 'm'.code.toByte(); header[14] = 't'.code.toByte(); header[15] = ' '.code.toByte()
+        header[16] = 16; header[17] = 0; header[18] = 0; header[19] = 0
+        header[20] = 1; header[21] = 0
+        header[22] = channels.toByte(); header[23] = 0
+        header[24] = (sampleRate and 0xff).toByte(); header[25] = ((sampleRate shr 8) and 0xff).toByte()
+        header[26] = ((sampleRate shr 16) and 0xff).toByte(); header[27] = ((sampleRate shr 24) and 0xff).toByte()
+        header[28] = (byteRate and 0xff).toByte(); header[29] = ((byteRate shr 8) and 0xff).toByte()
+        header[30] = ((byteRate shr 16) and 0xff).toByte(); header[31] = ((byteRate shr 24) and 0xff).toByte()
+        header[32] = (channels * bitsPerSample / 8).toByte(); header[33] = 0
+        header[34] = bitsPerSample.toByte(); header[35] = 0
+        header[36] = 'd'.code.toByte(); header[37] = 'a'.code.toByte(); header[38] = 't'.code.toByte(); header[39] = 'a'.code.toByte()
+        header[40] = (pcmData.size and 0xff).toByte(); header[41] = ((pcmData.size shr 8) and 0xff).toByte()
+        header[42] = ((pcmData.size shr 16) and 0xff).toByte(); header[43] = ((pcmData.size shr 24) and 0xff).toByte()
+        return header + pcmData
+    }
 
     private fun buildSpeechIntent(): Intent {
         return Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -350,6 +491,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        isContinuousAudioRecording = false
         try {
             speechRecognizer?.destroy()
             speechRecognizer = null
@@ -391,6 +533,26 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun cancelNativeSpeechRecognition() {
             (context as? MainActivity)?.cancelNativeListening()
+        }
+
+        @JavascriptInterface
+        fun startContinuousAudioRecording() {
+            (context as? MainActivity)?.startContinuousAudioRecording()
+        }
+
+        @JavascriptInterface
+        fun stopContinuousAudioRecording() {
+            (context as? MainActivity)?.stopContinuousAudioRecording()
+        }
+
+        @JavascriptInterface
+        fun cancelContinuousAudioRecording() {
+            (context as? MainActivity)?.cancelContinuousAudioRecording()
+        }
+
+        @JavascriptInterface
+        fun getLastRecordedAudioBase64(): String {
+            return (context as? MainActivity)?.lastRecordedAudioBase64 ?: ""
         }
 
         @JavascriptInterface
