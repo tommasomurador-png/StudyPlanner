@@ -11,12 +11,13 @@
 
     <!-- Supporto PWA -->
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="1790418729575_cutout.png">
-    <link rel="apple-touch-icon" href="1790418729575_cutout.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="1790418729575_cutout.png?v=2.5.7">
+    <link rel="shortcut icon" type="image/png" href="1790418729575_cutout.png?v=2.5.7">
+    <link rel="apple-touch-icon" href="1790418729575_cutout.png?v=2.5.7">
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js?v=2.5.6').then(function(reg) {
+          navigator.serviceWorker.register('sw.js?v=2.5.7').then(function(reg) {
             reg.update();
             reg.onupdatefound = function() {
               const newWorker = reg.installing;
@@ -33,7 +34,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.5.6">
+    <link rel="stylesheet" href="css/style.css?v=2.5.7">
 </head>
 <body>
 
@@ -603,7 +604,7 @@
     </div>
     
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.5.6" defer></script>
+    <script src="js/app.js?v=2.5.7" defer></script>
 
 </body>
 </html>

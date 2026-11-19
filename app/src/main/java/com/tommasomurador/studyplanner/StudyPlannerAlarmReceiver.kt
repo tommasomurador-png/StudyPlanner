@@ -12,7 +12,10 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import org.json.JSONArray
 import org.json.JSONObject
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class StudyPlannerAlarmReceiver : BroadcastReceiver() {
 
@@ -24,19 +27,17 @@ class StudyPlannerAlarmReceiver : BroadcastReceiver() {
             return
         }
 
-        // Recupera profilo utente e preferenze
         val prefs = context.getSharedPreferences(StudyPlannerWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
         val userName = prefs.getString("user_name", "")?.trim().let {
-            if (it.isNullOrEmpty()) "Champ" else it
+            if (it.isNullOrEmpty()) "Studente" else it
         }
 
         val tasksJson = prefs.getString(StudyPlannerWidgetProvider.KEY_TASKS_JSON, "[]") ?: "[]"
         val completedJson = prefs.getString(StudyPlannerWidgetProvider.KEY_COMPLETED_JSON, "{}") ?: "{}"
-        val streak = prefs.getInt(StudyPlannerWidgetProvider.KEY_STREAK, 0)
 
         var totalTasks = 0
         var doneTasks = 0
-        var firstCourse = "Study"
+        var firstCourse = "Studio"
 
         try {
             val tasksArray = JSONArray(tasksJson)
@@ -48,7 +49,7 @@ class StudyPlannerAlarmReceiver : BroadcastReceiver() {
                 val isDone = t.optBoolean("isDone", false) || (setKey.isNotEmpty() && completedObj.optBoolean(setKey, false))
                 if (isDone) {
                     doneTasks++
-                } else if (firstCourse == "Study") {
+                } else if (firstCourse == "Studio") {
                     val sub = t.optString("subject", "").trim()
                     if (sub.isNotEmpty()) firstCourse = sub
                 }
@@ -58,30 +59,44 @@ class StudyPlannerAlarmReceiver : BroadcastReceiver() {
         }
 
         val pendingTasks = (totalTasks - doneTasks).coerceAtLeast(0)
-        val everythingCompleted = totalTasks > 0 && pendingTasks == 0
+        val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
-        // Se tutto è completato, usa le frasi di chiusura
-        val title = "Study Planner"
-        val message = if (everythingCompleted) {
-            pickRandom(completedPhrases)
-        } else {
-            // Seleziona la fascia oraria attuale
-            val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-            val list = when (hour) {
-                in 0..3 -> nightPhrases
-                in 4..11 -> morningPhrases
-                in 12..15 -> afternoonPhrases
-                in 16..19 -> eveningPhrases
-                in 20..21 -> nightUrgentPhrases
-                else -> lateNightCriticalPhrases // 22..23
+        // Se non ci sono compiti oggi, non inviare alcuna notifica
+        if (totalTasks > 0) {
+            if (pendingTasks == 0) {
+                // Congratulazioni finali (una sola volta al giorno)
+                val lastCompletedDate = prefs.getString("last_completed_notif_date", "")
+                if (lastCompletedDate != todayStr) {
+                    showNotification(context, "Serie completata", pickRandom(completedPhrases))
+                    prefs.edit().putString("last_completed_notif_date", todayStr).apply()
+                }
+            } else {
+                // Controlla fascia oraria in base al giorno della settimana
+                val cal = Calendar.getInstance()
+                val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
+                val isWeekend = (dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY)
+                val minutesOfDay = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
+                val minAllowedMinutes = if (isWeekend) (8 * 60) else (14 * 60 + 30)
+
+                if (minutesOfDay >= minAllowedMinutes) {
+                    val (title, pool) = when {
+                        isWeekend && minutesOfDay < 13 * 60 -> "Buongiorno" to morningPhrases
+                        minutesOfDay < 17 * 60 -> "Ora di iniziare" to afternoonPhrases
+                        minutesOfDay < 20 * 60 -> "Continua cosi'" to eveningPhrases
+                        minutesOfDay < 22 * 60 + 30 -> "Chiusura di giornata" to nightUrgentPhrases
+                        else -> "Ultimo avviso" to lateNightCriticalPhrases
+                    }
+                    val pendingLabel = if (pendingTasks == 1) "1 task" else "$pendingTasks task"
+                    val message = pickRandom(pool)
+                        .replace("[Username]", userName)
+                        .replace("[USERNAME]", userName.uppercase())
+                        .replace("[Course]", firstCourse)
+                        .replace("[Pending]", pendingLabel)
+
+                    showNotification(context, title, message)
+                }
             }
-            pickRandom(list)
-                .replace("[Username]", userName)
-                .replace("[USERNAME]", userName.uppercase())
-                .replace("[Course]", firstCourse)
         }
-
-        showNotification(context, title, message)
 
         // Aggiorna lo stato visivo del widget To-Do
         StudyPlannerWidgetProvider.updateAllWidgets(context)
@@ -128,7 +143,7 @@ class StudyPlannerAlarmReceiver : BroadcastReceiver() {
     private fun ensureNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = "Notifiche Study Planner"
-            val descriptionText = "Promemoria di studio, sessioni Pomodoro e avvisi verifiche"
+            val descriptionText = "Promemoria motivazionali di studio e completamento serie"
             val importance = NotificationManager.IMPORTANCE_HIGH
             val channel = NotificationChannel(MainActivity.CHANNEL_ID, name, importance).apply {
                 description = descriptionText
@@ -146,96 +161,81 @@ class StudyPlannerAlarmReceiver : BroadcastReceiver() {
     }
 
     private fun pickRandom(list: List<String>): String {
-        return if (list.isNotEmpty()) list.random() else "Time to study!"
+        return if (list.isNotEmpty()) list.random() else "E' il momento di studiare."
     }
 
     companion object {
         private val completedPhrases = listOf(
-            "All homework done! See you tomorrow!",
-            "Great study session! Till next time!",
-            "All tasks completed! Way to go!",
-            "Homework finished! Enjoy your rest!",
-            "Great job studying today!",
-            "Streak protected for today! See you tomorrow!",
-            "Awesome work! See you next study session!"
+            "Ottimo lavoro. Hai completato tutte le task di oggi.",
+            "Serie di oggi completata. Ora puoi riposarti.",
+            "Complimenti, nessuna task rimasta per oggi.",
+            "Obiettivo raggiunto. A domani per la prossima serie.",
+            "Tutto fatto per oggi. Ottima costanza."
         )
 
-        private val nightPhrases = listOf(
-            "Late night study session, [Username]?",
-            "Still awake? Knock out some homework!",
-            "Can't sleep, [Username]? Review your notes!",
-            "Start early and get your homework done!",
-            "Finish your homework and get some rest, [Username]!"
-        )
-
+        // Fascia Mattina (08:00 - 12:59, solo Sabato e Domenica)
         private val morningPhrases = listOf(
-            "Good morning, [Username]!",
-            "Start your day with some homework!",
-            "Coffee + [Course] study time?",
-            "Get your homework started early, [Username]!",
-            "Ready to study [Course] today?",
-            "Early study session, [Username]!",
-            "Time to plan your study tasks today!"
+            "Inizia subito con [Course] e liberati il pomeriggio.",
+            "Hai [Pending] oggi. Parti con calma ma parti ora.",
+            "Un passo alla volta stamattina e finisci presto.",
+            "Apri i libri adesso, il resto della giornata sara' tuo.",
+            "Prima inizi [Course], prima sei libero."
         )
 
+        // Fascia Primo Pomeriggio (14:30 - 16:59 Lun-Ven | 13:00 - 16:59 Sab-Dom)
         private val afternoonPhrases = listOf(
-            "Time to do your homework!",
-            "Time to study [Course], [Username]!",
-            "Ready for your homework, [Username]?",
-            "Study time! Let's get it done!",
-            "Work on your [Course] homework now!",
-            "Got a few minutes? Start your homework!",
-            "Don't postpone your study session, [Username]!",
-            "Time to study! Open your books!",
-            "Hey [Username], your homework is waiting!"
+            "Ti aspettano [Pending] oggi. Inizia da [Course].",
+            "Mettiti al lavoro adesso, basta iniziare per prendere ritmo.",
+            "Concentrazione su [Course]. Finisci prima di sera.",
+            "Il momento migliore per studiare e' adesso.",
+            "Un blocco alla volta e chiudi tutto oggi."
         )
 
+        // Fascia Tardo Pomeriggio (17:00 - 19:59)
         private val eveningPhrases = listOf(
-            "Time to finish your homework, [Username]!",
-            "Don't forget your homework tonight!",
-            "It's getting late, finish your study tasks!",
-            "Ready to finish your homework, [Username]?",
-            "Complete your [Course] homework before dinner!",
-            "Keep your streak alive! Finish your homework!",
-            "Homework time, [Username]! Don't put it off!",
-            "Finish studying today and protect your streak!"
+            "Ti restano [Pending]. Chiudile prima di cena.",
+            "Non rimandare a stasera, completa [Course] ora.",
+            "Ultimo sforzo del pomeriggio, sei vicino al traguardo.",
+            "Mantieni il ritmo: manca poco per finire oggi.",
+            "Dedica mezz'ora adesso e poi stacca del tutto."
         )
 
+        // Fascia Sera (20:00 - 22:29)
         private val nightUrgentPhrases = listOf(
-            "Finish your homework now, [Username]!",
-            "Your homework isn't done yet, [Username]!",
-            "Time is running out! Do your homework!",
-            "Don't lose your streak! Study now!",
-            "Finish your [Course] tasks before bed!",
-            "Last chance to complete today's homework!",
-            "Protect your study streak, [Username]!",
-            "Still haven't finished your homework?",
-            "Complete your study tasks and keep your streak!"
+            "La giornata sta finendo: chiudi [Pending].",
+            "Completa [Course] adesso e goditi la serata.",
+            "Non lasciare in sospeso le task di oggi.",
+            "Ancora uno sforzo per proteggere la tua serie.",
+            "Finisci quello che manca e riposati senza pensieri."
         )
 
+        // Fascia Pre-mezzanotte (22:30 - 23:59)
         private val lateNightCriticalPhrases = listOf(
-            "HOMEWORK NOW, [USERNAME]!",
-            "Midnight is almost here! Finish your homework!",
-            "Save your study streak before midnight!",
-            "Last chance to finish your homework today!",
-            "Now or never, [Username]! Do your homework!",
-            "It's VERY late! Complete your study tasks!",
-            "Don't break your streak! Finish your tasks!",
-            "ALMOST TOO LATE FOR HOMEWORK, [USERNAME]!",
-            "Finish your [Course] homework right now!",
-            "URGENT: Save your study streak tonight!"
+            "Manca poco a mezzanotte. Completa [Pending] per salvare la serie.",
+            "Ultimo sprint prima di mezzanotte: ti manca [Course].",
+            "Non perdere la serie proprio ora, chiudi [Pending].",
+            "Ultime battute della giornata. Dai il massimo adesso.",
+            "Ancora pochi minuti prima di mezzanotte. Ce la puoi fare."
         )
 
         fun scheduleDailyAlarms(context: Context) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
 
-            // Ore di notifica durante la giornata
-            val targetHours = listOf(8, 14, 18, 20, 22)
+            // Slot orari: 08:00 e 10:30 (attivi solo Sab/Dom), 14:30, 17:00, 19:30, 21:30, 23:00 (tutti i giorni fino a mezzanotte)
+            val targetSlots = listOf(
+                Pair(8, 0),
+                Pair(10, 30),
+                Pair(14, 30),
+                Pair(17, 0),
+                Pair(19, 30),
+                Pair(21, 30),
+                Pair(23, 0)
+            )
 
-            for (hour in targetHours) {
+            for ((hour, minute) in targetSlots) {
                 val calendar = Calendar.getInstance().apply {
                     set(Calendar.HOUR_OF_DAY, hour)
-                    set(Calendar.MINUTE, 0)
+                    set(Calendar.MINUTE, minute)
                     set(Calendar.SECOND, 0)
                     set(Calendar.MILLISECOND, 0)
                     if (before(Calendar.getInstance())) {
@@ -243,12 +243,13 @@ class StudyPlannerAlarmReceiver : BroadcastReceiver() {
                     }
                 }
 
+                val reqCode = hour * 100 + minute
                 val intent = Intent(context, StudyPlannerAlarmReceiver::class.java).apply {
-                    action = "com.tommasomurador.studyplanner.NOTIFICATION_ALARM_$hour"
+                    action = "com.tommasomurador.studyplanner.NOTIFICATION_ALARM_$reqCode"
                 }
                 val pendingIntent = PendingIntent.getBroadcast(
                     context,
-                    hour,
+                    reqCode,
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )

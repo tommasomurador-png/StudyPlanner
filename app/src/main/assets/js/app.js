@@ -9,79 +9,56 @@
     let selectedDateStr = todayDateStr;
 
     const notifCompletedPhrases = [
-        "All homework done! See you tomorrow!",
-        "Great study session! Till next time!",
-        "All tasks completed! Way to go!",
-        "Homework finished! Enjoy your rest!",
-        "Great job studying today!",
-        "Streak protected for today! See you tomorrow!",
-        "Awesome work! See you next study session!"
+        "Ottimo lavoro. Hai completato tutte le task di oggi.",
+        "Serie di oggi completata. Ora puoi riposarti.",
+        "Complimenti, nessuna task rimasta per oggi.",
+        "Obiettivo raggiunto. A domani per la prossima serie.",
+        "Tutto fatto per oggi. Ottima costanza."
     ];
 
-    const notifNightPhrases = [
-        "Late night study session, [Username]?",
-        "Still awake? Knock out some homework!",
-        "Can't sleep, [Username]? Review your notes!",
-        "Start early and get your homework done!",
-        "Finish your homework and get some rest, [Username]!"
-    ];
-
+    // Fascia Mattina (08:00 - 12:59, solo Sabato e Domenica)
     const notifMorningPhrases = [
-        "Good morning, [Username]!",
-        "Start your day with some homework!",
-        "Coffee + [Course] study time?",
-        "Get your homework started early, [Username]!",
-        "Ready to study [Course] today?",
-        "Early study session, [Username]!",
-        "Time to plan your study tasks today!"
+        "Inizia subito con [Course] e liberati il pomeriggio.",
+        "Hai [Pending] oggi. Parti con calma ma parti ora.",
+        "Un passo alla volta stamattina e finisci presto.",
+        "Apri i libri adesso, il resto della giornata sara' tuo.",
+        "Prima inizi [Course], prima sei libero."
     ];
 
+    // Fascia Primo Pomeriggio (14:30 - 16:59 Lun-Ven | 13:00 - 16:59 Sab-Dom)
     const notifAfternoonPhrases = [
-        "Time to do your homework!",
-        "Time to study [Course], [Username]!",
-        "Ready for your homework, [Username]?",
-        "Study time! Let's get it done!",
-        "Work on your [Course] homework now!",
-        "Got a few minutes? Start your homework!",
-        "Don't postpone your study session, [Username]!",
-        "Time to study! Open your books!",
-        "Hey [Username], your homework is waiting!"
+        "Ti aspettano [Pending] oggi. Inizia da [Course].",
+        "Mettiti al lavoro adesso, basta iniziare per prendere ritmo.",
+        "Concentrazione su [Course]. Finisci prima di sera.",
+        "Il momento migliore per studiare e' adesso.",
+        "Un blocco alla volta e chiudi tutto oggi."
     ];
 
+    // Fascia Tardo Pomeriggio (17:00 - 19:59)
     const notifEveningPhrases = [
-        "Time to finish your homework, [Username]!",
-        "Don't forget your homework tonight!",
-        "It's getting late, finish your study tasks!",
-        "Ready to finish your homework, [Username]?",
-        "Complete your [Course] homework before dinner!",
-        "Keep your streak alive! Finish your homework!",
-        "Homework time, [Username]! Don't put it off!",
-        "Finish studying today and protect your streak!"
+        "Ti restano [Pending]. Chiudile prima di cena.",
+        "Non rimandare a stasera, completa [Course] ora.",
+        "Ultimo sforzo del pomeriggio, sei vicino al traguardo.",
+        "Mantieni il ritmo: manca poco per finire oggi.",
+        "Dedica mezz'ora adesso e poi stacca del tutto."
     ];
 
+    // Fascia Sera (20:00 - 22:29)
     const notifNightUrgentPhrases = [
-        "Finish your homework now, [Username]!",
-        "Your homework isn't done yet, [Username]!",
-        "Time is running out! Do your homework!",
-        "Don't lose your streak! Study now!",
-        "Finish your [Course] tasks before bed!",
-        "Last chance to complete today's homework!",
-        "Protect your study streak, [Username]!",
-        "Still haven't finished your homework?",
-        "Complete your study tasks and keep your streak!"
+        "La giornata sta finendo: chiudi [Pending].",
+        "Completa [Course] adesso e goditi la serata.",
+        "Non lasciare in sospeso le task di oggi.",
+        "Ancora uno sforzo per proteggere la tua serie.",
+        "Finisci quello che manca e riposati senza pensieri."
     ];
 
+    // Fascia Pre-mezzanotte (22:30 - 23:59)
     const notifLateNightCriticalPhrases = [
-        "HOMEWORK NOW, [USERNAME]!",
-        "Midnight is almost here! Finish your homework!",
-        "Save your study streak before midnight!",
-        "Last chance to finish your homework today!",
-        "Now or never, [Username]! Do your homework!",
-        "It's VERY late! Complete your study tasks!",
-        "Don't break your streak! Finish your tasks!",
-        "ALMOST TOO LATE FOR HOMEWORK, [USERNAME]!",
-        "Finish your [Course] homework right now!",
-        "URGENT: Save your study streak tonight!"
+        "Manca poco a mezzanotte. Completa [Pending] per salvare la serie.",
+        "Ultimo sprint prima di mezzanotte: ti manca [Course].",
+        "Non perdere la serie proprio ora, chiudi [Pending].",
+        "Ultime battute della giornata. Dai il massimo adesso.",
+        "Ancora pochi minuti prima di mezzanotte. Ce la puoi fare."
     ];
 
     function customConfirm(options) {
@@ -973,7 +950,7 @@
         if (!isAndroid && (!("Notification" in window) || Notification.permission !== "granted")) return;
         let tasks = getTasksForDate(todayDateStr);
         let actionableTasks = tasks.filter(t => !t.isExamDay);
-        if (actionableTasks.length === 0) return; 
+        if (actionableTasks.length === 0) return;
 
         let completedCount = 0;
         let firstCourse = "Studio";
@@ -992,51 +969,69 @@
             }
         });
 
+        let pendingCount = Math.max(0, actionableTasks.length - completedCount);
         let notifHistory = JSON.parse(localStorage.getItem('studylog_notif_history') || '{}');
         let todayHistory = notifHistory[todayDateStr] || { completedSent: false, lastMsgTime: 0 };
 
-        const nowTime = Date.now();
-        const twoHoursMs = 2 * 60 * 60 * 1000;
-        const currentHour = new Date().getHours();
-        const userName = getStudentName();
-
-        if (completedCount === actionableTasks.length) {
+        // 1. Congratulazioni finali quando l'intera serie di oggi e' completata
+        if (pendingCount === 0) {
             if (!todayHistory.completedSent) {
                 let randomPraise = getRandomItem(notifCompletedPhrases);
-                sendLocalNotification("Study Planner", randomPraise);
+                sendLocalNotification("Serie completata", randomPraise);
                 todayHistory.completedSent = true;
                 notifHistory[todayDateStr] = todayHistory;
                 localStorage.setItem('studylog_notif_history', JSON.stringify(notifHistory));
             }
-        } else {
-            if (nowTime - (todayHistory.lastMsgTime || 0) >= twoHoursMs) {
-                let phrasesPool = notifAfternoonPhrases;
-                if (currentHour >= 0 && currentHour < 4) {
-                    phrasesPool = notifNightPhrases;
-                } else if (currentHour >= 4 && currentHour < 12) {
-                    phrasesPool = notifMorningPhrases;
-                } else if (currentHour >= 12 && currentHour < 16) {
-                    phrasesPool = notifAfternoonPhrases;
-                } else if (currentHour >= 16 && currentHour < 20) {
-                    phrasesPool = notifEveningPhrases;
-                } else if (currentHour >= 20 && currentHour < 22) {
-                    phrasesPool = notifNightUrgentPhrases;
-                } else {
-                    phrasesPool = notifLateNightCriticalPhrases;
-                }
-
-                let template = getRandomItem(phrasesPool);
-                let message = template
-                    .replace(/\[Username\]/g, userName)
-                    .replace(/\[USERNAME\]/g, userName.toUpperCase())
-                    .replace(/\[Course\]/g, firstCourse);
-
-                sendLocalNotification("Study Planner", message);
-                todayHistory.lastMsgTime = nowTime;
-                notifHistory[todayDateStr] = todayHistory;
-                localStorage.setItem('studylog_notif_history', JSON.stringify(notifHistory));
-            }
+            return;
         }
+
+        // 2. Finestra oraria: Sab/Dom 08:00-23:59 | Lun-Ven 14:30-23:59
+        const now = new Date();
+        const dayOfWeek = now.getDay(); // 0 = Dom, 6 = Sab
+        const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+        const minutesOfDay = now.getHours() * 60 + now.getMinutes();
+        const minAllowedMinutes = isWeekend ? (8 * 60) : (14 * 60 + 30);
+        if (minutesOfDay < minAllowedMinutes) return;
+
+        // Evita spam: massimo una notifica ogni 2 ore
+        const nowTime = Date.now();
+        const twoHoursMs = 2 * 60 * 60 * 1000;
+        if (nowTime - (todayHistory.lastMsgTime || 0) < twoHoursMs) return;
+
+        // 3. Tipologia di notifica in base alla fascia oraria
+        let notifTitle = "Promemoria studio";
+        let phrasesPool = notifAfternoonPhrases;
+
+        if (isWeekend && minutesOfDay < 13 * 60) {
+            notifTitle = "Buongiorno";
+            phrasesPool = notifMorningPhrases;
+        } else if (minutesOfDay < 17 * 60) {
+            notifTitle = "Ora di iniziare";
+            phrasesPool = notifAfternoonPhrases;
+        } else if (minutesOfDay < 20 * 60) {
+            notifTitle = "Continua cosi'";
+            phrasesPool = notifEveningPhrases;
+        } else if (minutesOfDay < 22 * 60 + 30) {
+            notifTitle = "Chiusura di giornata";
+            phrasesPool = notifNightUrgentPhrases;
+        } else {
+            notifTitle = "Ultimo avviso";
+            phrasesPool = notifLateNightCriticalPhrases;
+        }
+
+        const pendingLabel = pendingCount === 1 ? "1 task" : `${pendingCount} task`;
+        const userName = getStudentName();
+        let template = getRandomItem(phrasesPool);
+        let message = template
+            .replace(/\[Username\]/g, userName)
+            .replace(/\[USERNAME\]/g, userName.toUpperCase())
+            .replace(/\[Course\]/g, firstCourse)
+            .replace(/\[Pending\]/g, pendingLabel);
+
+        sendLocalNotification(notifTitle, message);
+        todayHistory.lastMsgTime = nowTime;
+        notifHistory[todayDateStr] = todayHistory;
+        localStorage.setItem('studylog_notif_history', JSON.stringify(notifHistory));
     }
 
     // Retrocompatibilita' setAppBg
