@@ -1,4 +1,4 @@
-const CACHE_NAME = 'studyplanner-v2.5.4-release';
+const CACHE_NAME = 'studyplanner-v2.5.5-release';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

@@ -1371,6 +1371,201 @@
     transform: scale(0.93);
 }
 
+/* ==========================================================================
+   COMPACT MODALS (NUOVA TASK & NUOVA PROVA)
+   ========================================================================== */
+.glass-panel.compact-modal {
+    padding: 20px 18px 18px !important;
+    max-width: 400px;
+}
+
+.compact-modal .btn-close-modal-top {
+    top: 16px;
+    right: 16px;
+}
+
+.compact-modal-title {
+    margin: 0 0 14px 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--theme-strong);
+}
+
+.compact-modal .form-group {
+    margin-bottom: 10px !important;
+}
+
+.compact-modal .form-group label {
+    font-size: 0.68rem !important;
+    margin-bottom: 4px !important;
+    letter-spacing: 0.05em;
+}
+
+.compact-modal .form-control,
+.compact-modal .custom-popover-trigger {
+    padding: 9px 12px !important;
+    font-size: 0.86rem !important;
+    border-radius: 13px !important;
+    min-height: 40px;
+}
+
+.compact-modal .custom-popover-trigger span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.compact-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.compact-row-2 .form-group {
+    min-width: 0;
+}
+
+.compact-ratings-row {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 8px 12px 6px;
+    margin-bottom: 10px;
+}
+
+.compact-ratings-row .form-group {
+    margin-bottom: 0 !important;
+}
+
+.compact-ratings-row .star-rating {
+    font-size: 1.15rem;
+    gap: 6px;
+}
+
+.compact-inline-action {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.compact-inline-btn {
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 13px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.95rem;
+}
+
+.compact-modal .subject-tags-container {
+    margin-top: 6px;
+    gap: 5px;
+}
+
+.compact-footer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.compact-toggle-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-main);
+    cursor: pointer;
+    user-select: none;
+}
+
+.compact-submit-btn {
+    margin-top: 0 !important;
+    padding: 11px 22px !important;
+    border-radius: 14px !important;
+    font-size: 0.9rem !important;
+    width: auto !important;
+    min-width: 130px;
+}
+
+.compact-submit-btn.full-width {
+    width: 100% !important;
+    margin-top: 8px !important;
+}
+
+/* ==========================================================================
+   3D REAL-TIME ASCII ART ANIMATIONS (Instagram Reel Style)
+   ========================================================================== */
+.ascii-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    user-select: none;
+    pointer-events: none;
+}
+
+.rank-ascii-stage {
+    margin: -4px auto 8px;
+    padding: 8px 12px;
+    border-radius: 18px;
+    background: rgba(0, 0, 0, 0.035);
+    border: 1px solid var(--border-color);
+    width: fit-content;
+}
+
+[data-theme="dark"] .rank-ascii-stage {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.ascii-empty-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 12px 30px;
+    text-align: center;
+}
+
+.ascii-3d-art {
+    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 7.5px;
+    line-height: 0.94;
+    letter-spacing: 0.04em;
+    margin: 0;
+    padding: 0;
+    color: var(--theme-strong);
+    opacity: 0.88;
+    white-space: pre;
+    text-align: center;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .ascii-3d-art {
+    color: #F4F4F5;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.16);
+}
+
+.ascii-empty-caption {
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
 /* Touch and Pointer-Events Guarantees */
 #app-container, header, .content-wrapper, .dashboard-grid, .dash-widget, .week-slider, .exercise-card, .fab-btn {
     pointer-events: auto !important;

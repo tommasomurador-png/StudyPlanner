@@ -16,7 +16,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js?v=2.5.4').then(function(reg) {
+          navigator.serviceWorker.register('sw.js?v=2.5.5').then(function(reg) {
             reg.update();
             reg.onupdatefound = function() {
               const newWorker = reg.installing;
@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.5.4">
+    <link rel="stylesheet" href="css/style.css?v=2.5.5">
 </head>
 <body>
 
@@ -123,6 +123,9 @@
         <!-- RANKED & STATS VIEW (Trophy Tab - All analytics & XP) -->
         <div id="ranked-view" class="ranked-view" style="display: none;">
             <div class="rank-showcase" id="rank-showcase">
+                <div class="ascii-stage rank-ascii-stage">
+                    <pre id="ascii-rank-canvas" class="ascii-3d-art" aria-hidden="true"></pre>
+                </div>
                 <div class="rank-title" id="rank-title">Matricola</div>
                 <div class="rank-xp-text" id="rank-xp-text">XP: 0 / 200</div>
                 <div class="xp-bar-bg"><div class="xp-bar-fill" id="xp-bar-fill"></div></div>
@@ -340,42 +343,55 @@
         </div>
     </div>
 
-    <!-- MODAL NUOVA TASK TO-DO -->
+    <!-- MODAL NUOVA TASK TO-DO (Compact Layout) -->
     <div class="fullscreen-modal" id="add-todo-modal">
-        <div class="glass-panel">
+        <div class="glass-panel compact-modal">
             <button class="btn-close-modal-top" onclick="closeModal('add-todo-modal')"><i class="fa-solid fa-xmark"></i></button>
-            <h3 style="margin-bottom: 25px; font-weight: 700; text-transform: uppercase;">Nuova Task</h3>
+            <h3 class="compact-modal-title">Nuova Task</h3>
             
-            <div class="form-group">
-                <label>Materia</label>
-                <div id="todo-subject-popover-container"></div>
+            <div class="compact-row-2">
+                <div class="form-group">
+                    <label>Materia</label>
+                    <div id="todo-subject-popover-container"></div>
+                </div>
+                <div class="form-group">
+                    <label>Scadenza</label>
+                    <div id="todo-date-popover-container"></div>
+                </div>
             </div>
 
             <div class="form-group">
                 <label>Titolo</label>
-                <input type="text" id="todo-title" class="form-control" placeholder="Titolo">
+                <input type="text" id="todo-title" class="form-control" placeholder="Titolo del compito">
             </div>
-            <div style="display: flex; gap: 20px;">
-                <div class="form-group" style="flex: 1;"><label>Priorità</label><div class="star-rating" id="todo-priority"><i class="fa-solid fa-star active" data-val="1"></i><i class="fa-solid fa-star" data-val="2"></i><i class="fa-solid fa-star" data-val="3"></i></div></div>
-                <div class="form-group" style="flex: 1;"><label>Difficoltà</label><div class="diff-rating-input" id="todo-difficulty"><div class="diff-input-bar active" data-val="1"></div><div class="diff-input-bar" data-val="2"></div><div class="diff-input-bar" data-val="3"></div></div></div>
-            </div>
-            <div class="form-group">
-                <label>Scadenza</label>
-                <div id="todo-date-popover-container"></div>
+
+            <div class="compact-row-2 compact-ratings-row">
+                <div class="form-group">
+                    <label>Priorità</label>
+                    <div class="star-rating" id="todo-priority"><i class="fa-solid fa-star active" data-val="1"></i><i class="fa-solid fa-star" data-val="2"></i><i class="fa-solid fa-star" data-val="3"></i></div>
+                </div>
+                <div class="form-group">
+                    <label>Difficoltà</label>
+                    <div class="diff-rating-input" id="todo-difficulty"><div class="diff-input-bar active" data-val="1"></div><div class="diff-input-bar" data-val="2"></div><div class="diff-input-bar" data-val="3"></div></div>
+                </div>
             </div>
             
             <div class="form-group">
                 <label>Pause</label>
-                <div style="margin-bottom: 8px;">
-                    <div id="todo-pause-popover-container"></div>
+                <div class="compact-inline-action">
+                    <div id="todo-pause-popover-container" style="flex: 1; min-width: 0;"></div>
+                    <button type="button" class="btn-submit compact-inline-btn" onclick="addPauseDate('todo')" title="Aggiungi pausa"><i class="fa-solid fa-plus"></i></button>
                 </div>
-                <button type="button" class="btn-submit" style="width: 100%; padding: 12px; margin-top: 6px; font-size: 0.9rem;" onclick="addPauseDate('todo')">+ Pausa</button>
                 <div class="subject-tags-container" id="todo-pause-chips"></div>
-                
             </div>
 
-            <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 15px;"><label style="margin: 0;">Ogni giorno</label><input type="checkbox" id="todo-repeat" style="width: 20px; height: 20px; accent-color: var(--theme-strong);"></div>
-            <button class="btn-submit" onclick="saveTodo()">Aggiungi</button>
+            <div class="compact-footer-row">
+                <label class="compact-toggle-label" for="todo-repeat">
+                    <input type="checkbox" id="todo-repeat" style="width: 18px; height: 18px; accent-color: var(--theme-strong);">
+                    <span>Ogni giorno</span>
+                </label>
+                <button class="btn-submit compact-submit-btn" onclick="saveTodo()">Aggiungi</button>
+            </div>
         </div>
     </div>
 
@@ -433,52 +449,53 @@
         </div>
     </div>
 
-    <!-- MODAL NUOVA VERIFICA/INTERROGAZIONE/VERSIONE -->
+    <!-- MODAL NUOVA VERIFICA/INTERROGAZIONE/VERSIONE (Compact Layout) -->
     <div class="fullscreen-modal" id="add-exam-modal">
-        <div class="glass-panel">
+        <div class="glass-panel compact-modal">
             <button class="btn-close-modal-top" onclick="closeModal('add-exam-modal')"><i class="fa-solid fa-xmark"></i></button>
-            <h3 style="margin-bottom: 25px; font-weight: 700; text-transform: uppercase;">Nuova Prova</h3>
+            <h3 class="compact-modal-title">Nuova Prova</h3>
             
-            <div class="form-group">
-                <label>Materia</label>
-                <div id="exam-subject-popover-container"></div>
-            </div>
-
-            <div class="form-group">
-                <label>Tipologia</label>
-                <div id="exam-type-popover-container"></div>
+            <div class="compact-row-2">
+                <div class="form-group">
+                    <label>Materia</label>
+                    <div id="exam-subject-popover-container"></div>
+                </div>
+                <div class="form-group">
+                    <label>Tipologia</label>
+                    <div id="exam-type-popover-container"></div>
+                </div>
             </div>
 
             <div class="form-group" id="group-interrogazione-days" style="display: none;">
                 <label>Date possibili</label>
-                <div style="margin-bottom: 8px;">
-                    <div id="exam-int-dates-popover-container"></div>
+                <div class="compact-inline-action">
+                    <div id="exam-int-dates-popover-container" style="flex: 1; min-width: 0;"></div>
+                    <button type="button" class="btn-submit compact-inline-btn" onclick="addSpecificInterrogazioneDate('create')" title="Aggiungi data"><i class="fa-solid fa-plus"></i></button>
                 </div>
-                <button type="button" class="btn-submit" style="width: 100%; padding: 12px; margin-top: 6px; font-size: 0.9rem;" onclick="addSpecificInterrogazioneDate('create')">+ Data</button>
                 <div class="subject-tags-container" id="exam-int-dates-chips"></div>
-                
             </div>
 
-            <div class="form-group" id="group-exam-date">
-                <label id="exam-date-label">Data</label>
-                <div id="exam-date-popover-container"></div>
+            <div class="compact-row-2">
+                <div class="form-group" id="group-exam-date">
+                    <label id="exam-date-label">Data</label>
+                    <div id="exam-date-popover-container"></div>
+                </div>
+                <div class="form-group">
+                    <label id="exam-amount-label">Pagine</label>
+                    <input type="number" id="exam-pages" class="form-control" placeholder="Es. 10" min="1">
+                </div>
             </div>
             
             <div class="form-group">
                 <label>Pause</label>
-                <div style="margin-bottom: 8px;">
-                    <div id="exam-pause-popover-container"></div>
+                <div class="compact-inline-action">
+                    <div id="exam-pause-popover-container" style="flex: 1; min-width: 0;"></div>
+                    <button type="button" class="btn-submit compact-inline-btn" onclick="addPauseDate('exam')" title="Aggiungi pausa"><i class="fa-solid fa-plus"></i></button>
                 </div>
-                <button type="button" class="btn-submit" style="width: 100%; padding: 12px; margin-top: 6px; font-size: 0.9rem;" onclick="addPauseDate('exam')">+ Pausa</button>
                 <div class="subject-tags-container" id="exam-pause-chips"></div>
-                
             </div>
 
-            <div class="form-group">
-                <label id="exam-amount-label">Pagine</label>
-                <input type="number" id="exam-pages" class="form-control" placeholder="Pagine" min="1">
-            </div>
-            <button class="btn-submit" onclick="saveExam()">Aggiungi</button>
+            <button class="btn-submit compact-submit-btn full-width" onclick="saveExam()">Aggiungi</button>
         </div>
     </div>
 
@@ -592,7 +609,7 @@
     </div>
     
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.5.4" defer></script>
+    <script src="js/app.js?v=2.5.5" defer></script>
 
 </body>
 </html>
