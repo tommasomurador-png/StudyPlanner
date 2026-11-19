@@ -16,7 +16,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js?v=2.4.8').then(function(reg) {
+          navigator.serviceWorker.register('sw.js?v=2.5.2').then(function(reg) {
             reg.update();
             reg.onupdatefound = function() {
               const newWorker = reg.installing;
@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.5.1">
+    <link rel="stylesheet" href="css/style.css?v=2.5.2">
 </head>
 <body>
 
@@ -116,120 +116,6 @@
                     <div class="cal-legend-bar">
                         <div class="cal-legend-item"><span class="cal-dot"></span> Task</div>
                         <div class="cal-legend-item"><span class="cal-dot exam"></span> Verifiche</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- AI CHATBOT VIEW (Proxima UI - Image 2 Specification) -->
-        <div id="ai-view" class="ai-view" style="display: none;">
-
-            <!-- Dedicated Scrollable Viewport (ONLY messages scroll; header & input bar stay fixed) -->
-            <div class="ai-scroll-viewport" id="ai-scroll-viewport">
-                <!-- Welcome Screen (Left Phone in Image 2) -->
-                <div class="proxima-welcome" id="ai-welcome-container">
-                    <div class="proxima-greeting-block">
-                        <div class="proxima-hello-line">
-                            Hello <span id="ai-user-name" class="proxima-user-highlight" onclick="promptChangeUserName()" title="Tocca per cambiare il tuo nome">Studente</span>
-                        </div>
-                        <div class="proxima-subtitle-line">May I help you?</div>
-                    </div>
-
-                    <!-- Proxima Brand Header with Isometric Cube -->
-                    <div class="proxima-brand-bar">
-                        <div class="proxima-brand-left">
-                            <span class="proxima-cube-icon">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                                    <polygon points="12,2 21,7 12,12 3,7" fill="currentColor"/>
-                                    <polygon points="3,7 12,12 12,22 3,17" fill="currentColor" opacity="0.72"/>
-                                    <polygon points="21,7 12,12 12,22 21,17" stroke="currentColor" stroke-width="1.8" fill="currentColor" fill-opacity="0.2"/>
-                                </svg>
-                            </span>
-                            <span class="proxima-brand-title">Proxima A*</span>
-                        </div>
-                    </div>
-
-                    <!-- Bento Suggestion Cards (Image 2 Layout) -->
-                    <div class="proxima-bento-grid">
-                        <div class="proxima-bento-card tall" onclick="fillAiQuickPrompt('Aggiungi 5 esercizi di matematica sulle funzioni per domani')">
-                            <div class="proxima-bento-text">
-                                Organizza i compiti per casa o dividi le pagine della prossima verifica
-                            </div>
-                            <div class="proxima-bento-icon-circle">
-                                <i class="fa-regular fa-clone"></i>
-                            </div>
-                        </div>
-
-                        <div class="proxima-bento-col">
-                            <div class="proxima-bento-card square" onclick="fillAiQuickPrompt('Ho preso 8 in matematica')">
-                                <div class="proxima-bento-text">
-                                    Registra un nuovo voto e adatta il metodo
-                                </div>
-                                <div class="proxima-bento-icon-circle">
-                                    <i class="fa-solid fa-graduation-cap"></i>
-                                </div>
-                            </div>
-
-                            <div class="proxima-bento-actions-pill">
-                                <button type="button" class="proxima-mini-action" onclick="openBottomSheet('settings-sheet')" title="Configura Chiave API Gemini">
-                                    <i class="fa-solid fa-key"></i>
-                                </button>
-                                <button type="button" class="proxima-mini-action" onclick="resetAiChatConversation()" title="Nuova conversazione">
-                                    <i class="fa-solid fa-rotate-right"></i>
-                                </button>
-                                <button type="button" class="proxima-mini-action" onclick="toggleAiVoiceRecording()" title="Parla con Proxima">
-                                    <i class="fa-solid fa-microphone"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Chat Thread (Right Phone in Image 2) -->
-                <div class="proxima-chat-thread" id="ai-chat-thread"></div>
-            </div>
-
-            <!-- Bottom Prompt Box (Stationary, Exact Gemini Two-Row Composer WITHOUT + & FreeFlow Continuous Audio) -->
-            <div class="ai-input-dock" id="ai-input-dock">
-                <div class="ai-input-bar" id="ai-input-bar">
-                    <div class="ai-composer-top" id="ai-composer-top">
-                        <textarea id="ai-prompt-input" rows="1" class="ai-prompt-field" placeholder="Scrivi qui o parla con Proxima..." oninput="autoResizeAiPrompt(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey){ sendAiChatMessage(); event.preventDefault(); }"></textarea>
-                    </div>
-
-                    <div class="ai-composer-toolbar">
-                        <!-- Gemini-Style Inline Horizontal Voice Equalizer (shown inside bar while recording) -->
-                        <div class="ai-gemini-wave-track" id="ai-gemini-wave-track" style="display: none;">
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                            <span class="gemini-wave-tick"></span>
-                        </div>
-
-                        <div class="ai-input-actions">
-                            <!-- Clean Mic Icon (turns into Ringed Rounded Square Stop while recording) -->
-                            <button type="button" class="btn-ai-mic-clean" id="btn-ai-mic" onclick="toggleAiVoiceRecording()" title="Parla o ferma registrazione">
-                                <i class="fa-solid fa-microphone" id="btn-ai-mic-icon"></i>
-                                <span class="gemini-stop-square" id="btn-ai-stop-square" style="display: none;"></span>
-                            </button>
-
-                            <!-- Circular Send Button (always solid circle ↑) -->
-                            <button type="button" class="btn-ai-circle-send" id="btn-ai-send" onclick="sendAiChatMessage()" title="Invia messaggio">
-                                <i class="fa-solid fa-arrow-up"></i>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -334,14 +220,6 @@
             <div class="dock-item" onclick="switchView('calendar', this)" id="nav-calendar" title="Calendario">
                 <i class="fa-regular fa-calendar-days"></i>
             </div>
-
-            <!-- Raised Center Notch & Button with Microphone (Image 2) -->
-            <div class="dock-center-notch">
-                <button type="button" class="dock-center-btn" id="nav-ai" onclick="switchView('ai', this)" title="AI Chat & Voce">
-                    <i class="fa-solid fa-microphone"></i>
-                </button>
-            </div>
-
             <div class="dock-item" onclick="switchView('grades', this)" id="nav-grades" title="Valutazioni">
                 <i class="fa-solid fa-graduation-cap"></i>
             </div>
@@ -387,32 +265,7 @@
                     </div>
                     <div class="subject-tags-container" id="settings-tags-list"></div>
                 </div>
-                <div class="settings-card">
-                    <div class="settings-card-header">
-                        <span class="settings-card-title"><i class="fa-solid fa-cube"></i> Proxima AI & Dettatura FreeFlow</span>
-                    </div>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.45;">
-                        Con una chiave Gemini (o Groq Whisper stile FreeFlow) la dettatura vocale usa registrazione continua senza tagli e pulizia AI automatica.
-                    </p>
-                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="btn-get-gemini-key" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px 14px; margin-bottom: 10px; border-radius: 12px; border: 1px dashed var(--theme-strong); background: var(--bg-color); color: var(--theme-strong); font-size: 0.82rem; font-weight: 700; text-decoration: none;">
-                        <i class="fa-solid fa-up-right-from-square"></i> Crea Chiave API Gratuita (Google AI Studio)
-                    </a>
-                    <div class="input-row">
-                        <input type="password" id="settings-gemini-key-input" class="form-control" placeholder="Chiave Gemini (AIza...)">
-                        <button type="button" class="btn-submit compact" onclick="saveGeminiApiKeyFromSettings()">Salva</button>
-                    </div>
-                    <div id="gemini-key-status" style="font-size: 0.78rem; margin-top: 6px; margin-bottom: 12px; color: var(--text-muted);"></div>
-
-                    <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" class="btn-get-gemini-key" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 9px 14px; margin-bottom: 8px; border-radius: 12px; border: 1px dashed var(--border-color); background: var(--bg-color); color: var(--text-main); font-size: 0.78rem; font-weight: 600; text-decoration: none;">
-                        <i class="fa-solid fa-microphone-lines"></i> Chiave Groq Whisper Gratuita (FreeFlow)
-                    </a>
-                    <div class="input-row">
-                        <input type="password" id="settings-groq-key-input" class="form-control" placeholder="Opzionale: Chiave Groq (gsk_...)">
-                        <button type="button" class="btn-submit compact" onclick="saveGroqApiKeyFromSettings()">Salva</button>
-                    </div>
-                    <div id="groq-key-status" style="font-size: 0.76rem; margin-top: 6px; color: var(--text-muted);"></div>
-                </div>
-                                <div class="settings-card danger-card" style="border: 1px solid rgba(239, 68, 68, 0.25);">
+                <div class="settings-card danger-card" style="border: 1px solid rgba(239, 68, 68, 0.25);">
                     <div class="settings-card-header">
                         <span class="settings-card-title" style="color: var(--danger-color);"><i class="fa-solid fa-triangle-exclamation"></i> Gestione Dati</span>
                     </div>
@@ -746,7 +599,7 @@
     </div>
 
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.5.1" defer></script>
+    <script src="js/app.js?v=2.5.2" defer></script>
 
 </body>
 </html>
