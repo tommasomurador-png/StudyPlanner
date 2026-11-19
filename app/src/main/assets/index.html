@@ -16,7 +16,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js?v=2.5.5').then(function(reg) {
+          navigator.serviceWorker.register('sw.js?v=2.5.6').then(function(reg) {
             reg.update();
             reg.onupdatefound = function() {
               const newWorker = reg.installing;
@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.5.5">
+    <link rel="stylesheet" href="css/style.css?v=2.5.6">
 </head>
 <body>
 
@@ -123,9 +123,6 @@
         <!-- RANKED & STATS VIEW (Trophy Tab - All analytics & XP) -->
         <div id="ranked-view" class="ranked-view" style="display: none;">
             <div class="rank-showcase" id="rank-showcase">
-                <div class="ascii-stage rank-ascii-stage">
-                    <pre id="ascii-rank-canvas" class="ascii-3d-art" aria-hidden="true"></pre>
-                </div>
                 <div class="rank-title" id="rank-title">Matricola</div>
                 <div class="rank-xp-text" id="rank-xp-text">XP: 0 / 200</div>
                 <div class="xp-bar-bg"><div class="xp-bar-fill" id="xp-bar-fill"></div></div>
@@ -185,9 +182,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Lista Livelli / Ranghi -->
-            <div class="inline-rank-list" id="inline-rank-list"></div>
         </div>
     </div>
 </div> <!-- /#app-container -->
@@ -609,7 +603,7 @@
     </div>
     
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.5.5" defer></script>
+    <script src="js/app.js?v=2.5.6" defer></script>
 
 </body>
 </html>

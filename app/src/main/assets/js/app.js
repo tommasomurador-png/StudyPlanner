@@ -2031,8 +2031,7 @@
         }
         if (dailyTasks.length === 0) { 
             renderGoalGradient(dateStr, []);
-            container.innerHTML = `<div class="ascii-empty-box"><pre id="ascii-empty-canvas" class="ascii-3d-art" aria-hidden="true"></pre><div class="ascii-empty-caption">Nessuna task · Giornata libera</div></div>`;
-            if (typeof ensureAscii3DLoop === 'function') ensureAscii3DLoop(); 
+            container.innerHTML = `<div style="text-align:center; padding: 40px 0;"><h3 style="color:var(--text-muted); font-weight:500;">Nessuna task</h3></div>`; 
             return; 
         }
 
@@ -2845,13 +2844,10 @@
         document.getElementById('rank-xp-text').innerText = nextRank ? `XP: ${rankedData.xp.toLocaleString()} / ${nextRank.minXp.toLocaleString()}` : 'STUDIO SUPREMO';
         document.getElementById('xp-bar-fill').style.width = `${Math.min(Math.max(progressPercent, 0), 100)}%`;
 
-        const listContainer = document.getElementById('inline-rank-list'); listContainer.innerHTML = '';
-        rankTiers.forEach(rank => { const isCurrent = rankedData.xp >= rank.minXp && rankedData.xp < (rankTiers[rankTiers.indexOf(rank)-1]?.minXp || Infinity); listContainer.innerHTML += `<div class="rank-list-item ${isCurrent ? 'current-rank-item' : ''}"><div><div style="font-weight: 700; font-size: 1.1rem; color: var(--text-main);">${rank.name}</div><div style="font-size: 0.8rem; color: var(--text-muted);">${rank.minXp.toLocaleString()} XP minimi</div></div>${isCurrent ? '<i class="fa-solid fa-arrow-left-long" style="color:var(--theme-strong); font-size: 1.2rem;"></i>' : ''}</div>`; });
     }
 
     window.switchView = function(view, element) {
         if (typeof window.closeFabMenu === 'function') window.closeFabMenu();
-        setTimeout(() => { try { ensureAscii3DLoop(); } catch(e){} }, 50);
         if (element && element.tagName === 'I') {
             element = element.closest('.dock-item');
         }
@@ -2896,7 +2892,7 @@
             try { renderMonthCalendar(); } catch(e){}
         }
         if (view === 'ranked') { 
-            try { renderSheetData(); renderSubjectDonutChart(); renderHeatmap(); ensureAscii3DLoop(); } catch(e){}
+            try { renderSheetData(); renderSubjectDonutChart(); renderHeatmap(); } catch(e){}
         }
     };
 
@@ -3223,198 +3219,6 @@
             window.openExamModal();
         }
     };
-
-    // ==========================================================================
-    // 3D REAL-TIME ASCII ART ENGINE (Instagram Reel Luminance & Glint Style)
-    // ==========================================================================
-    const ASCII_RAMP = ' .,:;-=+i1{}[]oa#$&@';
-    let asciiBookMesh = null;
-    let asciiCrystalMesh = null;
-    let asciiAnimRunning = false;
-    let asciiLastFrameTime = 0;
-    let asciiAngle = 0;
-
-    function buildAsciiBookMesh() {
-        const pts = [];
-        // Curved open pages (top surface)
-        for (let u = -1.12; u <= 1.121; u += 0.085) {
-            const au = Math.abs(u);
-            const t = Math.min(1, au / 1.12);
-            const y = 0.26 * Math.sin(t * Math.PI * 0.88) - 0.04;
-            const dYdu = (u >= 0 ? 1 : -1) * 0.26 * (Math.PI * 0.88 / 1.12) * Math.cos(t * Math.PI * 0.88);
-            const len = Math.hypot(-dYdu, 1);
-            const nx = -dYdu / len, ny = 1 / len;
-            for (let v = -0.82; v <= 0.821; v += 0.09) {
-                pts.push([u, y, v, nx, ny, 0]);
-            }
-        }
-        // Bottom hard cover
-        for (let u = -1.2; u <= 1.201; u += 0.12) {
-            for (let v = -0.88; v <= 0.881; v += 0.12) {
-                pts.push([u, -0.18, v, 0, -1, 0]);
-            }
-        }
-        // Front & back page-block thickness edges
-        for (let u = -1.12; u <= 1.121; u += 0.09) {
-            const t = Math.min(1, Math.abs(u) / 1.12);
-            const yTop = 0.26 * Math.sin(t * Math.PI * 0.88) - 0.04;
-            for (let f = 0.2; f <= 0.85; f += 0.32) {
-                const y = -0.16 + (yTop + 0.16) * f;
-                pts.push([u, y, 0.83, 0, 0, 1]);
-                pts.push([u, y, -0.83, 0, 0, -1]);
-            }
-        }
-        // Spine ridge
-        for (let v = -0.88; v <= 0.881; v += 0.09) {
-            pts.push([0, -0.18, v, 0, -0.7, 0.7]);
-            pts.push([0, -0.08, v, 0, 0.2, 0.98]);
-        }
-        return pts;
-    }
-
-    function buildAsciiCrystalMesh() {
-        const pts = [];
-        const sides = 8;
-        // Upper & lower faceted crystal pyramid (flat-shaded per face so light snaps!)
-        for (let s = 0; s < sides; s++) {
-            const a0 = (s / sides) * Math.PI * 2;
-            const a1 = ((s + 1) / sides) * Math.PI * 2;
-            const am = (a0 + a1) * 0.5;
-            const fnx = Math.cos(am), fnz = Math.sin(am);
-            for (let h = 0.06; h <= 0.98; h += 0.09) {
-                const rTop = (1 - h) * 0.72;
-                const yTop = h * 0.95;
-                const rBot = (1 - h) * 0.72;
-                const yBot = -h * 1.15;
-                const steps = Math.max(2, Math.round((1 - h) * 7));
-                for (let j = 0; j <= steps; j++) {
-                    const frac = j / steps;
-                    const x0 = Math.cos(a0), z0 = Math.sin(a0);
-                    const x1 = Math.cos(a1), z1 = Math.sin(a1);
-                    const px = x0 + (x1 - x0) * frac;
-                    const pz = z0 + (z1 - z0) * frac;
-                    pts.push([px * rTop, yTop, pz * rTop, fnx * 0.82, 0.57, fnz * 0.82]);
-                    pts.push([px * rBot, yBot, pz * rBot, fnx * 0.85, -0.52, fnz * 0.85]);
-                }
-            }
-        }
-        // Tilted orbital ring around the crystal
-        const R = 1.18, r = 0.1;
-        const tilt = 0.44;
-        const ct = Math.cos(tilt), st = Math.sin(tilt);
-        for (let th = 0; th < Math.PI * 2; th += 0.11) {
-            const cTh = Math.cos(th), sTh = Math.sin(th);
-            for (let ph = 0; ph < Math.PI * 2; ph += 0.78) {
-                const cPh = Math.cos(ph), sPh = Math.sin(ph);
-                const rx = (R + r * cPh) * cTh;
-                const ry = r * sPh;
-                const rz = (R + r * cPh) * sTh;
-                const x = rx;
-                const y = ry * ct - rz * st;
-                const z = ry * st + rz * ct;
-                const rnx = cPh * cTh, rny = sPh, rnz = cPh * sTh;
-                const nx = rnx;
-                const ny = rny * ct - rnz * st;
-                const nz = rny * st + rnz * ct;
-                pts.push([x, y, z, nx, ny, nz]);
-            }
-        }
-        return pts;
-    }
-
-    function renderAsciiMesh(points, rotY, rotX, W, H, scaleX, scaleY) {
-        const size = W * H;
-        const zBuf = new Float32Array(size);
-        zBuf.fill(-1e9);
-        const out = new Array(size).fill(' ');
-
-        const cY = Math.cos(rotY), sY = Math.sin(rotY);
-        const cX = Math.cos(rotX), sX = Math.sin(rotX);
-        const rampMax = ASCII_RAMP.length - 1;
-
-        for (let i = 0; i < points.length; i++) {
-            const p = points[i];
-            // Rotate Y then X
-            const x1 = p[0] * cY + p[2] * sY;
-            const z1 = -p[0] * sY + p[2] * cY;
-            const y2 = p[1] * cX - z1 * sX;
-            const z2 = p[1] * sX + z1 * cX;
-
-            const invZ = 1 / (z2 + 3.8);
-            const sx = (W * 0.5 + x1 * scaleX * invZ) | 0;
-            const sy = (H * 0.5 - y2 * scaleY * invZ) | 0;
-            if (sx < 0 || sx >= W || sy < 0 || sy >= H) continue;
-
-            const idx = sy * W + sx;
-            if (invZ > zBuf[idx]) {
-                zBuf[idx] = invZ;
-                // Rotate normal
-                const nx1 = p[3] * cY + p[5] * sY;
-                const nz1 = -p[3] * sY + p[5] * cY;
-                const ny2 = p[4] * cX - nz1 * sX;
-                const nz2 = p[4] * sX + nz1 * cX;
-
-                // Key light + rim light + specular glint
-                const diff = nx1 * 0.42 + ny2 * 0.72 + nz2 * 0.55;
-                const rim = Math.max(0, -nx1 * 0.5 + ny2 * 0.3 + nz2 * 0.8) * 0.25;
-                const spec = diff > 0 ? Math.pow(diff, 5) * 0.45 : 0;
-                const lum = Math.max(0.08, Math.min(1, diff * 0.65 + 0.3 + rim + spec));
-                out[idx] = ASCII_RAMP[(lum * rampMax) | 0];
-            }
-        }
-
-        let str = '';
-        for (let row = 0; row < H; row++) {
-            const start = row * W;
-            for (let col = 0; col < W; col++) str += out[start + col];
-            if (row < H - 1) str += '\n';
-        }
-        return str;
-    }
-
-    function ascii3DFrame(now) {
-        const emptyEl = document.getElementById('ascii-empty-canvas');
-        const rankEl = document.getElementById('ascii-rank-canvas');
-        const emptyVis = emptyEl && emptyEl.offsetParent !== null;
-        const rankVis = rankEl && rankEl.offsetParent !== null;
-
-        if (!emptyVis && !rankVis) {
-            asciiAnimRunning = false;
-            return;
-        }
-
-        if (now - asciiLastFrameTime >= 42) {
-            asciiLastFrameTime = now;
-            asciiAngle += 0.048;
-
-            if (emptyVis) {
-                if (!asciiBookMesh) asciiBookMesh = buildAsciiBookMesh();
-                emptyEl.textContent = renderAsciiMesh(
-                    asciiBookMesh,
-                    asciiAngle,
-                    0.48 + Math.sin(asciiAngle * 0.5) * 0.14,
-                    44, 17, 48, 24
-                );
-            }
-            if (rankVis) {
-                if (!asciiCrystalMesh) asciiCrystalMesh = buildAsciiCrystalMesh();
-                rankEl.textContent = renderAsciiMesh(
-                    asciiCrystalMesh,
-                    asciiAngle * 0.9,
-                    0.22 + Math.sin(asciiAngle * 0.45) * 0.12,
-                    38, 15, 42, 21
-                );
-            }
-        }
-        requestAnimationFrame(ascii3DFrame);
-    }
-
-    function ensureAscii3DLoop() {
-        if (!asciiAnimRunning) {
-            asciiAnimRunning = true;
-            requestAnimationFrame(ascii3DFrame);
-        }
-    }
 
     window.executeHardReset = function() { 
         localStorage.clear(); 
