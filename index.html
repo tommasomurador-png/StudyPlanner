@@ -16,7 +16,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js?v=2.5.2').then(function(reg) {
+          navigator.serviceWorker.register('sw.js?v=2.5.4').then(function(reg) {
             reg.update();
             reg.onupdatefound = function() {
               const newWorker = reg.installing;
@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.5.3">
+    <link rel="stylesheet" href="css/style.css?v=2.5.4">
 </head>
 <body>
 
@@ -228,15 +228,12 @@
         <nav class="dock-navbar" id="dock-navbar">
             <div class="dock-item active" onclick="switchView('study', this)" id="nav-study" title="Studio">
                 <i class="fa-solid fa-book-open"></i>
-                <span class="dock-label">Studio</span>
             </div>
             <div class="dock-item" onclick="switchView('calendar', this)" id="nav-calendar" title="Calendario">
                 <i class="fa-regular fa-calendar-days"></i>
-                <span class="dock-label">Calendario</span>
             </div>
             <div class="dock-item" onclick="switchView('ranked', this)" id="nav-ranked" title="Progressi">
                 <i class="fa-solid fa-trophy"></i>
-                <span class="dock-label">Progressi</span>
             </div>
         </nav>
 
@@ -595,7 +592,7 @@
     </div>
     
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.5.3" defer></script>
+    <script src="js/app.js?v=2.5.4" defer></script>
 
 </body>
 </html>
