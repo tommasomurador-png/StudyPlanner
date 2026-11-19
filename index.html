@@ -33,7 +33,7 @@
       }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=2.5.2">
+    <link rel="stylesheet" href="css/style.css?v=2.5.3">
 </head>
 <body>
 
@@ -51,7 +51,6 @@
         <h1 class="user-title">Study Planner</h1>
         <div class="fab-group">
             <button class="fab-btn secondary" onclick="openBottomSheet('settings-sheet')" title="Impostazioni"><i class="fa-solid fa-gear"></i></button>
-            <button class="fab-btn" onclick="openChoiceModal()" title="Aggiungi"><i class="fa-solid fa-plus"></i></button>
         </div>
     </header>
 
@@ -119,28 +118,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- GRADES VIEW (REGISTRO VOTI) - Theme Aligned (Images 3 & 4) -->
-        <div id="grades-view" class="grades-view" style="display: none;">
-            <!-- Clean In-Theme Top Bar -->
-            <div class="grades-theme-top-bar" id="grades-theme-top-bar">
-                <div class="grades-theme-title-area">
-                    <button type="button" class="btn-grades-back" id="btn-grades-back" onclick="handleGradesBack()" title="Indietro" style="display: none;">
-                        <i class="fa-solid fa-chevron-left"></i>
-                    </button>
-                    <h2 class="grades-theme-title" id="grades-theme-title">Valutazioni</h2>
-                </div>
-                <button type="button" class="btn-new-grade-top" id="btn-new-grade-top" onclick="openAddGradeModal()" title="Nuovo Voto">
-                    <i class="fa-solid fa-plus"></i> Nuovo Voto
-                </button>
-            </div>
-
-            <!-- General / Subject Average Card -->
-            <div class="grades-card-container" id="grades-summary-card"></div>
-
-            <!-- Main Tab Content: Materie 2-col Grid or Grade Cards List -->
-            <div id="grades-tab-content" class="grades-tab-content"></div>
         </div>
 
         <!-- RANKED & STATS VIEW (Trophy Tab - All analytics & XP) -->
@@ -212,21 +189,60 @@
     </div>
 </div> <!-- /#app-container -->
 
+    <!-- Expandable Action Backdrop & Menu (Pinterest-Style Spring Animation) -->
+    <div class="dock-fab-backdrop" id="dock-fab-backdrop" onclick="closeFabMenu()"></div>
+
+    <div class="dock-fab-menu" id="dock-fab-menu" role="dialog" aria-label="Menu Aggiungi">
+        <div class="dock-fab-menu-inner">
+            <div class="dock-menu-header">
+                <span class="dock-menu-title">Aggiungi</span>
+            </div>
+            <div class="dock-menu-grid">
+                <button type="button" class="dock-menu-card" onclick="selectFabAction('todo')">
+                    <div class="dock-menu-icon todo">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </div>
+                    <div class="dock-menu-info">
+                        <span class="dock-menu-name">Nuovo Compito</span>
+                        <span class="dock-menu-desc">Esercizi o studio con scadenza</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right dock-menu-arrow"></i>
+                </button>
+
+                <button type="button" class="dock-menu-card" onclick="selectFabAction('exam')">
+                    <div class="dock-menu-icon exam">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <div class="dock-menu-info">
+                        <span class="dock-menu-name">Nuova Verifica</span>
+                        <span class="dock-menu-desc">Verifica o interrogazione</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right dock-menu-arrow"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Floating Navigation & Circular Action FAB (Dominik Tyka / X Video Inspired) -->
     <div class="bottom-dock-wrapper" id="bottom-dock-wrapper">
         <nav class="dock-navbar" id="dock-navbar">
             <div class="dock-item active" onclick="switchView('study', this)" id="nav-study" title="Studio">
                 <i class="fa-solid fa-book-open"></i>
+                <span class="dock-label">Studio</span>
             </div>
             <div class="dock-item" onclick="switchView('calendar', this)" id="nav-calendar" title="Calendario">
                 <i class="fa-regular fa-calendar-days"></i>
-            </div>
-            <div class="dock-item" onclick="switchView('grades', this)" id="nav-grades" title="Valutazioni">
-                <i class="fa-solid fa-graduation-cap"></i>
+                <span class="dock-label">Calendario</span>
             </div>
             <div class="dock-item" onclick="switchView('ranked', this)" id="nav-ranked" title="Progressi">
                 <i class="fa-solid fa-trophy"></i>
+                <span class="dock-label">Progressi</span>
             </div>
         </nav>
+
+        <button type="button" class="dock-fab-btn" id="dock-fab-btn" onclick="toggleFabMenu()" title="Aggiungi compito o verifica">
+            <i class="fa-solid fa-plus dock-fab-icon" id="dock-fab-icon"></i>
+        </button>
     </div>
 
     <!-- Modals & Sheets -->
@@ -578,28 +594,8 @@
         </div>
     </div>
     
-    <!-- MODAL AGGIUNGI VOTO -->
-    <div class="fullscreen-modal" id="add-grade-modal">
-        <div class="glass-panel">
-            <button class="btn-close-modal-top" onclick="closeModal('add-grade-modal')"><i class="fa-solid fa-xmark"></i></button>
-            <h3 style="margin-bottom: 22px; font-weight: 700; text-transform: uppercase;">Nuovo Voto</h3>
-
-            <div class="form-group" style="margin-bottom: 18px;">
-                <label>Materia</label>
-                <div id="grade-subject-popover-container"></div>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 24px;">
-                <label>Voto</label>
-                <div id="grade-value-popover-container"></div>
-            </div>
-
-            <button type="button" class="btn-submit" onclick="saveGradeFromModal()">Salva Voto</button>
-        </div>
-    </div>
-
     <canvas id="celebration-canvas" style="display: none; pointer-events: none;"></canvas>
-    <script src="js/app.js?v=2.5.2" defer></script>
+    <script src="js/app.js?v=2.5.3" defer></script>
 
 </body>
 </html>

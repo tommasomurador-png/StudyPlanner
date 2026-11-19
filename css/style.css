@@ -1049,181 +1049,8 @@
     to { transform: rotate(360deg); }
 }
 
-   REGISTRO VOTI (GRADEBOOK)
-   ========================================================================== */
-.grades-view {
-    padding-bottom: 120px;
-}
-.grades-header-card {
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 24px;
-    padding: 22px;
-    margin-bottom: 20px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.03);
-    position: relative;
-    overflow: hidden;
-}
-.grades-header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 16px;
-}
-.gpa-display {
-    display: flex;
-    flex-direction: column;
-}
-.gpa-label {
-    font-size: 0.76rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    letter-spacing: 0.5px;
-    margin-bottom: 4px;
-}
-.gpa-number-row {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-}
-.gpa-number {
-    font-size: 2.8rem;
-    font-weight: 800;
-    line-height: 1;
-    color: var(--theme-strong);
-    letter-spacing: -1px;
-}
-.gpa-badge {
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 700;
-}
-.gpa-badge.excellent { background: rgba(16, 185, 129, 0.16); color: #10B981; }
-.gpa-badge.good { background: rgba(59, 130, 246, 0.16); color: #3B82F6; }
-.gpa-badge.warning { background: rgba(245, 158, 11, 0.16); color: #D97706; }
-.gpa-badge.danger { background: rgba(239, 68, 68, 0.16); color: #EF4444; }
-
-.grades-stats-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-    padding-top: 14px;
-    border-top: 1px solid var(--border-color);
-}
-.grades-stat-item {
-    text-align: center;
-}
-.grades-stat-val {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--theme-strong);
-}
-.grades-stat-lbl {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.grades-actions-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-.grades-section-title {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--theme-strong);
-    margin: 0;
-}
-.btn-add-grade {
-    background: var(--theme-strong);
-    color: var(--bg-color);
-    border: none;
-    border-radius: 18px;
-    padding: 10px 16px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.1);
-    transition: opacity 0.2s;
-}
-.btn-add-grade:active { opacity: 0.85; }
-
-.subject-grade-card {
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    padding: 16px 18px;
-    margin-bottom: 12px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.02);
-    transition: transform 0.15s ease;
-}
-.subject-grade-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
-.subject-grade-name {
-    font-size: 0.98rem;
-    font-weight: 700;
-    color: var(--theme-strong);
-}
-.subject-grade-avg {
-    padding: 5px 12px;
-    border-radius: 12px;
-    font-size: 0.88rem;
-    font-weight: 800;
-}
-.subject-grade-avg.excellent { background: rgba(16, 185, 129, 0.16); color: #10B981; }
-.subject-grade-avg.good { background: rgba(59, 130, 246, 0.16); color: #3B82F6; }
-.subject-grade-avg.warning { background: rgba(245, 158, 11, 0.16); color: #D97706; }
-.subject-grade-avg.danger { background: rgba(239, 68, 68, 0.16); color: #EF4444; }
-
-.subject-grade-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-.grade-pill-item {
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 5px 9px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--theme-strong);
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    transition: all 0.15s ease;
-}
-.grade-pill-item:hover {
-    border-color: var(--theme-strong);
-}
-.grade-pill-type {
-    font-size: 0.68rem;
-    color: var(--text-muted);
-    font-weight: 600;
-}
-.grade-empty-msg {
-    text-align: center;
-    padding: 30px 20px;
-    color: var(--text-muted);
-    font-size: 0.9rem;
-}
-
-
 /* ==========================================================================
-   CURVED NOTCHED DOCK NAVBAR (Image 2 Specification - Pure Icons)
+   FLOATING DOCK NAVBAR & ACTION FAB (Dominik Tyka / X Video Inspired)
    ========================================================================== */
 .bottom-dock-wrapper {
     position: fixed;
@@ -1231,61 +1058,279 @@
     left: 50%;
     transform: translateX(-50%);
     z-index: 120;
-    width: fit-content;
-    pointer-events: auto !important;
-}
-
-.dock-navbar {
+    width: auto;
     display: flex;
     align-items: center;
-    background: #FFFFFF;
-    border: 1px solid var(--border-color);
-    border-radius: 40px;
-    padding: 8px 16px;
-    box-shadow: 0 14px 38px rgba(0, 0, 0, 0.08);
-    position: relative;
     gap: 12px;
     pointer-events: auto !important;
 }
-[data-theme="dark"] .dock-navbar {
-    background: #202020;
-    border-color: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 14px 38px rgba(0, 0, 0, 0.45);
-}
 
-.dock-item {
+/* Glass Capsule Navbar */
+.dock-navbar {
     display: flex;
     align-items: center;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 40px;
+    padding: 6px 10px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
+    gap: 6px;
+    pointer-events: auto !important;
+}
+
+[data-theme="dark"] .dock-navbar {
+    background: rgba(28, 28, 30, 0.88);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* Dock Items (Icon + Label stacked, Dominik Tyka style) */
+.dock-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: 24px;
+    min-width: 68px;
+    padding: 7px 14px 6px;
+    border-radius: 26px;
     color: var(--text-muted);
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
     user-select: none;
-    pointer-events: auto !important;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
 }
+
 .dock-item i {
-    font-size: 1.35rem;
+    font-size: 1.18rem;
     pointer-events: none;
-    transition: transform 0.2s ease, color 0.2s ease;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+    margin-bottom: 2px;
 }
+
+.dock-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    pointer-events: none;
+    transition: color 0.2s ease;
+    line-height: 1.1;
+}
+
+/* Active Tab Highlight Pill */
 .dock-item.active {
     color: var(--theme-strong);
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(0, 0, 0, 0.06);
 }
+
 [data-theme="dark"] .dock-item.active {
-    color: var(--theme-strong);
-    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.12);
 }
+
 .dock-item.active i {
-    transform: scale(1.15);
+    transform: scale(1.08);
 }
+
+.dock-item.active .dock-label {
+    font-weight: 700;
+}
+
 .dock-item:active {
-    transform: scale(0.9);
+    transform: scale(0.93);
+}
+
+/* Floating Circular Action FAB (Adjacent to dock) */
+.dock-fab-btn {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: var(--theme-strong);
+    color: var(--bg-color);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+    pointer-events: auto !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+}
+
+.dock-fab-btn:active {
+    transform: scale(0.92);
+}
+
+/* When the FAB menu is opened, rotate the plus to an 'X' */
+.dock-fab-btn.is-active {
+    transform: rotate(45deg);
+    background: var(--surface-color);
+    color: var(--theme-strong);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+.dock-fab-icon {
+    pointer-events: none;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ==========================================================================
+   EXPANDABLE ACTION MENU (Pinterest / Spring Animation Specification)
+   ========================================================================== */
+.dock-fab-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 118;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+
+.dock-fab-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.dock-fab-menu {
+    position: fixed;
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%) translateY(20px) scale(0.85);
+    transform-origin: bottom center;
+    z-index: 119;
+    width: min(340px, calc(100vw - 36px));
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 28px;
+    padding: 16px;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-theme="dark"] .dock-fab-menu {
+    background: #1E1E20;
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 24px 54px rgba(0, 0, 0, 0.6);
+}
+
+.dock-fab-menu.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.dock-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding: 0 4px;
+}
+
+.dock-menu-title {
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+
+.dock-menu-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dock-menu-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    cursor: pointer;
+    text-align: left;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s, border-color 0.2s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.dock-menu-card:active {
+    transform: scale(0.96);
+    background: var(--surface-color);
+    border-color: var(--theme-strong);
+}
+
+.dock-menu-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.dock-menu-icon.todo {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3B82F6;
+}
+
+.dock-menu-icon.exam {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10B981;
+}
+
+[data-theme="dark"] .dock-menu-icon.todo {
+    background: rgba(96, 165, 250, 0.18);
+    color: #93C5FD;
+}
+
+[data-theme="dark"] .dock-menu-icon.exam {
+    background: rgba(52, 211, 153, 0.18);
+    color: #6EE7B7;
+}
+
+.dock-menu-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.dock-menu-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.25;
+}
+
+.dock-menu-desc {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+.dock-menu-arrow {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    opacity: 0.6;
+    margin-right: 4px;
 }
 
 /* ==========================================================================
@@ -1319,9 +1364,7 @@
     0% { opacity: 0; transform: translateY(12px) scale(0.97); }
     100% { opacity: 1; transform: translateY(0) scale(1); }
 }
-.materia-card,
-.grade-item-row,
-.grades-media-card {
+.materia-card {
     animation: cardCascadeIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 .materia-card {
@@ -1343,313 +1386,8 @@
     transform: scale(0.93);
 }
 
-/* ==========================================================================
-   THEME-ALIGNED VALUTAZIONI / GRADES (Images 3 & 4 Specification)
-   ========================================================================== */
-.grades-view {
-    padding-bottom: 120px;
-}
-
-.grades-theme-top-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 18px;
-    padding-top: 4px;
-}
-.grades-theme-title-area {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.grades-theme-title {
-    font-size: 1.45rem;
-    font-weight: 800;
-    color: var(--theme-strong);
-    margin: 0;
-    letter-spacing: -0.5px;
-}
-.btn-grades-back {
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: transform 0.15s ease;
-}
-.btn-grades-back:active { transform: scale(0.92); }
-
-.btn-new-grade-top {
-    background: var(--theme-strong);
-    color: var(--bg-color);
-    border: none;
-    border-radius: 20px;
-    padding: 8px 16px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-    transition: transform 0.15s ease, opacity 0.15s ease;
-}
-.btn-new-grade-top:active {
-    transform: scale(0.94);
-    opacity: 0.9;
-}
-
-/* Summary Card in App Theme Colors */
-.grades-media-card {
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 22px;
-    padding: 18px 20px;
-    margin-bottom: 18px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.03);
-}
-.grades-media-card-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.grades-media-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--theme-strong);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-.grades-media-count {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    margin-top: 4px;
-}
-.grades-media-ring {
-    width: 58px;
-    height: 58px;
-    border-radius: 50%;
-    font-size: 1.4rem;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 3px solid #8E8E93;
-    color: var(--text-main);
-    background: rgba(142, 142, 147, 0.1);
-}
-.grades-media-card.good .grades-media-ring {
-    border-color: #10B981;
-    color: #10B981;
-    background: rgba(16, 185, 129, 0.12);
-}
-.grades-media-card.warning .grades-media-ring {
-    border-color: #F59E0B;
-    color: #F59E0B;
-    background: rgba(245, 158, 11, 0.12);
-}
-.grades-media-card.danger .grades-media-ring {
-    border-color: #EF4444;
-    color: #EF4444;
-    background: rgba(239, 68, 68, 0.12);
-}
-
-.grades-quadrimestri-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid var(--border-color);
-}
-.grades-q-pill {
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 14px;
-    padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-}
-.grades-q-pill-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--theme-strong);
-}
-.grades-q-pill-count {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    margin-top: 2px;
-}
-.grades-q-pill-val {
-    font-size: 1.2rem;
-    font-weight: 800;
-    color: var(--theme-strong);
-    margin-top: 4px;
-}
-
-/* Materie 2-Column Grid (Image 3) */
-.grades-materie-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-.materia-card {
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 18px;
-    padding: 14px 16px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    min-height: 108px;
-    cursor: pointer;
-    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.02);
-}
-.materia-card:active {
-    transform: scale(0.96);
-}
-.materia-card-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-}
-.materia-card-name {
-    font-size: 0.92rem;
-    font-weight: 700;
-    color: var(--theme-strong);
-    line-height: 1.25;
-}
-.materia-card-count {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    margin-top: 4px;
-}
-.materia-card-chevron {
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    opacity: 0.5;
-}
-.materia-avg-ring {
-    align-self: flex-start;
-    margin-top: 10px;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 2.5px solid #8E8E93;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.95rem;
-    font-weight: 800;
-}
-.materia-avg-ring.good {
-    border-color: #10B981;
-    color: #10B981;
-}
-.materia-avg-ring.warning {
-    border-color: #F59E0B;
-    color: #F59E0B;
-}
-.materia-avg-ring.danger {
-    border-color: #EF4444;
-    color: #EF4444;
-}
-
-/* Single Subject Grade Items List (Image 4) */
-.grades-list-container {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-.grade-item-row {
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
-    transition: transform 0.15s ease;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.02);
-}
-.grade-item-row:active {
-    transform: scale(0.98);
-}
-.grade-item-left {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-.grade-badge-num {
-    width: 44px;
-    height: 38px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.15rem;
-    font-weight: 800;
-    color: #FFFFFF;
-}
-.grade-badge-num.good { background: #10B981; }
-.grade-badge-num.warning { background: #F59E0B; }
-.grade-badge-num.danger { background: #EF4444; }
-
-.grade-item-info {
-    display: flex;
-    flex-direction: column;
-}
-.grade-item-sub-title {
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: var(--theme-strong);
-}
-.grade-item-meta {
-    font-size: 0.74rem;
-    color: var(--text-muted);
-    display: flex;
-    gap: 8px;
-    margin-top: 3px;
-    align-items: center;
-}
-.grade-item-chevron {
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    opacity: 0.5;
-}
-
-/* Empty State */
-.grades-empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    text-align: center;
-    color: var(--text-muted);
-}
-.grades-empty-icon {
-    margin-bottom: 16px;
-    opacity: 0.45;
-}
-.grades-empty-text {
-    font-size: 0.95rem;
-    font-weight: 500;
-}
-
-
 /* Touch and Pointer-Events Guarantees */
-#app-container, header, .content-wrapper, .dashboard-grid, .dash-widget, .week-slider, .exercise-card, .btn-new-grade-top, .fab-btn {
+#app-container, header, .content-wrapper, .dashboard-grid, .dash-widget, .week-slider, .exercise-card, .fab-btn {
     pointer-events: auto !important;
     touch-action: manipulation;
 }
